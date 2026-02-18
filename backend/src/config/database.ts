@@ -1,13 +1,18 @@
 import { Pool, QueryResult } from 'pg';
 import logger from '../utils/logger';
 
-const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'career_guidance',
-  password: String(process.env.DB_PASSWORD || ''),
-  port: 5432,
-});
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    })
+  : new Pool({
+      user: 'postgres',
+      host: 'localhost',
+      database: 'career_guidance',
+      password: String(process.env.DB_PASSWORD || ''),
+      port: 5432,
+    });
 
 export const query = async (
   text: string,
