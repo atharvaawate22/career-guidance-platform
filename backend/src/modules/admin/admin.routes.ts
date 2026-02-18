@@ -67,7 +67,7 @@ router.patch('/bookings/:id/status', authMiddleware, async (req, res, next) => {
       return;
     }
 
-    await bookingRepository.updateBookingStatus(id, status);
+    await bookingRepository.updateBookingStatus(String(id), status);
     res.json({
       success: true,
       message: 'Booking status updated',
@@ -80,7 +80,7 @@ router.patch('/bookings/:id/status', authMiddleware, async (req, res, next) => {
 router.delete('/bookings/:id', authMiddleware, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const deleted = await bookingRepository.deleteBooking(id);
+    const deleted = await bookingRepository.deleteBooking(String(id));
 
     if (!deleted) {
       res.status(404).json({

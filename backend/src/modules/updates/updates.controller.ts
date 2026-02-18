@@ -78,7 +78,7 @@ export class UpdatesController {
         return;
       }
 
-      const updatedUpdate = await updatesService.updateUpdate(id, {
+      const updatedUpdate = await updatesService.updateUpdate(String(id), {
         title,
         content,
         published_date,
@@ -112,7 +112,7 @@ export class UpdatesController {
     try {
       const { id } = req.params;
 
-      const deleted = await updatesService.deleteUpdate(id);
+      const deleted = await updatesService.deleteUpdate(String(id));
 
       if (!deleted) {
         res.status(404).json({
