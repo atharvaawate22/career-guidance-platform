@@ -195,6 +195,10 @@ async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
 
     const mailContent = formatEmailContent(booking);
 
+    // Verify connection before sending
+    await transporter.verify();
+    logger.info('SMTP connection verified successfully');
+
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: booking.email,
@@ -206,7 +210,12 @@ async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
     logger.info(`✓ Email sent successfully to ${booking.email} via SMTP`);
     return true;
   } catch (error) {
-    logger.error('Failed to send email via SMTP', error);
+    logger.error(`✗ SMTP email failed to ${booking.email}:`, {
+      message: (error as any)?.message,
+      code: (error as any)?.code,
+      response: (error as any)?.response,
+      responseCode: (error as any)?.responseCode,
+    });
     return false;
   }
 }
