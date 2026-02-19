@@ -26,6 +26,9 @@ export async function createBooking(
       bookingRequest.student_name,
       bookingRequest.email,
       meetingTime,
+      bookingRequest.percentile,
+      bookingRequest.category,
+      bookingRequest.branch_preference,
     );
 
     // Step 3: Insert booking record with meet_link

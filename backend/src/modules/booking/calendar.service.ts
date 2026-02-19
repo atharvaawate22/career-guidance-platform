@@ -40,6 +40,9 @@ export async function generateMeetLink(
   studentName: string,
   email: string,
   meetingTime: Date,
+  percentile?: number,
+  category?: string,
+  branchPreference?: string,
 ): Promise<string> {
   try {
     // Check if Google Calendar OAuth2 credentials are configured
@@ -58,7 +61,7 @@ export async function generateMeetLink(
     // Use Google Calendar API to create event with Meet link
     const event: CalendarEvent = {
       summary: `Career Guidance Consultation - ${studentName}`,
-      description: 'MHT CET admission guidance consultation',
+      description: `MHT CET admission guidance consultation\n\nStudent Details:\n- Name: ${studentName}\n- Percentile: ${percentile ?? 'N/A'}\n- Category: ${category ?? 'N/A'}\n- Branch Preference: ${branchPreference ?? 'N/A'}`,
       start: {
         dateTime: meetingTime.toISOString(),
         timeZone: 'Asia/Kolkata',
