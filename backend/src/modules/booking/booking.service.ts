@@ -43,8 +43,8 @@ export async function createBooking(
       meet_link: meetLink,
     });
 
-    // Step 4: Attempt email send (non-blocking)
-    const emailSent = await emailService.sendBookingConfirmation({
+    // Step 4: Send email in background (truly non-blocking - don't await)
+    emailService.sendBookingConfirmation({
       studentName: bookingRequest.student_name,
       email: bookingRequest.email,
       meetingTime: meetingTime,
@@ -52,17 +52,21 @@ export async function createBooking(
       category: bookingRequest.category,
       branchPreference: bookingRequest.branch_preference,
       percentile: bookingRequest.percentile,
+    }).then((emailSent) => {
+      const emailStatus = emailSent ? 'sent' : 'failed';
+      bookingRepository.updateEmailStatus(booking.id, emailStatus).catch((err) =>
+        logger.error('Failed to update email status', err)
+      );
+      if (!emailSent) {
+        logger.warn(`Booking ${booking.id} created but email failed to send`);
+      } else {
+        logger.info(`Email sent successfully for booking ${booking.id}`);
+      }
+    }).catch((err) => {
+      logger.error('Email sending error', err);
     });
 
-    // Step 5: Update email status
-    const emailStatus = emailSent ? 'sent' : 'failed';
-    await bookingRepository.updateEmailStatus(booking.id, emailStatus);
-
-    if (!emailSent) {
-      logger.info(`Booking ${booking.id} created but email failed to send`);
-    }
-
-    // Step 6: Return booking_id + meet_link
+    // Step 5: Return booking_id + meet_link immediately (don't wait for email)
     return {
       success: true,
       message: 'Booking created successfully',
