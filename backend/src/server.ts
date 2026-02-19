@@ -84,10 +84,21 @@ const initializeDatabase = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
         content TEXT NOT NULL,
-        published_date DATE NOT NULL,
+        published_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        edited_at TIMESTAMPTZ,
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+
+    // Add edited_at column if it doesn't exist (for existing tables)
+    await query(`
+      ALTER TABLE updates ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ
+    `);
+
+    // Alter published_date to TIMESTAMPTZ if it was DATE before
+    await query(`
+      ALTER TABLE updates ALTER COLUMN published_date TYPE TIMESTAMPTZ USING published_date::TIMESTAMPTZ
+    `).catch(() => {}); // ignore if already correct type
 
     // Create index on published_date
     await query(`
