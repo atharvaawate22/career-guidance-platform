@@ -16,6 +16,10 @@ process.on('unhandledRejection', (reason) => {
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:3000'];
 import bcrypt from 'bcrypt';
 import errorHandler from './middleware/errorHandler';
 import updatesRoutes from './modules/updates/updates.routes';
@@ -24,14 +28,36 @@ import adminRoutes from './modules/admin/admin.routes';
 import cutoffsRoutes from './modules/cutoffs/cutoffs.routes';
 import predictorRoutes from './modules/predictor/predictor.routes';
 import guidesRoutes from './modules/guides/guides.routes';
+import resourcesRoutes from './modules/resources/resources.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import { testConnection, query } from './config/database';
 import logger from './utils/logger';
 
 const app = express();
 
-app.use(express.json());
-app.use(cors());
+app.use(express.json({ limit: '50kb' }));
+app.use(
+  cors({
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Allow requests with no origin (e.g. server-to-server, curl)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      // Allow any trycloudflare.com tunnel (quick tunnels change URL each restart)
+      if (origin.endsWith('.trycloudflare.com')) {
+        callback(null, true);
+        return;
+      }
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin '${origin}' is not allowed`));
+      }
+    },
+    credentials: true,
+  }),
+);
 app.use(helmet());
 
 const PORT = process.env.PORT || 5000;
@@ -66,6 +92,7 @@ app.use('/api/updates', updatesRoutes);
 app.use('/api/cutoffs', cutoffsRoutes);
 app.use('/api/predict', predictorRoutes);
 app.use('/api/guides', guidesRoutes);
+app.use('/api/resources', resourcesRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -86,7 +113,7 @@ const initializeDatabase = async () => {
         content TEXT NOT NULL,
         published_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         edited_at TIMESTAMPTZ,
-        created_at TIMESTAMP DEFAULT NOW()
+        created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
 
@@ -122,15 +149,31 @@ const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS cutoff_data (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         year INTEGER NOT NULL,
+        college_code TEXT,
         college_name TEXT NOT NULL,
+        branch_code TEXT,
         branch TEXT NOT NULL,
         category TEXT NOT NULL,
         gender TEXT,
-        home_university TEXT NOT NULL,
-        percentile DECIMAL(5,2) NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
+        home_university TEXT NOT NULL DEFAULT 'All',
+        college_status TEXT,
+        stage TEXT,
+        level TEXT,
+        percentile DECIMAL(6,4) NOT NULL,
+        cutoff_rank INTEGER,
+        created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+
+    // Migrate existing tables — add new columns if missing
+    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_code TEXT`);
+    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS branch_code TEXT`);
+    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_status TEXT`);
+    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS stage TEXT`);
+    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS level TEXT`);
+    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS cutoff_rank INTEGER`);
+    // Make home_university nullable for rows where data is unknown
+    await query(`ALTER TABLE cutoff_data ALTER COLUMN home_university SET DEFAULT 'All'`).catch(() => {});
 
     // Create indexes for cutoff_data
     await query(`
@@ -179,6 +222,24 @@ const initializeDatabase = async () => {
     `);
     await query(`
       CREATE INDEX IF NOT EXISTS idx_guide_downloads_guide_id ON guide_downloads(guide_id)
+    `);
+
+    // Create resources table if not exists
+    await query(`
+      CREATE TABLE IF NOT EXISTS resources (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        file_url TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'Others',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Create index on resources category for filter queries
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category)
     `);
 
     // Create bookings table if not exists

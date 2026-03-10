@@ -56,7 +56,7 @@ export default function BookPage() {
           meeting_time: "",
         });
       } else {
-        setError(data.message || "Failed to create booking");
+        setError(data.error?.message || data.message || "Failed to create booking");
       }
     } catch {
       setError("Error connecting to server");
@@ -175,7 +175,7 @@ export default function BookPage() {
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
-            Book a Consultation
+            Book a Session
           </h1>
           <p className="text-gray-600 text-lg">
             Schedule a one-on-one career guidance session with our expert
@@ -277,10 +277,18 @@ export default function BookPage() {
                 >
                   <option value="">Select category</option>
                   <option value="OPEN">OPEN</option>
-                  <option value="OBC">OBC</option>
                   <option value="SC">SC</option>
                   <option value="ST">ST</option>
+                  <option value="VJ">VJ (Vimukta Jati)</option>
+                  <option value="NT1">NT1 (Nomadic Tribe 1)</option>
+                  <option value="NT2">NT2 (Nomadic Tribe 2)</option>
+                  <option value="NT3">NT3 (Nomadic Tribe 3)</option>
+                  <option value="OBC">OBC</option>
                   <option value="EWS">EWS</option>
+                  <option value="TFWS">TFWS (Tuition Fee Waiver)</option>
+                  <option value="DEF_OPEN">DEF OPEN (Defence)</option>
+                  <option value="DEF_OBC">DEF OBC (Defence OBC)</option>
+                  <option value="PWD_OPEN">PWD OPEN (Persons with Disability)</option>
                 </select>
               </div>
 
@@ -327,7 +335,7 @@ export default function BookPage() {
                 disabled={loading}
                 className="w-full bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-6 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Scheduling..." : "Book Consultation"}
+                {loading ? "Scheduling..." : "Book Session"}
               </button>
             </div>
           </form>

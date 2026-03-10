@@ -4,7 +4,8 @@ import { CutoffsController } from './cutoffs.controller';
 const router = Router();
 const cutoffsController = new CutoffsController();
 
-// Public route for getting cutoffs with filters
+// Public routes
+router.get('/meta', cutoffsController.getMeta.bind(cutoffsController));
 router.get('/', cutoffsController.getCutoffs.bind(cutoffsController));
 
 export default router;

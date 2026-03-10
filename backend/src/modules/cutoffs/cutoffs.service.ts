@@ -4,7 +4,7 @@ import { CutoffsRepository } from './cutoffs.repository';
 const cutoffsRepository = new CutoffsRepository();
 
 export class CutoffsService {
-  async getCutoffs(filters: CutoffFilters): Promise<CutoffData[]> {
+  async getCutoffs(filters: CutoffFilters): Promise<{ rows: CutoffData[]; total: number }> {
     // Validate year if provided
     if (filters.year !== undefined) {
       const year = Number(filters.year);
@@ -13,9 +13,6 @@ export class CutoffsService {
       }
       filters.year = year;
     }
-
-    // Validate percentile range if needed in future
-    // For now, just pass to repository
     return await cutoffsRepository.getCutoffs(filters);
   }
 

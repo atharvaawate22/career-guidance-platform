@@ -1,10 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
 import { CutoffsService } from './cutoffs.service';
 import { CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
+import { query } from '../../config/database';
 
 const cutoffsService = new CutoffsService();
 
 export class CutoffsController {
+  async getMeta(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const year = req.query.year ? Number(req.query.year) : null;
+      const where = year ? `WHERE year = $1` : ``;
+      const vals = year ? [year] : [];
+
+      const [colleges, branches] = await Promise.all([
+        query(
+          `SELECT DISTINCT college_name FROM cutoff_data ${where} ORDER BY college_name LIMIT 1000`,
+          vals,
+        ),
+        query(
+          `SELECT DISTINCT branch FROM cutoff_data ${where} ORDER BY branch LIMIT 500`,
+          vals,
+        ),
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          colleges: colleges.rows.map((r) => r.college_name),
+          branches: branches.rows.map((r) => r.branch),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
   async getCutoffs(
     req: Request,
     res: Response,
@@ -12,19 +41,24 @@ export class CutoffsController {
   ): Promise<void> {
     try {
       const filters: CutoffFilters = {
-        year: req.query.year ? Number(req.query.year) : undefined,
-        branch: req.query.branch as string,
-        category: req.query.category as string,
-        gender: req.query.gender as string,
-        home_university: req.query.home_university as string,
-        college_name: req.query.college_name as string,
+        year:           req.query.year         ? Number(req.query.year) : undefined,
+        branch:         req.query.branch        as string | undefined,
+        category:       req.query.category      as string | undefined,
+        gender:         req.query.gender        as string | undefined,
+        home_university: req.query.home_university as string | undefined,
+        college_name:   req.query.college_name  as string | undefined,
+        college_code:   req.query.college_code  as string | undefined,
+        branch_code:    req.query.branch_code   as string | undefined,
+        stage:          req.query.stage         as string | undefined,
+        level:          req.query.level         as string | undefined,
       };
 
-      const cutoffs = await cutoffsService.getCutoffs(filters);
+      const { rows, total } = await cutoffsService.getCutoffs(filters);
 
       res.json({
         success: true,
-        data: cutoffs,
+        data: rows,
+        total,
       });
     } catch (error) {
       next(error);

@@ -1,15 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-
-// Assume logger exists and is imported
 import logger from '../utils/logger';
 
 export default function errorHandler(
-  err: any,
+  err: Error | unknown,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ) {
-  logger.error(err);
+  const message = err instanceof Error ? err.message : 'Something went wrong';
+  logger.error(message, err instanceof Error ? undefined : err);
   res.status(500).json({
     success: false,
     error: {

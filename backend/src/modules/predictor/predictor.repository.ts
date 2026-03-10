@@ -6,67 +6,73 @@ export class PredictorRepository {
     filters: PredictorFilters,
   ): Promise<CollegeOption[]> {
     const conditions: string[] = [];
-    const values: any[] = [];
-    let paramCounter = 1;
+    const values: unknown[] = [];
+    let p = 1;
 
     // Year is mandatory
-    conditions.push(`year = $${paramCounter}`);
+    conditions.push(`year = $${p++}`);
     values.push(filters.year);
-    paramCounter++;
 
-    // Optional category filter
+    // Default to Stage I (CAP Round 1) so we get opening cutoffs
+    conditions.push(`stage = $${p++}`);
+    values.push('I');
+
+    // Optional category
     if (filters.category) {
-      conditions.push(`category = $${paramCounter}`);
+      conditions.push(`category = $${p++}`);
       values.push(filters.category);
-      paramCounter++;
     }
 
-    // Optional gender filter
+    // Optional gender — if not specified, return 'All' gender rows
+    // (avoids duplicating entries for Male/Female-only seats)
     if (filters.gender) {
-      conditions.push(`gender = $${paramCounter}`);
+      conditions.push(`gender = $${p++}`);
       values.push(filters.gender);
-      paramCounter++;
+    } else {
+      conditions.push(`gender = $${p++}`);
+      values.push('All');
     }
 
-    // Optional home_university filter
-    if (filters.home_university) {
-      conditions.push(`home_university = $${paramCounter}`);
-      values.push(filters.home_university);
-      paramCounter++;
+    // Optional seat level (State Level / Home University Level)
+    if (filters.level) {
+      conditions.push(`level = $${p++}`);
+      values.push(filters.level);
     }
 
-    // Optional preferred_branches filter
+    // Optional preferred_branches (OR across branches)
     if (filters.preferred_branches && filters.preferred_branches.length > 0) {
-      const branchConditions = filters.preferred_branches.map((_, index) => {
-        const placeholder = `$${paramCounter + index}`;
-        return `branch ILIKE ${placeholder}`;
+      const branchConditions = filters.preferred_branches.map((_, idx) => {
+        return `branch ILIKE $${p + idx}`;
       });
       conditions.push(`(${branchConditions.join(' OR ')})`);
-      
-      filters.preferred_branches.forEach((branch) => {
-        values.push(`%${branch}%`);
-        paramCounter++;
+      filters.preferred_branches.forEach((b) => {
+        values.push(`%${b}%`);
+        p++;
       });
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const sql = `
-      SELECT 
-        id, 
-        college_name, 
-        branch, 
-        category, 
-        gender, 
-        home_university, 
-        percentile as cutoff_percentile,
+      SELECT
+        id,
+        college_code,
+        college_name,
+        branch,
+        category,
+        gender,
+        level,
+        stage,
+        cutoff_rank,
+        percentile AS cutoff_percentile,
         year
       FROM cutoff_data
       ${whereClause}
       ORDER BY percentile DESC
+      LIMIT 1000
     `;
 
     const result = await query(sql, values);
-    return result.rows;
+    return result.rows as CollegeOption[];
   }
 }

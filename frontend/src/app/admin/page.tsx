@@ -27,7 +27,7 @@ interface Booking {
   created_at: string;
 }
 
-type TabType = "dashboard" | "updates" | "bookings";
+type TabType = "dashboard" | "updates" | "bookings" | "resources";
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -54,6 +54,35 @@ export default function AdminPage() {
   const [bookingError, setBookingError] = useState("");
   const [bookingSuccess, setBookingSuccess] = useState("");
 
+  // Resources state
+  interface Resource {
+    id: string;
+    title: string;
+    description: string;
+    file_url: string;
+    category: string;
+    is_active: boolean;
+    created_at: string;
+  }
+  const RESOURCE_CATEGORIES = [
+    "Seat Matrix",
+    "Previous Year Cutoffs",
+    "Government Circulars",
+    "Exam Guidelines",
+    "Others",
+  ];
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(false);
+  const [resourceError, setResourceError] = useState("");
+  const [resourceSuccess, setResourceSuccess] = useState("");
+  const [resourceForm, setResourceForm] = useState({
+    title: "",
+    description: "",
+    file_url: "",
+    category: "Seat Matrix",
+  });
+  const [resourceSubmitting, setResourceSubmitting] = useState(false);
+
   // Fetch data when logged in
   useEffect(() => {
     // Check localStorage for existing admin session
@@ -68,6 +97,7 @@ export default function AdminPage() {
     if (isLoggedIn && token) {
       fetchUpdates();
       fetchBookings();
+      fetchResources();
     }
   }, [isLoggedIn, token]);
 
@@ -143,8 +173,9 @@ export default function AdminPage() {
         setPassword("");
         // Store token in localStorage for persistence
         localStorage.setItem("adminToken", adminToken);
-        // Trigger storage event for sidebar update
+        // Notify sidebar of auth change (same tab + cross-tab)
         window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new Event("adminAuthChange"));
       } else {
         setLoginError(data.message || "Login failed");
       }
@@ -300,6 +331,94 @@ export default function AdminPage() {
     }
   };
 
+  const fetchResources = async () => {
+    try {
+      setResourcesLoading(true);
+      const response = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/resources`);
+      const data = await response.json();
+      if (data.success) setResources(data.data);
+    } catch (error) {
+      console.error("Failed to fetch resources:", error);
+    } finally {
+      setResourcesLoading(false);
+    }
+  };
+
+  const handleCreateResource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResourceError("");
+    setResourceSuccess("");
+    setResourceSubmitting(true);
+    try {
+      const response = await fetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/resources`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(resourceForm),
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setResourceSuccess("Resource created successfully!");
+        setResourceForm({ title: "", description: "", file_url: "", category: "Seat Matrix" });
+        fetchResources();
+      } else {
+        setResourceError(data.error?.message || "Failed to create resource");
+      }
+    } catch {
+      setResourceError("Failed to connect to server");
+    } finally {
+      setResourceSubmitting(false);
+    }
+  };
+
+  const handleDeleteResource = async (id: string) => {
+    if (!confirm("Delete this resource?")) return;
+    try {
+      const response = await fetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/resources/${id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setResourceSuccess("Resource deleted.");
+        fetchResources();
+      } else {
+        setResourceError(data.error?.message || "Failed to delete resource");
+      }
+    } catch {
+      setResourceError("Failed to connect to server");
+    }
+  };
+
+  const handleToggleResource = async (id: string, current: boolean) => {
+    try {
+      const response = await fetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/resources/${id}/toggle`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ is_active: !current }),
+        }
+      );
+      const data = await response.json();
+      if (data.success) fetchResources();
+      else setResourceError(data.error?.message || "Failed to update resource");
+    } catch {
+      setResourceError("Failed to connect to server");
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-linear-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center p-4">
@@ -395,8 +514,9 @@ export default function AdminPage() {
                 setActiveTab("dashboard");
                 // Clear localStorage
                 localStorage.removeItem("adminToken");
-                // Trigger storage event for sidebar update
+                // Notify sidebar of auth change (same tab + cross-tab)
                 window.dispatchEvent(new Event("storage"));
+                window.dispatchEvent(new Event("adminAuthChange"));
               }}
               className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
             >
@@ -452,6 +572,16 @@ export default function AdminPage() {
               }`}
             >
               📅 Bookings
+            </button>
+            <button
+              onClick={() => setActiveTab("resources")}
+              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+                activeTab === "resources"
+                  ? "border-purple-500 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+              }`}
+            >
+              📄 Resources
             </button>
           </nav>
         </div>
@@ -844,6 +974,156 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Resources Tab */}
+        {activeTab === "resources" && (
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-gray-900">Manage Resources</h2>
+
+            {/* Create resource form */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-xl font-semibold text-gray-800 mb-5">Add New Resource</h3>
+              {resourceError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  {resourceError}
+                </div>
+              )}
+              {resourceSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+                  {resourceSuccess}
+                </div>
+              )}
+              <form onSubmit={handleCreateResource} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={resourceForm.title}
+                      onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g. MHT CET 2024 Seat Matrix"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={resourceForm.category}
+                      onChange={(e) => setResourceForm({ ...resourceForm, category: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      {RESOURCE_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={2}
+                    value={resourceForm.description}
+                    onChange={(e) => setResourceForm({ ...resourceForm, description: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    placeholder="Brief description of this resource"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    PDF URL <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={resourceForm.file_url}
+                    onChange={(e) => setResourceForm({ ...resourceForm, file_url: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="https://"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={resourceSubmitting}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                >
+                  {resourceSubmitting ? "Adding..." : "Add Resource"}
+                </button>
+              </form>
+            </div>
+
+            {/* Resource list */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  All Resources ({resources.length})
+                </h3>
+              </div>
+              {resourcesLoading ? (
+                <div className="p-8 text-center text-gray-500">Loading...</div>
+              ) : resources.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">No resources added yet.</div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {resources.map((r) => (
+                    <div key={r.id} className="p-5 flex items-start justify-between gap-4 hover:bg-gray-50">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-gray-800 truncate">{r.title}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                            r.is_active
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : "bg-gray-100 text-gray-500 border-gray-200"
+                          }`}>
+                            {r.is_active ? "Active" : "Inactive"}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
+                            {r.category}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 truncate">{r.description}</p>
+                        <a
+                          href={r.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-purple-600 hover:underline truncate block mt-1"
+                        >
+                          {r.file_url}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleToggleResource(r.id, r.is_active)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                            r.is_active
+                              ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                              : "bg-green-100 text-green-700 hover:bg-green-200"
+                          }`}
+                        >
+                          {r.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteResource(r.id)}
+                          className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

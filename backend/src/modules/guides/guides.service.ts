@@ -13,6 +13,17 @@ export async function getActiveGuides(): Promise<Guide[]> {
 export async function downloadGuide(
   downloadRequest: GuideDownloadRequest,
 ): Promise<GuideDownloadResponse> {
+  // Validate required fields
+  if (!downloadRequest.guide_id || !downloadRequest.name?.trim()) {
+    return {
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Guide ID and name are required',
+      },
+    };
+  }
+
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(downloadRequest.email)) {

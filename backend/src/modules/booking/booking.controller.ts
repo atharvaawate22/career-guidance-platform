@@ -21,7 +21,15 @@ export async function createBooking(
     const result = await bookingService.createBooking(bookingRequest);
 
     if (!result.success) {
-      res.status(400).json(result);
+      const code = result.error?.code;
+      // Distinguish between client validation errors and server-side failures
+      const status =
+        code === 'VALIDATION_ERROR'
+          ? 400
+          : code === 'CALENDAR_ERROR'
+            ? 503
+            : 500;
+      res.status(status).json(result);
       return;
     }
 

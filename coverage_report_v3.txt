@@ -1,0 +1,43 @@
+Scanning PDF headings...
+  PDF colleges with branches: 319
+Reading v3 CSV...
+  Total rows: 14,793
+  CSV colleges: 324
+
+====================================================================
+COVERAGE REPORT v3  (2022ENGG_CAP1_CutOff.pdf vs cutoffs_2022_v3.csv)
+====================================================================
+  Colleges fully correct     : 311
+  Colleges partially missing : 8
+  Colleges entirely missing  : 0
+  Total PDF colleges         : 319
+
+--------------------------------------------------------------------
+PARTIAL COVERAGE:
+--------------------------------------------------------------------
+  [2111] Everest Education Society, Group of Institutions (Integrated Campus), Ohar
+    MISSING: ['Civil Engineering', 'Mechanical Engineering']
+    HAVE   : ['Computer Science and Engineering', 'Electrical Engineering']
+  [4648] R.V. Parankar College of Engineering & Technology, Arvi, Dist Wardha
+    MISSING: ['Civil Engineering']
+    HAVE   : ['Computer Science and Engineering', 'Electrical Engineering', 'Information Technology', 'Mechanical Engineering']
+  [5003] University Institute of Chemical Technology, North Maharashtra University, Jalgaon
+    MISSING: ['Plastic Technology']
+    HAVE   : ['Chemical Engineering', 'Food Technology', 'Oil Fats and Waxes Technology', 'Paints Technology']
+  [5411] Maulana Mukhtar Ahmad Nadvi Technical Campus, Malegaon.
+    MISSING: ['Mechanical Engineering']
+    HAVE   : ['Civil Engineering', 'Computer Engineering', 'Electrical Engineering', 'Electronics and Telecommunication Engg']
+  [6144] Genba Sopanrao Moze College of Engineering, Baner-Balewadi, Pune
+    MISSING: ['Civil Engineering']
+    HAVE   : ['Artificial Intelligence and Data Science', 'Artificial Intelligence and Machine Learning', 'Computer Engineering', 'Electronics and Telecommunication Engg', 'Information Technology', 'Mechanical Engineering']
+  [6318] Abhinav Education Society's College of Engineering and Technology (Degree), Wadwadi
+    MISSING: ['Electrical Engineering']
+    HAVE   : ['Computer Science and Engineering', 'Mechanical Engineering']
+  [6320] K.J.'s Educational Institute's K.J.College of Engineering & Management Research, Pisoli
+    MISSING: ['Civil Engineering']
+    HAVE   : ['Computer Engineering', 'Electrical Engineering', 'Electronics and Telecommunication Engg', 'Mechanical Engineering']
+  [6625] Universal College of Engineering & Research, Sasewadi
+    MISSING: ['Civil Engineering']
+    HAVE   : ['Computer Engineering', 'Electrical Engineering', 'Mechanical Engineering']
+
+====================================================================

@@ -8,7 +8,6 @@ import {
 const predictorRepository = new PredictorRepository();
 
 const SAFE_BUFFER = 3;
-const TARGET_MARGIN = 2;
 
 export class PredictorService {
   async predictColleges(
@@ -33,7 +32,7 @@ export class PredictorService {
       year: request.year,
       category: request.category,
       gender: request.gender,
-      home_university: request.home_university,
+      level: request.level,
       preferred_branches: request.preferred_branches,
     });
 

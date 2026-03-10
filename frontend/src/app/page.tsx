@@ -21,14 +21,6 @@ const features: FeatureCard[] = [
     color: "from-blue-500 to-cyan-500",
   },
   {
-    title: "Book Counseling",
-    description:
-      "Schedule personalized one-on-one sessions with experienced career counselors",
-    icon: "📅",
-    href: "/book",
-    color: "from-green-500 to-emerald-500",
-  },
-  {
     title: "College Cutoffs",
     description:
       "Access comprehensive cutoff data and trends for various colleges and branches",
@@ -37,16 +29,32 @@ const features: FeatureCard[] = [
     color: "from-purple-500 to-pink-500",
   },
   {
-    title: "Career Guides",
+    title: "Admission Guides",
     description:
-      "Explore detailed guides covering career paths, courses, and opportunities",
+      "Explore detailed guides covering career paths, courses, and admission strategies",
     icon: "📚",
     href: "/guides",
     color: "from-orange-500 to-red-500",
   },
   {
+    title: "Resources",
+    description:
+      "Download seat matrices, government circulars, previous year cutoffs, and more",
+    icon: "📄",
+    href: "/resources",
+    color: "from-teal-500 to-green-500",
+  },
+  {
+    title: "Book a Session",
+    description:
+      "Schedule personalized one-on-one sessions with experienced career counselors",
+    icon: "📅",
+    href: "/book",
+    color: "from-green-500 to-emerald-500",
+  },
+  {
     title: "Latest Updates",
-    description: "Stay informed with timely notifications and admission news",
+    description: "Stay informed with the latest MHT-CET news, notifications, and important dates",
     icon: "📰",
     href: "/updates",
     color: "from-rose-500 to-pink-500",
@@ -155,56 +163,97 @@ export default function Home() {
                 </span>
               </Link>
               <Link
-                href="/book"
+                href="/cutoffs"
                 className="px-8 py-4 bg-white text-purple-600 border-2 border-purple-200 rounded-xl font-semibold hover:bg-purple-50 hover:border-purple-300 transition-all shadow-lg"
               >
-                Book Counseling
+                View Cutoffs
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="group relative overflow-hidden text-center p-8 bg-white/80 backdrop-blur-sm border border-purple-100 rounded-2xl shadow-lg hover:shadow-2xl transition-all hover:scale-105">
-              <div className="absolute inset-0 bg-linear-to-br from-purple-500/5 to-pink-500/5 group-hover:from-purple-500/10 group-hover:to-pink-500/10 transition-all"></div>
-              <div className="relative">
-                <div className="text-5xl font-extrabold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-                  500+
+      {/* How it Works Section - Premium Timeline Version */}
+      <section className="py-24 bg-white relative overflow-hidden">
+        {/* Abstract background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-50/50 rounded-full blur-3xl -z-10" />
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
+            <h2 className="text-sm font-bold tracking-[0.2em] text-purple-600 uppercase mb-4">
+              The Process
+            </h2>
+            <h3 className="text-4xl md:text-5xl font-black text-gray-900">
+              How it works
+            </h3>
+          </div>
+
+          <div className="relative">
+            {/* The Main Vertical Line */}
+            <div className="absolute left-[27px] md:left-1/2 top-0 bottom-0 w-1 bg-linear-to-b from-purple-500 via-pink-500 to-indigo-500 rounded-full opacity-20 hidden md:block" />
+            
+            {/* Steps */}
+            <div className="space-y-16">
+              
+              {/* Step 1 */}
+              <div className="relative flex flex-col md:flex-row items-center justify-between group">
+                <div className="md:w-[45%] mb-8 md:mb-0 text-left md:text-right order-2 md:order-1">
+                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">Enter your details</h4>
+                  <p className="text-gray-600 leading-relaxed">
+                    Simply provide your MHT-CET percentile and category. Our system handles all 13 reservation categories for pinpoint accuracy.
+                  </p>
                 </div>
-                <div className="text-gray-700 font-semibold text-lg">
-                  Engineering Colleges
+                
+                {/* Center Circle */}
+                <div className="absolute left-0 md:left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-purple-500 rounded-2xl flex items-center justify-center text-xl shadow-xl z-10 group-hover:scale-110 transition-transform order-1 md:order-2">
+                  🎯
+                  <span className="absolute -top-8 text-xs font-black text-purple-400 opacity-50">STEP 01</span>
+                </div>
+
+                <div className="md:w-[45%] order-3 hidden md:block" />
+              </div>
+
+              {/* Step 2 */}
+              <div className="relative flex flex-col md:flex-row items-center justify-between group">
+                <div className="md:w-[45%] order-1 hidden md:block" />
+                
+                {/* Center Circle */}
+                <div className="absolute left-0 md:left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-pink-500 rounded-2xl flex items-center justify-center text-xl shadow-xl z-10 group-hover:scale-110 transition-transform order-1 md:order-2">
+                  📊
+                  <span className="absolute -top-8 text-xs font-black text-pink-400 opacity-50">STEP 02</span>
+                </div>
+
+                <div className="md:w-[45%] mb-8 md:mb-0 text-left order-2 md:order-3">
+                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-pink-600 transition-colors">Explore predictions</h4>
+                  <p className="text-gray-600 leading-relaxed">
+                    Instantly see your Safe, Target, and Dream options. Powered by <span className="font-bold text-purple-600">14,793 actual records</span> from the 2022 CAP Round.
+                  </p>
                 </div>
               </div>
-            </div>
-            <div className="group relative overflow-hidden text-center p-8 bg-white/80 backdrop-blur-sm border border-blue-100 rounded-2xl shadow-lg hover:shadow-2xl transition-all hover:scale-105">
-              <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-cyan-500/5 group-hover:from-blue-500/10 group-hover:to-cyan-500/10 transition-all"></div>
-              <div className="relative">
-                <div className="text-5xl font-extrabold bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-3">
-                  10,000+
+
+              {/* Step 3 */}
+              <div className="relative flex flex-col md:flex-row items-center justify-between group">
+                <div className="md:w-[45%] mb-8 md:mb-0 text-left md:text-right order-2 md:order-1">
+                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">Finalise Your List</h4>
+                  <p className="text-gray-600 leading-relaxed">
+                    Still have doubts? <span className="underline decoration-indigo-200 underline-offset-4">Book a session</span> with our experts to finalize your college preferences.
+                  </p>
                 </div>
-                <div className="text-gray-700 font-semibold text-lg">
-                  Students Guided
+                
+                {/* Center Circle */}
+                <div className="absolute left-0 md:left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-indigo-500 rounded-2xl flex items-center justify-center text-xl shadow-xl z-10 group-hover:scale-110 transition-transform order-1 md:order-2">
+                  📅
+                  <span className="absolute -top-8 text-xs font-black text-indigo-400 opacity-50">STEP 03</span>
                 </div>
+
+                <div className="md:w-[45%] order-3 hidden md:block" />
               </div>
-            </div>
-            <div className="group relative overflow-hidden text-center p-8 bg-white/80 backdrop-blur-sm border border-green-100 rounded-2xl shadow-lg hover:shadow-2xl transition-all hover:scale-105">
-              <div className="absolute inset-0 bg-linear-to-br from-green-500/5 to-emerald-500/5 group-hover:from-green-500/10 group-hover:to-emerald-500/10 transition-all"></div>
-              <div className="relative">
-                <div className="text-5xl font-extrabold bg-linear-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-3">
-                  95%
-                </div>
-                <div className="text-gray-700 font-semibold text-lg">
-                  Success Rate
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Features Section */}
       <section className="py-20 relative">

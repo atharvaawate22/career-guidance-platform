@@ -1,56 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface CutoffData {
   id: string;
   year: number;
+  college_code: string | null;
   college_name: string;
+  branch_code: string | null;
   branch: string;
   category: string;
   gender: string | null;
-  home_university: string;
+  college_status: string | null;
+  stage: string | null;
+  level: string | null;
   percentile: number;
+  cutoff_rank: number | null;
 }
+
+const CATEGORIES = [
+  "OPEN", "SC", "ST", "VJ", "NT1", "NT2", "NT3", "OBC",
+  "EWS", "TFWS", "DEF_OPEN", "DEF_OBC", "PWD_OPEN",
+];
+
+const LEVELS = ["State Level", "Home University Level", "Other Than Home University Level"];
 
 export default function CutoffsPage() {
   const [cutoffs, setCutoffs] = useState<CutoffData[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Filter state
-  const [year, setYear] = useState("");
+  // Filter state — declared BEFORE the useEffect that depends on 'year'
+  const [year, setYear] = useState("2022");
+  const [collegeName, setCollegeName] = useState("");
   const [branch, setBranch] = useState("");
   const [category, setCategory] = useState("");
-  const [homeUniversity, setHomeUniversity] = useState("");
-  const [collegeName, setCollegeName] = useState("");
+  const [gender, setGender] = useState("");
+  const [level, setLevel] = useState("");
+  const [stage, setStage] = useState("");
 
-  // Validation handlers
-  const handleBranchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow letters, spaces, hyphens, and ampersands
-    const cleaned = e.target.value.replace(/[^a-zA-Z\\s&-]/g, "");
-    setBranch(cleaned);
-  };
+  // Autocomplete state
+  const [collegeOptions, setCollegeOptions] = useState<string[]>([]);
+  const [branchOptions, setBranchOptions] = useState<string[]>([]);
 
-  const handleCollegeNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow letters, spaces, hyphens, dots, and parentheses
-    const cleaned = e.target.value.replace(/[^a-zA-Z\\s.()-]/g, "");
-    setCollegeName(cleaned);
-  };
+  // Fetch meta suggestions whenever year changes
+  useEffect(() => {
+    const fetchMeta = async () => {
+      try {
+        const params = year ? `?year=${year}` : "";
+        const res = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta${params}`);
+        const data = await res.json();
+        if (data.success) {
+          setCollegeOptions(data.data.colleges);
+          setBranchOptions(data.data.branches);
+        }
+      } catch {
+        // silently ignore
+      }
+    };
+    fetchMeta();
+  }, [year]);
 
   const handleSearch = async () => {
     setLoading(true);
     setError("");
+    setHasSearched(true);
 
     try {
       const params = new URLSearchParams();
-      if (year) params.append("year", year);
-      if (branch) params.append("branch", branch);
-      if (category) params.append("category", category);
-      if (homeUniversity) params.append("home_university", homeUniversity);
+      if (year)       params.append("year", year);
+      if (branch)     params.append("branch", branch);
+      if (category)   params.append("category", category);
+      if (gender)     params.append("gender", gender);
       if (collegeName) params.append("college_name", collegeName);
+      if (level)      params.append("level", level);
+      if (stage)      params.append("stage", stage);
 
       const response = await fetch(
         `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs?${params.toString()}`
@@ -59,6 +87,7 @@ export default function CutoffsPage() {
 
       if (data.success) {
         setCutoffs(data.data);
+        setTotal(data.total);
       } else {
         setError("Failed to fetch cutoffs");
       }
@@ -70,238 +99,213 @@ export default function CutoffsPage() {
   };
 
   const handleReset = () => {
-    setYear("");
+    setYear("2022");
     setBranch("");
     setCategory("");
-    setHomeUniversity("");
+    setGender("");
     setCollegeName("");
+    setLevel("");
+    setStage("");
     setCutoffs([]);
+    setTotal(null);
     setError("");
+    setHasSearched(false);
+  };
+
+  const categoryColor = (cat: string) => {
+    const map: Record<string, string> = {
+      OPEN: "bg-blue-100 text-blue-700",
+      SC: "bg-green-100 text-green-700",
+      ST: "bg-orange-100 text-orange-700",
+      OBC: "bg-yellow-100 text-yellow-700",
+      EWS: "bg-teal-100 text-teal-700",
+      TFWS: "bg-purple-100 text-purple-700",
+    };
+    return map[cat] ?? "bg-gray-100 text-gray-700";
   };
 
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Hero Header */}
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
             Cutoff Explorer
           </h1>
           <p className="text-gray-600 text-lg">
-            Search and explore historical cutoff data for engineering colleges
+            Search historical MHT-CET cutoff data — ranks and percentiles by college, branch &amp; category
           </p>
         </div>
 
-        {/* Filters Section */}
+        {/* Filters */}
         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">Filters</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            {/* Year */}
             <div>
-              <label
-                htmlFor="year"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Year
-              </label>
-              <select
-                id="year"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">All Years</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-                <option value="2022">2022</option>
+              <label htmlFor="year" className="block mb-2 text-sm font-medium text-gray-700">Year</label>
+              <select id="year" value={year} onChange={(e) => setYear(e.target.value)}
+                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                <option value="2022">2022 (CAP Round 1)</option>
               </select>
+              <p className="text-xs text-gray-400 mt-1">More years coming soon</p>
             </div>
 
+            {/* College Name */}
             <div>
-              <label
-                htmlFor="branch"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Branch
-              </label>
-              <input
-                type="text"
-                id="branch"
-                value={branch}
-                onChange={handleBranchChange}
+              <label htmlFor="collegeName" className="block mb-2 text-sm font-medium text-gray-700">College Name</label>
+              <input type="text" id="collegeName" value={collegeName} list="college-list"
+                onChange={(e) => setCollegeName(e.target.value)}
+                placeholder="e.g., VJTI, COEP, Government College..."
+                maxLength={200}
+                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+              <datalist id="college-list">
+                {collegeOptions.map((c) => <option key={c} value={c} />)}
+              </datalist>
+            </div>
+
+            {/* Branch */}
+            <div>
+              <label htmlFor="branch" className="block mb-2 text-sm font-medium text-gray-700">Branch</label>
+              <input type="text" id="branch" value={branch} list="branch-list"
+                onChange={(e) => setBranch(e.target.value)}
                 placeholder="e.g., Computer Engineering"
                 maxLength={100}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
+                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+              <datalist id="branch-list">
+                {branchOptions.map((b) => <option key={b} value={b} />)}
+              </datalist>
             </div>
 
+            {/* Category */}
             <div>
-              <label
-                htmlFor="category"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Category
-              </label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
+              <label htmlFor="category" className="block mb-2 text-sm font-medium text-gray-700">Category</label>
+              <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 <option value="">All Categories</option>
-                <option value="OPEN">OPEN</option>
-                <option value="OBC">OBC</option>
-                <option value="SC">SC</option>
-                <option value="ST">ST</option>
-                <option value="EWS">EWS</option>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
+            {/* Gender */}
             <div>
-              <label
-                htmlFor="homeUniversity"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Home University
-              </label>
-              <select
-                id="homeUniversity"
-                value={homeUniversity}
-                onChange={(e) => setHomeUniversity(e.target.value)}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">All</option>
-                <option value="MU">Mumbai University</option>
-                <option value="PU">Pune University</option>
-                <option value="OU">Other University</option>
+              <label htmlFor="gender" className="block mb-2 text-sm font-medium text-gray-700">Gender</label>
+              <select id="gender" value={gender} onChange={(e) => setGender(e.target.value)}
+                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                <option value="">Any</option>
+                <option value="All">All (General seats)</option>
+                <option value="Female">Female (Ladies seats)</option>
               </select>
             </div>
 
+            {/* Level */}
             <div>
-              <label
-                htmlFor="collegeName"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                College Name
-              </label>
-              <input
-                type="text"
-                id="collegeName"
-                value={collegeName}
-                onChange={handleCollegeNameChange}
-                placeholder="e.g., VJTI"
-                maxLength={200}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
+              <label htmlFor="level" className="block mb-2 text-sm font-medium text-gray-700">Seat Level</label>
+              <select id="level" value={level} onChange={(e) => setLevel(e.target.value)}
+                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                <option value="">All Levels</option>
+                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
             </div>
           </div>
 
           <div className="flex gap-4">
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="px-6 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
-            >
+            <button onClick={handleSearch} disabled={loading}
+              className="px-6 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg">
               {loading ? "Searching..." : "Search"}
             </button>
-            <button
-              onClick={handleReset}
-              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
-            >
+            <button onClick={handleReset}
+              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors">
               Reset
             </button>
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-8">
-            {error}
-          </div>
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-8">{error}</div>
         )}
 
-        {/* Results Section */}
+        {/* Results */}
         {loading ? (
           <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
-            <div className="text-xl text-gray-700 font-medium">
-              Loading cutoffs...
-            </div>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
+            <div className="text-xl text-gray-700 font-medium">Loading cutoffs...</div>
+          </div>
+        ) : !hasSearched ? (
+          <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200">
+            <div className="text-5xl mb-4">🔍</div>
+            <div className="text-xl text-gray-600 font-medium">Set your filters and click Search</div>
+            <div className="text-gray-500 mt-2 text-sm">14,793 cutoff records available for 2022 CAP Round 1</div>
           </div>
         ) : cutoffs.length === 0 ? (
           <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200">
-            <div className="text-xl text-gray-600">
-              No cutoff data found. Try adjusting your filters or click Search
-              to view all data.
-            </div>
+            <div className="text-5xl mb-4">📭</div>
+            <div className="text-xl text-gray-600">No results found. Try different filters.</div>
           </div>
         ) : (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+            {/* Result summary bar */}
+            <div className="px-5 py-3 bg-linear-to-r from-purple-50 to-pink-50 flex items-center justify-between border-b border-gray-200">
+              <span className="text-sm font-medium text-gray-700">
+                Showing <strong>{cutoffs.length}</strong> of <strong>{total?.toLocaleString()}</strong> results
+              </span>
+              {total !== null && total > 500 && (
+                <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200">
+                  ⚠ Showing first 500 — add more filters to narrow results
+                </span>
+              )}
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-linear-to-r from-purple-50 to-pink-50">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      Year
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      College
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      Branch
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      Category
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      Home Univ.
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      Gender
-                    </th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                      Percentile
-                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Year</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">College</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Branch</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Category</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Gender</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Level</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Stage</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Rank</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Percentile</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {cutoffs.map((cutoff) => (
-                    <tr
-                      key={cutoff.id}
-                      className="border-t border-gray-200 hover:bg-purple-50/50 transition-colors"
-                    >
-                      <td className="px-4 py-3 text-gray-800 font-medium">
-                        {cutoff.year}
+                  {cutoffs.map((c) => (
+                    <tr key={c.id} className="border-t border-gray-100 hover:bg-purple-50/40 transition-colors">
+                      <td className="px-4 py-3 text-gray-800 font-medium">{c.year}</td>
+                      <td className="px-4 py-3 text-gray-800 font-medium max-w-[220px]">
+                        <div className="truncate" title={c.college_name}>{c.college_name}</div>
+                        {c.college_code && (
+                          <div className="text-xs text-gray-400">Code: {c.college_code}</div>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-gray-800 font-medium">
-                        {cutoff.college_name}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">
-                        {cutoff.branch}
+                      <td className="px-4 py-3 text-gray-700 max-w-[180px]">
+                        <div className="truncate" title={c.branch}>{c.branch}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                          {cutoff.category}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${categoryColor(c.category)}`}>
+                          {c.category}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
-                        {cutoff.home_university}
+                      <td className="px-4 py-3 text-gray-600 text-xs">{c.gender || "—"}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs max-w-[140px]">
+                        <div className="truncate" title={c.level || ""}>{c.level || "—"}</div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
-                        {cutoff.gender || "N/A"}
+                      <td className="px-4 py-3 text-gray-600">{c.stage || "—"}</td>
+                      <td className="px-4 py-3 text-right font-mono text-gray-800">
+                        {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-purple-600">
-                        {Number(cutoff.percentile).toFixed(2)}
+                        {Number(c.percentile).toFixed(4)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            <div className="px-4 py-3 bg-linear-to-r from-purple-50 to-pink-50 text-sm text-gray-600 font-medium">
-              Showing {cutoffs.length} result{cutoffs.length !== 1 ? "s" : ""}
             </div>
           </div>
         )}

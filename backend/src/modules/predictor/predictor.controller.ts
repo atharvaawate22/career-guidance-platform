@@ -43,17 +43,22 @@ export class PredictorController {
         data: predictions,
       });
     } catch (error) {
-      if (error instanceof Error) {
+      // Only service-level validation errors should return 400
+      if (
+        error instanceof Error &&
+        (error.message.includes('Percentile must be between') ||
+          error.message.includes('Invalid year'))
+      ) {
         res.status(400).json({
           success: false,
           error: {
-            code: 'PREDICTION_ERROR',
+            code: 'VALIDATION_ERROR',
             message: error.message,
           },
         });
-      } else {
-        next(error);
+        return;
       }
+      next(error);
     }
   }
 }

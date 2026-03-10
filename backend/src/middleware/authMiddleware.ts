@@ -46,12 +46,23 @@ export const authMiddleware = (
 
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'TOKEN_EXPIRED',
+          message: 'Token has expired. Please log in again.',
+        },
+      });
+      return;
+    }
+
     if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({
         success: false,
         error: {
           code: 'INVALID_TOKEN',
-          message: 'Invalid or expired token',
+          message: 'Invalid token',
         },
       });
       return;

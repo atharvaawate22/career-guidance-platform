@@ -69,7 +69,7 @@ export default function GuidesPage() {
   // Validation handlers for download form
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow letters, spaces, hyphens, and apostrophes
-    const cleaned = e.target.value.replace(/[^a-zA-Z\\s'-]/g, "");
+    const cleaned = e.target.value.replace(/[^a-zA-Z\s'-]/g, "");
     setDownloadForm({ ...downloadForm, name: cleaned });
   };
 
@@ -115,9 +115,9 @@ export default function GuidesPage() {
 
       const data = await response.json();
 
-      if (data.success && data.file_url) {
+      if (data.success && (data.data?.file_url || data.file_url)) {
         // Open the file URL in a new tab
-        window.open(data.file_url, "_blank");
+        window.open(data.data?.file_url || data.file_url, "_blank");
         handleCloseModal();
       } else {
         setDownloadError(data.message || "Failed to process download");

@@ -25,12 +25,6 @@ const navItems: NavItem[] = [
     description: "College predictions",
   },
   {
-    name: "Book Session",
-    href: "/book",
-    icon: "📅",
-    description: "Career counseling",
-  },
-  {
     name: "Cutoffs",
     href: "/cutoffs",
     icon: "📊",
@@ -40,7 +34,19 @@ const navItems: NavItem[] = [
     name: "Guides",
     href: "/guides",
     icon: "📚",
-    description: "Career guides",
+    description: "Admission guides",
+  },
+  {
+    name: "Resources",
+    href: "/resources",
+    icon: "📄",
+    description: "PDFs & documents",
+  },
+  {
+    name: "Book Session",
+    href: "/book",
+    icon: "📅",
+    description: "Career counseling",
   },
   {
     name: "Updates",
@@ -67,15 +73,14 @@ export default function Sidebar() {
 
     checkAdminStatus();
 
-    // Listen for storage changes (login/logout events)
+    // Listen for storage changes (cross-tab login/logout events)
     window.addEventListener("storage", checkAdminStatus);
-
-    // Also check periodically in case of same-tab updates
-    const interval = setInterval(checkAdminStatus, 1000);
+    // Listen for same-tab login/logout events via custom event
+    window.addEventListener("adminAuthChange", checkAdminStatus);
 
     return () => {
       window.removeEventListener("storage", checkAdminStatus);
-      clearInterval(interval);
+      window.removeEventListener("adminAuthChange", checkAdminStatus);
     };
   }, []);
 
