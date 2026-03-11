@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import CustomSelect from "@/components/CustomSelect";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -364,7 +365,12 @@ export default function AdminPage() {
       const data = await response.json();
       if (data.success) {
         setResourceSuccess("Resource created successfully!");
-        setResourceForm({ title: "", description: "", file_url: "", category: "Seat Matrix" });
+        setResourceForm({
+          title: "",
+          description: "",
+          file_url: "",
+          category: "Seat Matrix",
+        });
         fetchResources();
       } else {
         setResourceError(data.error?.message || "Failed to create resource");
@@ -983,11 +989,15 @@ export default function AdminPage() {
         {/* Resources Tab */}
         {activeTab === "resources" && (
           <div className="space-y-8">
-            <h2 className="text-3xl font-bold text-gray-900">Manage Resources</h2>
+            <h2 className="text-3xl font-bold text-gray-900">
+              Manage Resources
+            </h2>
 
             {/* Create resource form */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-gray-800 mb-5">Add New Resource</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-5">
+                Add New Resource
+              </h3>
               {resourceError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
                   {resourceError}
@@ -1008,7 +1018,12 @@ export default function AdminPage() {
                       type="text"
                       required
                       value={resourceForm.title}
-                      onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
+                      onChange={(e) =>
+                        setResourceForm({
+                          ...resourceForm,
+                          title: e.target.value,
+                        })
+                      }
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       placeholder="e.g. MHT CET 2024 Seat Matrix"
                     />
@@ -1017,16 +1032,18 @@ export default function AdminPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Category <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      required
+                    <CustomSelect
                       value={resourceForm.category}
-                      onChange={(e) => setResourceForm({ ...resourceForm, category: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      {RESOURCE_CATEGORIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
+                      onChange={(v) =>
+                        setResourceForm({ ...resourceForm, category: v })
+                      }
+                      required
+                      inputSize="sm"
+                      options={RESOURCE_CATEGORIES.map((c) => ({
+                        value: c,
+                        label: c,
+                      }))}
+                    />
                   </div>
                 </div>
                 <div>
@@ -1037,7 +1054,12 @@ export default function AdminPage() {
                     required
                     rows={2}
                     value={resourceForm.description}
-                    onChange={(e) => setResourceForm({ ...resourceForm, description: e.target.value })}
+                    onChange={(e) =>
+                      setResourceForm({
+                        ...resourceForm,
+                        description: e.target.value,
+                      })
+                    }
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     placeholder="Brief description of this resource"
                   />
@@ -1050,7 +1072,12 @@ export default function AdminPage() {
                     type="url"
                     required
                     value={resourceForm.file_url}
-                    onChange={(e) => setResourceForm({ ...resourceForm, file_url: e.target.value })}
+                    onChange={(e) =>
+                      setResourceForm({
+                        ...resourceForm,
+                        file_url: e.target.value,
+                      })
+                    }
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="https://"
                   />
@@ -1075,26 +1102,37 @@ export default function AdminPage() {
               {resourcesLoading ? (
                 <div className="p-8 text-center text-gray-500">Loading...</div>
               ) : resources.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">No resources added yet.</div>
+                <div className="p-8 text-center text-gray-400">
+                  No resources added yet.
+                </div>
               ) : (
                 <div className="divide-y divide-gray-100">
                   {resources.map((r) => (
-                    <div key={r.id} className="p-5 flex items-start justify-between gap-4 hover:bg-gray-50">
+                    <div
+                      key={r.id}
+                      className="p-5 flex items-start justify-between gap-4 hover:bg-gray-50"
+                    >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-gray-800 truncate">{r.title}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-                            r.is_active
-                              ? "bg-green-100 text-green-700 border-green-200"
-                              : "bg-gray-100 text-gray-500 border-gray-200"
-                          }`}>
+                          <span className="font-semibold text-gray-800 truncate">
+                            {r.title}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                              r.is_active
+                                ? "bg-green-100 text-green-700 border-green-200"
+                                : "bg-gray-100 text-gray-500 border-gray-200"
+                            }`}
+                          >
                             {r.is_active ? "Active" : "Inactive"}
                           </span>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
                             {r.category}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">{r.description}</p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {r.description}
+                        </p>
                         <a
                           href={r.file_url}
                           target="_blank"
@@ -1106,7 +1144,9 @@ export default function AdminPage() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => handleToggleResource(r.id, r.is_active)}
+                          onClick={() =>
+                            handleToggleResource(r.id, r.is_active)
+                          }
                           className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                             r.is_active
                               ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
