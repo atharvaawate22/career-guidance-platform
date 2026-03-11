@@ -17,9 +17,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:3000'];
+const normalizeOrigin = (value: string) => value.trim().replace(/\/+$/, '');
+const frontendOrigins = (
+  process.env.FRONTEND_URL || 'https://career-guidance-platform-gilt.vercel.app'
+)
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+const allowedOrigins = Array.from(new Set(['http://localhost:3000', ...frontendOrigins]));
 import bcrypt from 'bcrypt';
 import errorHandler from './middleware/errorHandler';
 import updatesRoutes from './modules/updates/updates.routes';
@@ -44,15 +49,11 @@ app.use(
         callback(null, true);
         return;
       }
-      // Allow any trycloudflare.com tunnel (quick tunnels change URL each restart)
-      if (origin.endsWith('.trycloudflare.com')) {
-        callback(null, true);
-        return;
-      }
-      if (allowedOrigins.includes(origin)) {
+      const requestOrigin = normalizeOrigin(origin);
+      if (allowedOrigins.includes(requestOrigin)) {
         callback(null, true);
       } else {
-        callback(new Error(`CORS: origin '${origin}' is not allowed`));
+        callback(new Error(`CORS: origin '${requestOrigin}' is not allowed`));
       }
     },
     credentials: true,
@@ -82,8 +83,8 @@ app.get('/', (_req, res) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({
+    status: 'ok',
     success: true,
-    message: 'Server is running',
   });
 });
 

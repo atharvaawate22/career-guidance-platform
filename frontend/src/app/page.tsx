@@ -68,7 +68,8 @@ export default function Home() {
 
   useEffect(() => {
     const checkBackendHealth = async () => {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const apiBaseUrl =
+        process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
 
       if (!apiBaseUrl) {
         setBackendStatus("disconnected");
@@ -76,10 +77,12 @@ export default function Home() {
       }
 
       try {
-        const response = await fetch(`${apiBaseUrl}/api/health`);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || apiBaseUrl}/api/health`,
+        );
         if (response.ok) {
           const data = await response.json();
-          if (data.success) {
+          if (data.status === "ok" || data.success) {
             setBackendStatus("connected");
           } else {
             setBackendStatus("disconnected");
