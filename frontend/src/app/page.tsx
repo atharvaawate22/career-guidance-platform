@@ -179,7 +179,7 @@ export default function Home() {
       {/* How it Works Section - Premium Timeline Version */}
       <section className="py-24 bg-white relative overflow-hidden">
         {/* Abstract background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-50/50 rounded-full blur-3xl -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-purple-50/50 rounded-full blur-3xl -z-10" />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
@@ -193,7 +193,7 @@ export default function Home() {
 
           <div className="relative">
             {/* The Main Vertical Line */}
-            <div className="absolute left-[27px] md:left-1/2 top-0 bottom-0 w-1 bg-linear-to-b from-purple-500 via-pink-500 to-indigo-500 rounded-full opacity-20 hidden md:block" />
+            <div className="absolute left-6.75 md:left-1/2 top-0 bottom-0 w-1 bg-linear-to-b from-purple-500 via-pink-500 to-indigo-500 rounded-full opacity-20 hidden md:block" />
             
             {/* Steps */}
             <div className="space-y-16">
