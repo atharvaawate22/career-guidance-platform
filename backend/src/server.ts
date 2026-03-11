@@ -82,10 +82,7 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    success: true,
-  });
+  res.json({ status: 'ok' });
 });
 
 // Register module routes
@@ -101,7 +98,7 @@ app.use('/api/admin', adminRoutes);
 // Register error handler after all routes
 app.use(errorHandler);
 
-const initializeDatabase = async () => {
+const initializeDatabase = async (): Promise<boolean> => {
   try {
     // Test database connection
     await testConnection();
@@ -323,17 +320,24 @@ const initializeDatabase = async () => {
         'Skipping admin user creation (ADMIN_EMAIL and ADMIN_PASSWORD not set)',
       );
     }
+    return true;
   } catch (error) {
     logger.error('Database initialization failed', error);
-    process.exit(1);
+    logger.error(
+      'Continuing startup without database initialization. Set DATABASE_URL (or local DB settings) to enable DB-backed routes.',
+    );
+    return false;
   }
 };
 
 const startServer = async () => {
-  await initializeDatabase();
+  const dbReady = await initializeDatabase();
 
   app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
+    if (!dbReady) {
+      logger.info('Server started in degraded mode: database is not ready');
+    }
   });
 };
 
