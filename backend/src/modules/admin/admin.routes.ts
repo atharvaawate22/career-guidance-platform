@@ -207,6 +207,17 @@ router.post(
         return;
       }
 
+      // Whitelist allowed file extensions
+      const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+      const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx'];
+      if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Only PDF and Word documents (.pdf, .doc, .docx) are allowed' },
+        });
+        return;
+      }
+
       const supabaseUrl = process.env.SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -233,7 +244,7 @@ router.post(
           Authorization: `Bearer ${serviceRoleKey}`,
           'Content-Type': String(contentType),
         },
-        body: req.body as Buffer,
+        body: req.body as Buffer as unknown as BodyInit,
       });
 
       if (!uploadRes.ok) {

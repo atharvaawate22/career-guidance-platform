@@ -4,8 +4,12 @@ const logger = {
   info(message: string) {
     console.log(`[${getTimestamp()}] [INFO] ${message}`);
   },
-  warn(message: string) {
-    console.warn(`[${getTimestamp()}] [WARN] ${message}`);
+  warn(message: string, meta?: unknown) {
+    if (meta) {
+      console.warn(`[${getTimestamp()}] [WARN] ${message}`, meta);
+    } else {
+      console.warn(`[${getTimestamp()}] [WARN] ${message}`);
+    }
   },
   error(message: string, meta?: unknown) {
     if (meta) {

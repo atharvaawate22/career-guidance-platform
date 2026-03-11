@@ -92,14 +92,13 @@ export async function generateMeetLink(
 
     if (!meetLink) {
       logger.warn(
-        'Calendar event created but no Meet link found in response',
-        JSON.stringify({ hangoutLink: response.hangoutLink, conferenceData: response.conferenceData }),
+        `Calendar event created but no Meet link found in response: ${JSON.stringify({ hangoutLink: response.hangoutLink, conferenceData: response.conferenceData })}`,
       );
       throw new Error('Failed to generate hangout link');
     }
     return meetLink;
   } catch (error) {
-    logger.warn('Google Calendar API failed, using mock meet link', { message: (error as Error)?.message });
+    logger.warn(`Google Calendar API failed, using mock meet link: ${(error as Error)?.message}`);
     const meetingId = generateMockMeetingId();
     return `https://meet.google.com/${meetingId}`;
   }
