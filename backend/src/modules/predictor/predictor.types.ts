@@ -5,6 +5,7 @@ export interface PredictorRequest {
   gender?: string;
   level?: string;              // 'State Level' | 'Home University Level' | 'Other Than Home University Level'
   preferred_branches?: string[];
+  cities?: string[];
 }
 
 export interface CollegeOption {
@@ -33,4 +34,5 @@ export interface PredictorFilters {
   gender?: string;
   level?: string;
   preferred_branches?: string[];
+  cities?: string[];
 }

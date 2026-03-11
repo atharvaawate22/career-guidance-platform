@@ -27,6 +27,7 @@ export interface CutoffFilters {
   branch_code?: string;
   stage?: string;
   level?: string;
+  cities?: string[];
 }
 
 export interface BulkCutoffInsert {

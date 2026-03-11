@@ -54,7 +54,8 @@ const features: FeatureCard[] = [
   },
   {
     title: "Latest Updates",
-    description: "Stay informed with the latest MHT-CET news, notifications, and important dates",
+    description:
+      "Stay informed with the latest MHT-CET news, notifications, and important dates",
     icon: "📰",
     href: "/updates",
     color: "from-rose-500 to-pink-500",
@@ -78,7 +79,7 @@ export default function Home() {
 
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || apiBaseUrl}/api/health`,
+          `${process.env.NEXT_PUBLIC_API_URL || apiBaseUrl}/api/health`
         );
         if (response.ok) {
           const data = await response.json();
@@ -194,23 +195,28 @@ export default function Home() {
           <div className="relative">
             {/* The Main Vertical Line */}
             <div className="absolute left-6.75 md:left-1/2 top-0 bottom-0 w-1 bg-linear-to-b from-purple-500 via-pink-500 to-indigo-500 rounded-full opacity-20 hidden md:block" />
-            
+
             {/* Steps */}
             <div className="space-y-16">
-              
               {/* Step 1 */}
               <div className="relative flex flex-col md:flex-row items-center justify-between group">
                 <div className="md:w-[45%] mb-8 md:mb-0 text-left md:text-right order-2 md:order-1">
-                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">Enter your details</h4>
+                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">
+                    Enter your details
+                  </h4>
                   <p className="text-gray-600 leading-relaxed">
-                    Simply provide your MHT-CET percentile and category. Our system handles all 13 reservation categories for pinpoint accuracy.
+                    Simply provide your MHT-CET percentile and category. Our
+                    system handles all 13 reservation categories for pinpoint
+                    accuracy.
                   </p>
                 </div>
-                
+
                 {/* Center Circle */}
                 <div className="absolute left-0 md:left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-purple-500 rounded-2xl flex items-center justify-center text-xl shadow-xl z-10 group-hover:scale-110 transition-transform order-1 md:order-2">
                   🎯
-                  <span className="absolute -top-8 text-xs font-black text-purple-400 opacity-50">STEP 01</span>
+                  <span className="absolute -top-8 text-xs font-black text-purple-400 opacity-50">
+                    STEP 01
+                  </span>
                 </div>
 
                 <div className="md:w-[45%] order-3 hidden md:block" />
@@ -219,17 +225,26 @@ export default function Home() {
               {/* Step 2 */}
               <div className="relative flex flex-col md:flex-row items-center justify-between group">
                 <div className="md:w-[45%] order-1 hidden md:block" />
-                
+
                 {/* Center Circle */}
                 <div className="absolute left-0 md:left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-pink-500 rounded-2xl flex items-center justify-center text-xl shadow-xl z-10 group-hover:scale-110 transition-transform order-1 md:order-2">
                   📊
-                  <span className="absolute -top-8 text-xs font-black text-pink-400 opacity-50">STEP 02</span>
+                  <span className="absolute -top-8 text-xs font-black text-pink-400 opacity-50">
+                    STEP 02
+                  </span>
                 </div>
 
                 <div className="md:w-[45%] mb-8 md:mb-0 text-left order-2 md:order-3">
-                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-pink-600 transition-colors">Explore predictions</h4>
+                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-pink-600 transition-colors">
+                    Explore predictions
+                  </h4>
                   <p className="text-gray-600 leading-relaxed">
-                    Instantly see your Safe, Target, and Dream options. Powered by <span className="font-bold text-purple-600">14,793 actual records</span> from the 2022 CAP Round.
+                    Instantly see your Safe, Target, and Dream options. Powered
+                    by{" "}
+                    <span className="font-bold text-purple-600">
+                      14,793 actual records
+                    </span>{" "}
+                    from the 2022 CAP Round.
                   </p>
                 </div>
               </div>
@@ -237,26 +252,32 @@ export default function Home() {
               {/* Step 3 */}
               <div className="relative flex flex-col md:flex-row items-center justify-between group">
                 <div className="md:w-[45%] mb-8 md:mb-0 text-left md:text-right order-2 md:order-1">
-                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">Finalise Your List</h4>
+                  <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
+                    Finalise Your List
+                  </h4>
                   <p className="text-gray-600 leading-relaxed">
-                    Still have doubts? <span className="underline decoration-indigo-200 underline-offset-4">Book a session</span> with our experts to finalize your college preferences.
+                    Still have doubts?{" "}
+                    <span className="underline decoration-indigo-200 underline-offset-4">
+                      Book a session
+                    </span>{" "}
+                    with our experts to finalize your college preferences.
                   </p>
                 </div>
-                
+
                 {/* Center Circle */}
                 <div className="absolute left-0 md:left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-indigo-500 rounded-2xl flex items-center justify-center text-xl shadow-xl z-10 group-hover:scale-110 transition-transform order-1 md:order-2">
                   📅
-                  <span className="absolute -top-8 text-xs font-black text-indigo-400 opacity-50">STEP 03</span>
+                  <span className="absolute -top-8 text-xs font-black text-indigo-400 opacity-50">
+                    STEP 03
+                  </span>
                 </div>
 
                 <div className="md:w-[45%] order-3 hidden md:block" />
               </div>
-
             </div>
           </div>
         </div>
       </section>
-
 
       {/* Features Section */}
       <section className="py-20 relative">

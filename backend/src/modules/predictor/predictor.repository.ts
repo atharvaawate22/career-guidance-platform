@@ -51,6 +51,13 @@ export class PredictorRepository {
       });
     }
 
+    // Optional cities filter (OR across selected cities)
+    if (filters.cities && filters.cities.length > 0) {
+      const cityConditions = filters.cities.map(() => `college_name ILIKE $${p++}`);
+      conditions.push(`(${cityConditions.join(' OR ')})`);
+      filters.cities.forEach((c) => values.push(`%, ${c}`));
+    }
+
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const sql = `

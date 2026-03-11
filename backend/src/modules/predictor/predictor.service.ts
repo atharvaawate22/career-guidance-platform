@@ -34,6 +34,7 @@ export class PredictorService {
       gender: request.gender,
       level: request.level,
       preferred_branches: request.preferred_branches,
+      cities: request.cities,
     });
 
     // Classify colleges based on student percentile

@@ -63,9 +63,11 @@ export default function PredictorPage() {
   const [gender, setGender] = useState("All");
   const [level, setLevel] = useState("State Level");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   // Branch autocomplete
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
   useEffect(() => {
     const load = async () => {
       try {
@@ -73,7 +75,10 @@ export default function PredictorPage() {
           `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta?year=${year}`
         );
         const d = await res.json();
-        if (d.success) setBranchOptions(d.data.branches);
+        if (d.success) {
+          setBranchOptions(d.data.branches);
+          setCityOptions(d.data.cities ?? []);
+        }
       } catch {
         /* ignore */
       }
@@ -103,6 +108,8 @@ export default function PredictorPage() {
       };
       if (preferred_branches.length > 0)
         body.preferred_branches = preferred_branches;
+      if (selectedCities.length > 0)
+        body.cities = selectedCities;
 
       const res = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/predict`, {
         method: "POST",
@@ -400,6 +407,23 @@ export default function PredictorPage() {
                   Select one or more. Leave blank for all branches.
                 </p>
               </div>
+
+              {/* Preferred Cities */}
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Preferred Cities (Optional)
+                </label>
+                <MultiSelect
+                  id="cities"
+                  value={selectedCities}
+                  onChange={setSelectedCities}
+                  options={cityOptions}
+                  placeholder="Filter by city (e.g. Pune, Mumbai, Nagpur)..."
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Select one or more. Leave blank for all cities.
+                </p>
+              </div>
             </div>
 
             {error && (
@@ -424,6 +448,7 @@ export default function PredictorPage() {
                   setGender("All");
                   setLevel("State Level");
                   setSelectedBranches([]);
+                  setSelectedCities([]);
                   setResults(null);
                   setError("");
                 }}

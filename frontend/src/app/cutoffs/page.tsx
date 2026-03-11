@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
+import MultiSelect from "@/components/MultiSelect";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -59,10 +60,12 @@ export default function CutoffsPage() {
   const [gender, setGender] = useState("");
   const [level, setLevel] = useState("");
   const [stage, setStage] = useState("");
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   // Autocomplete state
   const [collegeOptions, setCollegeOptions] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
 
   // Fetch meta suggestions whenever year changes
   useEffect(() => {
@@ -76,6 +79,7 @@ export default function CutoffsPage() {
         if (data.success) {
           setCollegeOptions(data.data.colleges);
           setBranchOptions(data.data.branches);
+          setCityOptions(data.data.cities ?? []);
         }
       } catch {
         // silently ignore
@@ -98,6 +102,7 @@ export default function CutoffsPage() {
       if (collegeName) params.append("college_name", collegeName);
       if (level) params.append("level", level);
       if (stage) params.append("stage", stage);
+      selectedCities.forEach((c) => params.append("city", c));
 
       const response = await fetch(
         `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs?${params.toString()}`
@@ -125,6 +130,7 @@ export default function CutoffsPage() {
     setCollegeName("");
     setLevel("");
     setStage("");
+    setSelectedCities([]);
     setCutoffs([]);
     setTotal(null);
     setError("");
@@ -274,6 +280,19 @@ export default function CutoffsPage() {
                 ]}
               />
             </div>
+          </div>
+
+          {/* City filter — spans full width */}
+          <div className="mb-4">
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              City / Location
+            </label>
+            <MultiSelect
+              value={selectedCities}
+              onChange={setSelectedCities}
+              options={cityOptions}
+              placeholder="Filter by city (e.g. Pune, Mumbai, Nagpur)..."
+            />
           </div>
 
           <div className="flex gap-4">
