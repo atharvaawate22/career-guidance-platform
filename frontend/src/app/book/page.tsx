@@ -1,12 +1,56 @@
 "use client";
 
 import { useState } from "react";
+import CustomSelect from "@/components/CustomSelect";
+
+const TIME_SLOTS = [
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+];
+
+const COUNTRY_CODES = [
+  { code: "+91", flag: "🇮🇳", name: "India" },
+  { code: "+1",  flag: "🇺🇸", name: "USA" },
+  { code: "+44", flag: "🇬🇧", name: "UK" },
+  { code: "+61", flag: "🇦🇺", name: "Australia" },
+  { code: "+971", flag: "🇦🇪", name: "UAE" },
+  { code: "+65", flag: "🇸🇬", name: "Singapore" },
+  { code: "+60", flag: "🇲🇾", name: "Malaysia" },
+  { code: "+49", flag: "🇩🇪", name: "Germany" },
+  { code: "+33", flag: "🇫🇷", name: "France" },
+  { code: "+81", flag: "🇯🇵", name: "Japan" },
+];
+
+function formatTimeLabel(time: string) {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const display = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${display}:${m.toString().padStart(2, "0")} ${period}`;
+}
 
 export default function BookPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState(false);
   const [meetLink, setMeetLink] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -55,8 +99,12 @@ export default function BookPage() {
           branch_preference: "",
           meeting_time: "",
         });
+        setSelectedDate("");
+        setSelectedTime("");
       } else {
-        setError(data.error?.message || data.message || "Failed to create booking");
+        setError(
+          data.error?.message || data.message || "Failed to create booking"
+        );
       }
     } catch {
       setError("Error connecting to server");
@@ -103,6 +151,30 @@ export default function BookPage() {
       ...formData,
       [name]: value,
     });
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const date = e.target.value;
+    setSelectedDate(date);
+    if (selectedTime) {
+      setFormData({
+        ...formData,
+        meeting_time: `${date}T${selectedTime}:00+05:30`,
+      });
+    } else {
+      setFormData({ ...formData, meeting_time: "" });
+    }
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const time = e.target.value;
+    setSelectedTime(time);
+    if (selectedDate) {
+      setFormData({
+        ...formData,
+        meeting_time: `${selectedDate}T${time}:00+05:30`,
+      });
+    }
   };
 
   if (success && meetLink) {
@@ -229,18 +301,26 @@ export default function BookPage() {
                 <label className="block text-gray-700 font-medium mb-2">
                   Phone <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  required
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  pattern="[0-9]{10}"
-                  minLength={10}
-                  maxLength={10}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="9876543210"
-                />
+                <div className="flex gap-2 items-stretch">
+                  <CustomSelect
+                    value={countryCode}
+                    onChange={setCountryCode}
+                    className="w-28 shrink-0"
+                    options={COUNTRY_CODES.map((c) => ({ value: c.code, label: `${c.flag} ${c.code}` }))}
+                  />
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    pattern="[0-9]{10}"
+                    minLength={10}
+                    maxLength={10}
+                    className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="9876543210"
+                  />
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Enter 10-digit phone number
                 </p>
@@ -268,28 +348,31 @@ export default function BookPage() {
                 <label className="block text-gray-700 font-medium mb-2">
                   Category <span className="text-red-500">*</span>
                 </label>
-                <select
-                  name="category"
-                  required
+                <CustomSelect
                   value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="">Select category</option>
-                  <option value="OPEN">OPEN</option>
-                  <option value="SC">SC</option>
-                  <option value="ST">ST</option>
-                  <option value="VJ">VJ (Vimukta Jati)</option>
-                  <option value="NT1">NT1 (Nomadic Tribe 1)</option>
-                  <option value="NT2">NT2 (Nomadic Tribe 2)</option>
-                  <option value="NT3">NT3 (Nomadic Tribe 3)</option>
-                  <option value="OBC">OBC</option>
-                  <option value="EWS">EWS</option>
-                  <option value="TFWS">TFWS (Tuition Fee Waiver)</option>
-                  <option value="DEF_OPEN">DEF OPEN (Defence)</option>
-                  <option value="DEF_OBC">DEF OBC (Defence OBC)</option>
-                  <option value="PWD_OPEN">PWD OPEN (Persons with Disability)</option>
-                </select>
+                  onChange={(v) => setFormData({ ...formData, category: v })}
+                  placeholder="Select category"
+                  required
+                  options={[
+                    { value: "", label: "Select category" },
+                    { value: "OPEN", label: "OPEN" },
+                    { value: "SC", label: "SC" },
+                    { value: "ST", label: "ST" },
+                    { value: "VJ", label: "VJ (Vimukta Jati)" },
+                    { value: "NT1", label: "NT1 (Nomadic Tribe 1)" },
+                    { value: "NT2", label: "NT2 (Nomadic Tribe 2)" },
+                    { value: "NT3", label: "NT3 (Nomadic Tribe 3)" },
+                    { value: "OBC", label: "OBC" },
+                    { value: "EWS", label: "EWS" },
+                    { value: "TFWS", label: "TFWS (Tuition Fee Waiver)" },
+                    { value: "DEF_OPEN", label: "DEF OPEN (Defence)" },
+                    { value: "DEF_OBC", label: "DEF OBC (Defence OBC)" },
+                    {
+                      value: "PWD_OPEN",
+                      label: "PWD OPEN (Persons with Disability)",
+                    },
+                  ]}
+                />
               </div>
 
               <div>
@@ -309,22 +392,50 @@ export default function BookPage() {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-gray-700 font-medium mb-2">
-                  Meeting Date & Time <span className="text-red-500">*</span>
+                  Meeting Date <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="datetime-local"
-                  name="meeting_time"
+                  type="date"
+                  name="meeting_date"
                   required
-                  value={formData.meeting_time}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().slice(0, 16)}
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
-                <p className="text-sm text-gray-500 mt-1">
-                  Select a future date and time for your consultation (30
-                  minutes)
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Meeting Time <span className="text-red-500">*</span>
+                </label>
+                <CustomSelect
+                  value={selectedTime}
+                  onChange={(v) => {
+                    setSelectedTime(v);
+                    if (selectedDate && v) {
+                      setFormData({
+                        ...formData,
+                        meeting_time: `${selectedDate}T${v}:00+05:30`,
+                      });
+                    } else {
+                      setFormData({ ...formData, meeting_time: "" });
+                    }
+                  }}
+                  placeholder="Select a time slot"
+                  required
+                  options={[
+                    { value: "", label: "Select a time slot" },
+                    ...TIME_SLOTS.map((slot) => ({
+                      value: slot,
+                      label: formatTimeLabel(slot),
+                    })),
+                  ]}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Available slots: 10:00 AM – 6:00 PM (30-min sessions)
                 </p>
               </div>
             </div>

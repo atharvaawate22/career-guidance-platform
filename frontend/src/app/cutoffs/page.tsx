@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import CustomSelect from "@/components/CustomSelect";
+import ComboBox from "@/components/ComboBox";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -21,11 +23,26 @@ interface CutoffData {
 }
 
 const CATEGORIES = [
-  "OPEN", "SC", "ST", "VJ", "NT1", "NT2", "NT3", "OBC",
-  "EWS", "TFWS", "DEF_OPEN", "DEF_OBC", "PWD_OPEN",
+  "OPEN",
+  "SC",
+  "ST",
+  "VJ",
+  "NT1",
+  "NT2",
+  "NT3",
+  "OBC",
+  "EWS",
+  "TFWS",
+  "DEF_OPEN",
+  "DEF_OBC",
+  "PWD_OPEN",
 ];
 
-const LEVELS = ["State Level", "Home University Level", "Other Than Home University Level"];
+const LEVELS = [
+  "State Level",
+  "Home University Level",
+  "Other Than Home University Level",
+];
 
 export default function CutoffsPage() {
   const [cutoffs, setCutoffs] = useState<CutoffData[]>([]);
@@ -52,7 +69,9 @@ export default function CutoffsPage() {
     const fetchMeta = async () => {
       try {
         const params = year ? `?year=${year}` : "";
-        const res = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta${params}`);
+        const res = await fetch(
+          `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta${params}`
+        );
         const data = await res.json();
         if (data.success) {
           setCollegeOptions(data.data.colleges);
@@ -72,13 +91,13 @@ export default function CutoffsPage() {
 
     try {
       const params = new URLSearchParams();
-      if (year)       params.append("year", year);
-      if (branch)     params.append("branch", branch);
-      if (category)   params.append("category", category);
-      if (gender)     params.append("gender", gender);
+      if (year) params.append("year", year);
+      if (branch) params.append("branch", branch);
+      if (category) params.append("category", category);
+      if (gender) params.append("gender", gender);
       if (collegeName) params.append("college_name", collegeName);
-      if (level)      params.append("level", level);
-      if (stage)      params.append("stage", stage);
+      if (level) params.append("level", level);
+      if (stage) params.append("stage", stage);
 
       const response = await fetch(
         `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs?${params.toString()}`
@@ -133,90 +152,142 @@ export default function CutoffsPage() {
             Cutoff Explorer
           </h1>
           <p className="text-gray-600 text-lg">
-            Search historical MHT-CET cutoff data — ranks and percentiles by college, branch &amp; category
+            Search historical MHT-CET cutoff data — ranks and percentiles by
+            college, branch &amp; category
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 mb-8">
+        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 mb-8 relative z-10">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">Filters</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             {/* Year */}
             <div>
-              <label htmlFor="year" className="block mb-2 text-sm font-medium text-gray-700">Year</label>
-              <select id="year" value={year} onChange={(e) => setYear(e.target.value)}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                <option value="2022">2022 (CAP Round 1)</option>
-              </select>
-              <p className="text-xs text-gray-400 mt-1">More years coming soon</p>
+              <label
+                htmlFor="year"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                Year
+              </label>
+              <CustomSelect
+                id="year"
+                value={year}
+                onChange={setYear}
+                options={[{ value: "2022", label: "2022 (CAP Round 1)" }]}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                More years coming soon
+              </p>
             </div>
 
             {/* College Name */}
             <div>
-              <label htmlFor="collegeName" className="block mb-2 text-sm font-medium text-gray-700">College Name</label>
-              <input type="text" id="collegeName" value={collegeName} list="college-list"
-                onChange={(e) => setCollegeName(e.target.value)}
+              <label
+                htmlFor="collegeName"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                College Name
+              </label>
+              <ComboBox
+                id="collegeName"
+                value={collegeName}
+                onChange={setCollegeName}
+                options={collegeOptions}
                 placeholder="e.g., VJTI, COEP, Government College..."
                 maxLength={200}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
-              <datalist id="college-list">
-                {collegeOptions.map((c) => <option key={c} value={c} />)}
-              </datalist>
+              />
             </div>
 
             {/* Branch */}
             <div>
-              <label htmlFor="branch" className="block mb-2 text-sm font-medium text-gray-700">Branch</label>
-              <input type="text" id="branch" value={branch} list="branch-list"
-                onChange={(e) => setBranch(e.target.value)}
+              <label
+                htmlFor="branch"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                Branch
+              </label>
+              <ComboBox
+                id="branch"
+                value={branch}
+                onChange={setBranch}
+                options={branchOptions}
                 placeholder="e.g., Computer Engineering"
                 maxLength={100}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
-              <datalist id="branch-list">
-                {branchOptions.map((b) => <option key={b} value={b} />)}
-              </datalist>
+              />
             </div>
 
             {/* Category */}
             <div>
-              <label htmlFor="category" className="block mb-2 text-sm font-medium text-gray-700">Category</label>
-              <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                <option value="">All Categories</option>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <label
+                htmlFor="category"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                Category
+              </label>
+              <CustomSelect
+                id="category"
+                value={category}
+                onChange={setCategory}
+                options={[
+                  { value: "", label: "All Categories" },
+                  ...CATEGORIES.map((c) => ({ value: c, label: c })),
+                ]}
+              />
             </div>
 
             {/* Gender */}
             <div>
-              <label htmlFor="gender" className="block mb-2 text-sm font-medium text-gray-700">Gender</label>
-              <select id="gender" value={gender} onChange={(e) => setGender(e.target.value)}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                <option value="">Any</option>
-                <option value="All">All (General seats)</option>
-                <option value="Female">Female (Ladies seats)</option>
-              </select>
+              <label
+                htmlFor="gender"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                Gender
+              </label>
+              <CustomSelect
+                id="gender"
+                value={gender}
+                onChange={setGender}
+                options={[
+                  { value: "", label: "Any" },
+                  { value: "All", label: "All (General seats)" },
+                  { value: "Female", label: "Female (Ladies seats)" },
+                ]}
+              />
             </div>
 
             {/* Level */}
             <div>
-              <label htmlFor="level" className="block mb-2 text-sm font-medium text-gray-700">Seat Level</label>
-              <select id="level" value={level} onChange={(e) => setLevel(e.target.value)}
-                className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                <option value="">All Levels</option>
-                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-              </select>
+              <label
+                htmlFor="level"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                Seat Level
+              </label>
+              <CustomSelect
+                id="level"
+                value={level}
+                onChange={setLevel}
+                options={[
+                  { value: "", label: "All Levels" },
+                  ...LEVELS.map((l) => ({ value: l, label: l })),
+                ]}
+              />
             </div>
           </div>
 
           <div className="flex gap-4">
-            <button onClick={handleSearch} disabled={loading}
-              className="px-6 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg">
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-6 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+            >
               {loading ? "Searching..." : "Search"}
             </button>
-            <button onClick={handleReset}
-              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors">
+            <button
+              onClick={handleReset}
+              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
+            >
               Reset
             </button>
           </div>
@@ -224,32 +295,43 @@ export default function CutoffsPage() {
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-8">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-8">
+            {error}
+          </div>
         )}
 
         {/* Results */}
         {loading ? (
           <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
-            <div className="text-xl text-gray-700 font-medium">Loading cutoffs...</div>
+            <div className="text-xl text-gray-700 font-medium">
+              Loading cutoffs...
+            </div>
           </div>
         ) : !hasSearched ? (
           <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200">
             <div className="text-5xl mb-4">🔍</div>
-            <div className="text-xl text-gray-600 font-medium">Set your filters and click Search</div>
-            <div className="text-gray-500 mt-2 text-sm">14,793 cutoff records available for 2022 CAP Round 1</div>
+            <div className="text-xl text-gray-600 font-medium">
+              Set your filters and click Search
+            </div>
+            <div className="text-gray-500 mt-2 text-sm">
+              14,793 cutoff records available for 2022 CAP Round 1
+            </div>
           </div>
         ) : cutoffs.length === 0 ? (
           <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200">
             <div className="text-5xl mb-4">📭</div>
-            <div className="text-xl text-gray-600">No results found. Try different filters.</div>
+            <div className="text-xl text-gray-600">
+              No results found. Try different filters.
+            </div>
           </div>
         ) : (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg border border-gray-200">
             {/* Result summary bar */}
             <div className="px-5 py-3 bg-linear-to-r from-purple-50 to-pink-50 flex items-center justify-between border-b border-gray-200">
               <span className="text-sm font-medium text-gray-700">
-                Showing <strong>{cutoffs.length}</strong> of <strong>{total?.toLocaleString()}</strong> results
+                Showing <strong>{cutoffs.length}</strong> of{" "}
+                <strong>{total?.toLocaleString()}</strong> results
               </span>
               {total !== null && total > 500 && (
                 <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200">
@@ -262,40 +344,77 @@ export default function CutoffsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Year</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">College</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Branch</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Category</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Gender</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Level</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Stage</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Rank</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Percentile</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Year
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      College
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Branch
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Category
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Gender
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Level
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Stage
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">
+                      Rank
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">
+                      Percentile
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {cutoffs.map((c) => (
-                    <tr key={c.id} className="border-t border-gray-100 hover:bg-purple-50/40 transition-colors">
-                      <td className="px-4 py-3 text-gray-800 font-medium">{c.year}</td>
-                      <td className="px-4 py-3 text-gray-800 font-medium max-w-[220px]">
-                        <div className="truncate" title={c.college_name}>{c.college_name}</div>
+                    <tr
+                      key={c.id}
+                      className="border-t border-gray-100 hover:bg-purple-50/40 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-gray-800 font-medium">
+                        {c.year}
+                      </td>
+                      <td className="px-4 py-3 text-gray-800 font-medium max-w-55">
+                        <div className="truncate" title={c.college_name}>
+                          {c.college_name}
+                        </div>
                         {c.college_code && (
-                          <div className="text-xs text-gray-400">Code: {c.college_code}</div>
+                          <div className="text-xs text-gray-400">
+                            Code: {c.college_code}
+                          </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 max-w-[180px]">
-                        <div className="truncate" title={c.branch}>{c.branch}</div>
+                      <td className="px-4 py-3 text-gray-700 max-w-45">
+                        <div className="truncate" title={c.branch}>
+                          {c.branch}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${categoryColor(c.category)}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${categoryColor(c.category)}`}
+                        >
                           {c.category}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{c.gender || "—"}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs max-w-[140px]">
-                        <div className="truncate" title={c.level || ""}>{c.level || "—"}</div>
+                      <td className="px-4 py-3 text-gray-600 text-xs">
+                        {c.gender || "—"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{c.stage || "—"}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs max-w-35">
+                        <div className="truncate" title={c.level || ""}>
+                          {c.level || "—"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {c.stage || "—"}
+                      </td>
                       <td className="px-4 py-3 text-right font-mono text-gray-800">
                         {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
                       </td>
