@@ -12,13 +12,19 @@ export class CutoffsController {
       const where = year ? `WHERE year = $1` : ``;
       const vals = year ? [year] : [];
 
-      const [colleges, branches] = await Promise.all([
+      const [colleges, branches, cities] = await Promise.all([
         query(
           `SELECT DISTINCT college_name FROM cutoff_data ${where} ORDER BY college_name LIMIT 1000`,
           vals,
         ),
         query(
           `SELECT DISTINCT branch FROM cutoff_data ${where} ORDER BY branch LIMIT 500`,
+          vals,
+        ),
+        query(
+          `SELECT DISTINCT TRIM(REGEXP_REPLACE(college_name, '^.*,', '')) AS city
+           FROM cutoff_data ${where}
+           ORDER BY city LIMIT 300`,
           vals,
         ),
       ]);
@@ -28,6 +34,7 @@ export class CutoffsController {
         data: {
           colleges: colleges.rows.map((r) => r.college_name),
           branches: branches.rows.map((r) => r.branch),
+          cities: cities.rows.map((r) => r.city as string).filter((c) => c && c.length > 2 && c.length < 40),
         },
       });
     } catch (error) {
@@ -51,6 +58,9 @@ export class CutoffsController {
         branch_code:    req.query.branch_code   as string | undefined,
         stage:          req.query.stage         as string | undefined,
         level:          req.query.level         as string | undefined,
+        cities:         req.query.city
+          ? (Array.isArray(req.query.city) ? req.query.city : [req.query.city]) as string[]
+          : undefined,
       };
 
       const { rows, total } = await cutoffsService.getCutoffs(filters);

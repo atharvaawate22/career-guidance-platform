@@ -20,12 +20,11 @@ const TIME_SLOTS = [
   "16:30",
   "17:00",
   "17:30",
-  "18:00",
 ];
 
 const COUNTRY_CODES = [
   { code: "+91", flag: "🇮🇳", name: "India" },
-  { code: "+1",  flag: "🇺🇸", name: "USA" },
+  { code: "+1", flag: "🇺🇸", name: "USA" },
   { code: "+44", flag: "🇬🇧", name: "UK" },
   { code: "+61", flag: "🇦🇺", name: "Australia" },
   { code: "+971", flag: "🇦🇪", name: "UAE" },
@@ -306,7 +305,10 @@ export default function BookPage() {
                     value={countryCode}
                     onChange={setCountryCode}
                     className="w-28 shrink-0"
-                    options={COUNTRY_CODES.map((c) => ({ value: c.code, label: `${c.flag} ${c.code}` }))}
+                    options={COUNTRY_CODES.map((c) => ({
+                      value: c.code,
+                      label: `${c.flag} ${c.code}`,
+                    }))}
                   />
                   <input
                     type="tel"
@@ -435,7 +437,8 @@ export default function BookPage() {
                   ]}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Available slots: 10:00 AM – 6:00 PM (30-min sessions)
+                  Available slots: 10:00 AM – 5:30 PM (last slot ends at 6:00
+                  PM)
                 </p>
               </div>
             </div>

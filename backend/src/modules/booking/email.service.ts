@@ -127,7 +127,7 @@ function formatEmailHTML(booking: BookingConfirmation): string {
     .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
     .detail-row { margin: 10px 0; }
     .label { font-weight: bold; color: #667eea; }
-    .meet-link { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .meet-link { display: inline-block; background: #1a73e8; color: #ffffff !important; padding: 14px 32px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; font-size: 15px; letter-spacing: 0.3px; }
     .notes { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
     .footer { text-align: center; color: #666; margin-top: 20px; font-size: 12px; }
   </style>

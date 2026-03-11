@@ -17,6 +17,11 @@ export class CutoffsRepository {
     if (filters.branch_code)              { conditions.push(`branch_code = $${p++}`);              values.push(filters.branch_code); }
     if (filters.stage)                    { conditions.push(`stage = $${p++}`);                    values.push(filters.stage); }
     if (filters.level)                    { conditions.push(`level = $${p++}`);                    values.push(filters.level); }
+    if (filters.cities && filters.cities.length > 0) {
+      const cityConditions = filters.cities.map(() => `college_name ILIKE $${p++}`);
+      conditions.push(`(${cityConditions.join(' OR ')})`);
+      filters.cities.forEach((c) => values.push(`%, ${c}`));
+    }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 

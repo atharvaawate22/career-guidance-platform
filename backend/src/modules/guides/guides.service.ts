@@ -90,3 +90,22 @@ export async function createGuide(guide: CreateGuideRequest): Promise<Guide> {
 
   return await guidesRepository.createGuide(guide);
 }
+
+export async function getAllGuides(): Promise<Guide[]> {
+  return await guidesRepository.getAllGuides();
+}
+
+export async function deleteGuide(guideId: string): Promise<boolean> {
+  return await guidesRepository.deleteGuide(guideId);
+}
+
+export async function toggleGuide(
+  guideId: string,
+  isActive: boolean,
+): Promise<Guide | null> {
+  return await guidesRepository.toggleGuide(guideId, isActive);
+}
+
+export async function getDownloads(): Promise<object[]> {
+  return await guidesRepository.getDownloads();
+}

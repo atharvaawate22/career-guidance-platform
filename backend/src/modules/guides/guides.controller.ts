@@ -65,3 +65,75 @@ export async function createGuide(
     next(error);
   }
 }
+
+export async function getAllGuides(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const guides = await guidesService.getAllGuides();
+    res.json({ success: true, data: guides });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteGuide(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { id } = req.params;
+    const deleted = await guidesService.deleteGuide(String(id));
+    if (!deleted) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Guide not found' },
+      });
+      return;
+    }
+    res.json({ success: true, message: 'Guide deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function toggleGuide(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    const guide = await guidesService.toggleGuide(
+      String(id),
+      Boolean(is_active),
+    );
+    if (!guide) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Guide not found' },
+      });
+      return;
+    }
+    res.json({ success: true, data: guide });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getDownloads(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const downloads = await guidesService.getDownloads();
+    res.json({ success: true, data: downloads });
+  } catch (error) {
+    next(error);
+  }
+}
