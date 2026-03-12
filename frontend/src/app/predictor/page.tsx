@@ -6,6 +6,20 @@ import MultiSelect from "@/components/MultiSelect";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+/** Mirrors backend getDynamicThresholds — keep in sync */
+function getThresholds(percentile: number) {
+  const targetAbove = Math.min(8, 0.5 + (100 - percentile) * 0.1);
+  const targetBelow = Math.min(15, targetAbove * 2);
+  const floorGap    = Math.min(22, Math.max(3, targetBelow * 1.5));
+  const ceilGap = Math.min(15, Math.max(5, targetAbove * 3));
+  return { targetAbove, targetBelow, floorGap, ceilGap };
+}
+
+function fmtN(n: number) {
+  // Show one decimal only when not a whole number
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
 const CATEGORIES = [
   "OPEN",
   "SC",
@@ -61,7 +75,7 @@ export default function PredictorPage() {
   const [year, setYear] = useState("2022");
   const [category, setCategory] = useState("OPEN");
   const [gender, setGender] = useState("All");
-  const [level, setLevel] = useState("State Level");
+  const [level, setLevel] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
@@ -380,10 +394,13 @@ export default function PredictorPage() {
                   id="level"
                   value={level}
                   onChange={setLevel}
-                  options={LEVELS.map((l) => ({
-                    value: l.value,
-                    label: l.label,
-                  }))}
+                  options={[
+                    { value: "", label: "All Levels" },
+                    ...LEVELS.map((l) => ({
+                      value: l.value,
+                      label: l.label,
+                    })),
+                  ]}
                 />
               </div>
 
@@ -502,21 +519,47 @@ export default function PredictorPage() {
               </div>
             </div>
 
-            {/* Legend */}
-            <div className="bg-white/70 rounded-xl p-4 border border-gray-200 mb-8 flex gap-6 flex-wrap text-sm">
-              <div>
-                <span className="font-semibold text-green-600">Safe</span> —
-                Your percentile is ≥ 3% above cutoff
-              </div>
-              <div>
-                <span className="font-semibold text-amber-600">Target</span> —
-                Your percentile is within 3% of cutoff
-              </div>
-              <div>
-                <span className="font-semibold text-blue-600">Dream</span> —
-                Your percentile is below the cutoff
-              </div>
-            </div>
+            {/* Legend – thresholds shown are dynamic based on the entered percentile */}
+            {(() => {
+              const p = Number(percentile);
+              const { targetAbove, targetBelow, floorGap, ceilGap } =
+                getThresholds(p);
+              const floorVal = fmtN(Math.max(0, p - floorGap));
+              const ceilVal = fmtN(Math.min(100, p + ceilGap));
+              return (
+                <div className="bg-white/70 rounded-xl p-4 border border-gray-200 mb-8 flex flex-col gap-3 text-sm">
+                  <div className="flex gap-6 flex-wrap">
+                    <div>
+                      <span className="font-semibold text-green-600">Safe</span>{" "}
+                      — Your percentile is &gt;{fmtN(targetBelow)}pts above the
+                      cutoff
+                    </div>
+                    <div>
+                      <span className="font-semibold text-amber-600">
+                        Target
+                      </span>{" "}
+                      — Cutoff is within {fmtN(targetBelow)}pts below or{" "}
+                      {fmtN(targetAbove)}pt above your percentile
+                    </div>
+                    <div>
+                      <span className="font-semibold text-blue-600">Dream</span>{" "}
+                      — Cutoff is more than {fmtN(targetAbove)}pt above your
+                      percentile
+                    </div>
+                  </div>
+                  <div className="text-gray-400 text-xs border-t border-gray-100 pt-2">
+                    Only colleges with cutoffs between{" "}
+                    <span className="font-medium text-gray-500">
+                      {floorVal}
+                    </span>{" "}
+                    and{" "}
+                    <span className="font-medium text-gray-500">{ceilVal}</span>{" "}
+                    are shown — colleges far outside this range are not relevant
+                    for your score.
+                  </div>
+                </div>
+              );
+            })()}
 
             {renderSection(
               results.safe,
