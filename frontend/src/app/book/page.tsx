@@ -504,12 +504,12 @@ export default function BookPage() {
                           !getAvailableSlots(selectedDate).includes(slot);
                         const isSelected = selectedTime === slot;
                         let cls = "";
-                        if (isBooked) {
-                          cls =
-                            "bg-red-100 text-red-400 border-red-200 cursor-not-allowed line-through";
-                        } else if (isUnavailable) {
+                        if (isUnavailable) {
                           cls =
                             "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
+                        } else if (isBooked) {
+                          cls =
+                            "bg-red-100 text-red-400 border-red-200 cursor-not-allowed line-through";
                         } else if (isSelected) {
                           cls =
                             "bg-purple-600 text-white border-purple-600 shadow-md scale-105";
