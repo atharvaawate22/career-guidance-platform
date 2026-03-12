@@ -4,9 +4,18 @@ import { google } from 'googleapis';
 
 async function test() {
   console.log('Testing Gmail API...');
-  console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✓ set' : '✗ missing');
-  console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✓ set' : '✗ missing');
-  console.log('GOOGLE_REFRESH_TOKEN:', process.env.GOOGLE_REFRESH_TOKEN ? '✓ set' : '✗ missing');
+  console.log(
+    'GOOGLE_CLIENT_ID:',
+    process.env.GOOGLE_CLIENT_ID ? '✓ set' : '✗ missing',
+  );
+  console.log(
+    'GOOGLE_CLIENT_SECRET:',
+    process.env.GOOGLE_CLIENT_SECRET ? '✓ set' : '✗ missing',
+  );
+  console.log(
+    'GOOGLE_REFRESH_TOKEN:',
+    process.env.GOOGLE_REFRESH_TOKEN ? '✓ set' : '✗ missing',
+  );
   console.log('EMAIL_PROVIDER:', process.env.EMAIL_PROVIDER);
   console.log('SMTP_FROM:', process.env.SMTP_FROM);
   console.log('');
@@ -38,11 +47,17 @@ async function test() {
     .replace(/=+$/, '');
 
   try {
-    const result = await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
+    const result = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw },
+    });
     console.log('✅ SUCCESS: Email sent! Message ID:', result.data.id);
   } catch (e: any) {
     console.error('❌ FAILED:', e.message);
-    console.error('Details:', JSON.stringify(e.errors || e.response?.data, null, 2));
+    console.error(
+      'Details:',
+      JSON.stringify(e.errors || e.response?.data, null, 2),
+    );
   }
 }
 
