@@ -10,7 +10,7 @@ const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 function getThresholds(percentile: number) {
   const targetAbove = Math.min(8, 0.5 + (100 - percentile) * 0.1);
   const targetBelow = Math.min(15, targetAbove * 2);
-  const floorGap    = Math.min(22, Math.max(3, targetBelow * 1.5));
+  const floorGap = Math.min(22, Math.max(3, targetBelow * 1.5));
   const ceilGap = Math.min(15, Math.max(5, targetAbove * 3));
   return { targetAbove, targetBelow, floorGap, ceilGap };
 }
