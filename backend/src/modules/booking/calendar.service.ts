@@ -146,7 +146,10 @@ async function createCalendarEvent(event: CalendarEvent) {
     requestBody: event,
   });
   const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Calendar API timeout after 20s')), 20000)
+    setTimeout(
+      () => reject(new Error('Calendar API timeout after 20s')),
+      20000,
+    ),
   );
   const response = await Promise.race([insertPromise, timeoutPromise]);
   return response.data;

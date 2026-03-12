@@ -52,7 +52,9 @@ function getMinDate() {
   const todayIST = nowIST.toISOString().slice(0, 10);
   // If even the last slot (17:30) minus 3h = 14:30 has already passed, jump to tomorrow
   if (nowMinutes + 180 > 17 * 60 + 30) {
-    return new Date(nowIST.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    return new Date(nowIST.getTime() + 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
   }
   return todayIST;
 }
@@ -145,7 +147,9 @@ export default function BookPage() {
     } catch (err) {
       clearTimeout(timeoutId);
       if (err instanceof Error && err.name === "AbortError") {
-        setError("Request timed out. The server may be starting up — please try again in a moment.");
+        setError(
+          "Request timed out. The server may be starting up — please try again in a moment."
+        );
       } else {
         setError("Error connecting to server. Please try again.");
       }
@@ -200,7 +204,10 @@ export default function BookPage() {
     const available = getAvailableSlots(date);
     const timeStillValid = selectedTime && available.includes(selectedTime);
     if (timeStillValid) {
-      setFormData({ ...formData, meeting_time: `${date}T${selectedTime}:00+05:30` });
+      setFormData({
+        ...formData,
+        meeting_time: `${date}T${selectedTime}:00+05:30`,
+      });
     } else {
       if (selectedTime) setSelectedTime("");
       setFormData({ ...formData, meeting_time: "" });
@@ -208,7 +215,9 @@ export default function BookPage() {
     // Fetch booked slots for this date
     if (date) {
       setSlotsLoading(true);
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/bookings/slots?date=${date}`)
+      fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/bookings/slots?date=${date}`
+      )
         .then((r) => r.json())
         .then((data) => setBookedSlots(data.booked ?? []))
         .catch(() => setBookedSlots([]))
@@ -467,30 +476,46 @@ export default function BookPage() {
                   Meeting Time <span className="text-red-500">*</span>
                 </label>
                 {!selectedDate ? (
-                  <p className="text-sm text-gray-400 italic">Please select a date first.</p>
+                  <p className="text-sm text-gray-400 italic">
+                    Please select a date first.
+                  </p>
                 ) : slotsLoading ? (
                   <p className="text-sm text-gray-400 italic">Loading slots…</p>
                 ) : (
                   <>
                     <div className="flex gap-3 flex-wrap text-xs mb-2">
-                      <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span> Available</span>
-                      <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-red-400"></span> Booked</span>
-                      <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-gray-300"></span> Unavailable</span>
+                      <span className="flex items-center gap-1">
+                        <span className="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span>{" "}
+                        Available
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="inline-block w-3 h-3 rounded-sm bg-red-400"></span>{" "}
+                        Booked
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="inline-block w-3 h-3 rounded-sm bg-gray-300"></span>{" "}
+                        Unavailable
+                      </span>
                     </div>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                       {TIME_SLOTS.map((slot) => {
                         const isBooked = bookedSlots.includes(slot);
-                        const isUnavailable = !getAvailableSlots(selectedDate).includes(slot);
+                        const isUnavailable =
+                          !getAvailableSlots(selectedDate).includes(slot);
                         const isSelected = selectedTime === slot;
                         let cls = "";
                         if (isBooked) {
-                          cls = "bg-red-100 text-red-400 border-red-200 cursor-not-allowed line-through";
+                          cls =
+                            "bg-red-100 text-red-400 border-red-200 cursor-not-allowed line-through";
                         } else if (isUnavailable) {
-                          cls = "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
+                          cls =
+                            "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
                         } else if (isSelected) {
-                          cls = "bg-purple-600 text-white border-purple-600 shadow-md scale-105";
+                          cls =
+                            "bg-purple-600 text-white border-purple-600 shadow-md scale-105";
                         } else {
-                          cls = "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 cursor-pointer";
+                          cls =
+                            "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 cursor-pointer";
                         }
                         return (
                           <button
@@ -500,7 +525,10 @@ export default function BookPage() {
                             onClick={() => {
                               if (isBooked || isUnavailable) return;
                               setSelectedTime(slot);
-                              setFormData({ ...formData, meeting_time: `${selectedDate}T${slot}:00+05:30` });
+                              setFormData({
+                                ...formData,
+                                meeting_time: `${selectedDate}T${slot}:00+05:30`,
+                              });
                             }}
                             className={`border rounded-lg py-2 px-1 text-xs font-medium text-center transition-all ${cls}`}
                           >
@@ -510,12 +538,19 @@ export default function BookPage() {
                       })}
                     </div>
                     {!selectedTime && (
-                      <p className="text-xs text-gray-500 mt-2">Select a green slot to book.</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Select a green slot to book.
+                      </p>
                     )}
                   </>
                 )}
                 {/* Hidden input to keep form required validation working */}
-                <input type="hidden" name="meeting_time" required value={formData.meeting_time} />
+                <input
+                  type="hidden"
+                  name="meeting_time"
+                  required
+                  value={formData.meeting_time}
+                />
               </div>
             </div>
 
