@@ -181,7 +181,10 @@ export default function AdminPage() {
           },
         }
       );
-      if (response.status === 401) { handleSessionExpired(); return; }
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       const data = await response.json();
       if (data.success) {
         setBookings(data.data);
@@ -478,7 +481,10 @@ export default function AdminPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      if (response.status === 401) { handleSessionExpired(); return; }
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       const data = await response.json();
       if (data.success) {
         setGuides(data.data);
@@ -500,7 +506,10 @@ export default function AdminPage() {
         `${NEXT_PUBLIC_API_BASE_URL}/api/admin/guides/downloads`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (response.status === 401) { handleSessionExpired(); return; }
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       const data = await response.json();
       if (data.success) setDownloads(data.data);
     } catch (error) {
@@ -568,7 +577,9 @@ export default function AdminPage() {
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx"];
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      throw new Error("Only PDF and Word documents (.pdf, .doc, .docx) are allowed");
+      throw new Error(
+        "Only PDF and Word documents (.pdf, .doc, .docx) are allowed"
+      );
     }
     if (file.size > 20 * 1024 * 1024) {
       throw new Error("File size must be under 20 MB");
@@ -590,13 +601,17 @@ export default function AdminPage() {
 
     // Gracefully handle non-JSON responses (e.g. HTML 404/502 from server)
     const text = await response.text();
-    let data: { success: boolean; data?: { url: string }; error?: { message?: string } };
+    let data: {
+      success: boolean;
+      data?: { url: string };
+      error?: { message?: string };
+    };
     try {
       data = JSON.parse(text);
     } catch {
       throw new Error(
         `Upload failed (${response.status}): server returned an unexpected response. ` +
-        `Check that the backend is deployed and SUPABASE_SERVICE_ROLE_KEY is set correctly on Render.`
+          `Check that the backend is deployed and SUPABASE_SERVICE_ROLE_KEY is set correctly on Render.`
       );
     }
 

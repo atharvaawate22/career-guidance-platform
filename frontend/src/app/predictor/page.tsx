@@ -108,8 +108,7 @@ export default function PredictorPage() {
       };
       if (preferred_branches.length > 0)
         body.preferred_branches = preferred_branches;
-      if (selectedCities.length > 0)
-        body.cities = selectedCities;
+      if (selectedCities.length > 0) body.cities = selectedCities;
 
       const res = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/predict`, {
         method: "POST",

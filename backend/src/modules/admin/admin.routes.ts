@@ -189,12 +189,10 @@ router.post(
       const filename = String(req.query.filename || '');
 
       if (!bucket || !filename) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: { message: 'bucket and filename are required' },
-          });
+        res.status(400).json({
+          success: false,
+          error: { message: 'bucket and filename are required' },
+        });
         return;
       }
 
@@ -213,7 +211,10 @@ router.post(
       if (!ALLOWED_EXTENSIONS.includes(ext)) {
         res.status(400).json({
           success: false,
-          error: { message: 'Only PDF and Word documents (.pdf, .doc, .docx) are allowed' },
+          error: {
+            message:
+              'Only PDF and Word documents (.pdf, .doc, .docx) are allowed',
+          },
         });
         return;
       }
@@ -222,15 +223,13 @@ router.post(
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
       if (!supabaseUrl || !serviceRoleKey) {
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: {
-              message:
-                'Storage not configured on server. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to backend .env',
-            },
-          });
+        res.status(500).json({
+          success: false,
+          error: {
+            message:
+              'Storage not configured on server. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to backend .env',
+          },
+        });
         return;
       }
 
@@ -251,14 +250,12 @@ router.post(
         const err = (await uploadRes.json().catch(() => ({}))) as {
           message?: string;
         };
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: {
-              message: err.message || `Upload failed (${uploadRes.status})`,
-            },
-          });
+        res.status(400).json({
+          success: false,
+          error: {
+            message: err.message || `Upload failed (${uploadRes.status})`,
+          },
+        });
         return;
       }
 

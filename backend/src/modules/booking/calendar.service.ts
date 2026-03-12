@@ -59,15 +59,21 @@ export async function generateMeetLink(
     }
 
     // Use Google Calendar API to create event with Meet link
+    // Format datetime as local IST (no Z suffix) so timeZone field is authoritative
+    const toISTLocal = (date: Date) => {
+      const offsetMs = 5.5 * 60 * 60 * 1000; // UTC+5:30
+      return new Date(date.getTime() + offsetMs).toISOString().slice(0, 19); // YYYY-MM-DDTHH:MM:SS
+    };
+
     const event: CalendarEvent = {
       summary: `Career Guidance Consultation - ${studentName}`,
-      description: `MHT CET admission guidance consultation\n\nStudent Details:\n- Name: ${studentName}\n- Percentile: ${percentile ?? 'N/A'}\n- Category: ${category ?? 'N/A'}\n- Branch Preference: ${branchPreference ?? 'N/A'}`,
+      description: `MHT CET Admission Guidance Consultation\n\nStudent Details:\n• Name: ${studentName}\n• Percentile: ${percentile ?? 'N/A'}\n• Category: ${category ?? 'N/A'}\n• Branch Preference: ${branchPreference ?? 'N/A'}\n\nPlease join at the scheduled time using the Google Meet link.`,
       start: {
-        dateTime: meetingTime.toISOString(),
+        dateTime: toISTLocal(meetingTime), // e.g. 2026-03-12T10:00:00 (no Z)
         timeZone: 'Asia/Kolkata',
       },
       end: {
-        dateTime: new Date(meetingTime.getTime() + 30 * 60000).toISOString(), // 30 min duration
+        dateTime: toISTLocal(new Date(meetingTime.getTime() + 30 * 60000)),
         timeZone: 'Asia/Kolkata',
       },
       attendees: [{ email }],
@@ -98,7 +104,9 @@ export async function generateMeetLink(
     }
     return meetLink;
   } catch (error) {
-    logger.warn(`Google Calendar API failed, using mock meet link: ${(error as Error)?.message}`);
+    logger.warn(
+      `Google Calendar API failed, using mock meet link: ${(error as Error)?.message}`,
+    );
     const meetingId = generateMockMeetingId();
     return `https://meet.google.com/${meetingId}`;
   }

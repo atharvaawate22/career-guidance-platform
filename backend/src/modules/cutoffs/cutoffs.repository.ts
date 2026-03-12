@@ -2,28 +2,63 @@ import { query } from '../../config/database';
 import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 
 export class CutoffsRepository {
-  async getCutoffs(filters: CutoffFilters): Promise<{ rows: CutoffData[]; total: number }> {
+  async getCutoffs(
+    filters: CutoffFilters,
+  ): Promise<{ rows: CutoffData[]; total: number }> {
     const conditions: string[] = [];
     const values: unknown[] = [];
     let p = 1;
 
-    if (filters.year !== undefined)       { conditions.push(`year = $${p++}`);                     values.push(filters.year); }
-    if (filters.branch)                   { conditions.push(`branch ILIKE $${p++}`);               values.push(`%${filters.branch}%`); }
-    if (filters.category)                 { conditions.push(`category = $${p++}`);                 values.push(filters.category); }
-    if (filters.gender)                   { conditions.push(`gender = $${p++}`);                   values.push(filters.gender); }
-    if (filters.home_university)          { conditions.push(`home_university = $${p++}`);          values.push(filters.home_university); }
-    if (filters.college_name)             { conditions.push(`college_name ILIKE $${p++}`);         values.push(`%${filters.college_name}%`); }
-    if (filters.college_code)             { conditions.push(`college_code = $${p++}`);             values.push(filters.college_code); }
-    if (filters.branch_code)              { conditions.push(`branch_code = $${p++}`);              values.push(filters.branch_code); }
-    if (filters.stage)                    { conditions.push(`stage = $${p++}`);                    values.push(filters.stage); }
-    if (filters.level)                    { conditions.push(`level = $${p++}`);                    values.push(filters.level); }
+    if (filters.year !== undefined) {
+      conditions.push(`year = $${p++}`);
+      values.push(filters.year);
+    }
+    if (filters.branch) {
+      conditions.push(`branch ILIKE $${p++}`);
+      values.push(`%${filters.branch}%`);
+    }
+    if (filters.category) {
+      conditions.push(`category = $${p++}`);
+      values.push(filters.category);
+    }
+    if (filters.gender) {
+      conditions.push(`gender = $${p++}`);
+      values.push(filters.gender);
+    }
+    if (filters.home_university) {
+      conditions.push(`home_university = $${p++}`);
+      values.push(filters.home_university);
+    }
+    if (filters.college_name) {
+      conditions.push(`college_name ILIKE $${p++}`);
+      values.push(`%${filters.college_name}%`);
+    }
+    if (filters.college_code) {
+      conditions.push(`college_code = $${p++}`);
+      values.push(filters.college_code);
+    }
+    if (filters.branch_code) {
+      conditions.push(`branch_code = $${p++}`);
+      values.push(filters.branch_code);
+    }
+    if (filters.stage) {
+      conditions.push(`stage = $${p++}`);
+      values.push(filters.stage);
+    }
+    if (filters.level) {
+      conditions.push(`level = $${p++}`);
+      values.push(filters.level);
+    }
     if (filters.cities && filters.cities.length > 0) {
-      const cityConditions = filters.cities.map(() => `college_name ILIKE $${p++}`);
+      const cityConditions = filters.cities.map(
+        () => `college_name ILIKE $${p++}`,
+      );
       conditions.push(`(${cityConditions.join(' OR ')})`);
       filters.cities.forEach((c) => values.push(`%, ${c}`));
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Count total matching rows
     const countResult = await query(
@@ -60,22 +95,22 @@ export class CutoffsRepository {
 
     cutoffs.forEach((c) => {
       placeholders.push(
-        `(gen_random_uuid(), $${p}, $${p+1}, $${p+2}, $${p+3}, $${p+4}, $${p+5}, $${p+6}, $${p+7}, $${p+8}, $${p+9}, $${p+10}, $${p+11}, $${p+12})`
+        `(gen_random_uuid(), $${p}, $${p + 1}, $${p + 2}, $${p + 3}, $${p + 4}, $${p + 5}, $${p + 6}, $${p + 7}, $${p + 8}, $${p + 9}, $${p + 10}, $${p + 11}, $${p + 12})`,
       );
       values.push(
         c.year,
-        c.college_code   || null,
+        c.college_code || null,
         c.college_name,
-        c.branch_code    || null,
+        c.branch_code || null,
         c.branch,
         c.category,
-        c.gender         || null,
+        c.gender || null,
         c.home_university || 'All',
         c.college_status || null,
-        c.stage          || null,
-        c.level          || null,
+        c.stage || null,
+        c.level || null,
         c.percentile,
-        c.cutoff_rank    ?? null,
+        c.cutoff_rank ?? null,
       );
       p += COLS;
     });

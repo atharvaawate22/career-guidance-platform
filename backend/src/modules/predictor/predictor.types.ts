@@ -3,7 +3,7 @@ export interface PredictorRequest {
   year: number;
   category?: string;
   gender?: string;
-  level?: string;              // 'State Level' | 'Home University Level' | 'Other Than Home University Level'
+  level?: string; // 'State Level' | 'Home University Level' | 'Other Than Home University Level'
   preferred_branches?: string[];
   cities?: string[];
 }
