@@ -6,7 +6,11 @@ import { query } from '../../config/database';
 const cutoffsService = new CutoffsService();
 
 export class CutoffsController {
-  async getMeta(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getMeta(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const year = req.query.year ? Number(req.query.year) : null;
       const where = year ? `WHERE year = $1` : ``;
@@ -34,7 +38,9 @@ export class CutoffsController {
         data: {
           colleges: colleges.rows.map((r) => r.college_name),
           branches: branches.rows.map((r) => r.branch),
-          cities: cities.rows.map((r) => r.city as string).filter((c) => c && c.length > 2 && c.length < 40),
+          cities: cities.rows
+            .map((r) => r.city as string)
+            .filter((c) => c && c.length > 2 && c.length < 40),
         },
       });
     } catch (error) {
@@ -48,18 +54,20 @@ export class CutoffsController {
   ): Promise<void> {
     try {
       const filters: CutoffFilters = {
-        year:           req.query.year         ? Number(req.query.year) : undefined,
-        branch:         req.query.branch        as string | undefined,
-        category:       req.query.category      as string | undefined,
-        gender:         req.query.gender        as string | undefined,
+        year: req.query.year ? Number(req.query.year) : undefined,
+        branch: req.query.branch as string | undefined,
+        category: req.query.category as string | undefined,
+        gender: req.query.gender as string | undefined,
         home_university: req.query.home_university as string | undefined,
-        college_name:   req.query.college_name  as string | undefined,
-        college_code:   req.query.college_code  as string | undefined,
-        branch_code:    req.query.branch_code   as string | undefined,
-        stage:          req.query.stage         as string | undefined,
-        level:          req.query.level         as string | undefined,
-        cities:         req.query.city
-          ? (Array.isArray(req.query.city) ? req.query.city : [req.query.city]) as string[]
+        college_name: req.query.college_name as string | undefined,
+        college_code: req.query.college_code as string | undefined,
+        branch_code: req.query.branch_code as string | undefined,
+        stage: req.query.stage as string | undefined,
+        level: req.query.level as string | undefined,
+        cities: req.query.city
+          ? ((Array.isArray(req.query.city)
+              ? req.query.city
+              : [req.query.city]) as string[])
           : undefined,
       };
 

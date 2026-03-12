@@ -1,5 +1,6 @@
 import logger from '../../utils/logger';
 import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 
 interface BookingConfirmation {
   studentName: string;
@@ -43,6 +44,10 @@ export async function sendBookingConfirmation(
     }
 
     // Send actual email based on provider
+    if (emailProvider === 'gmail') {
+      return await sendViaGmailAPI(booking);
+    }
+
     if (emailProvider === 'smtp') {
       return await sendViaSMTP(booking);
     }
@@ -176,6 +181,68 @@ function formatEmailHTML(booking: BookingConfirmation): string {
 </body>
 </html>
   `.trim();
+}
+
+/**
+ * Send email via Gmail API (OAuth2 — works on Render free tier, not blocked unlike SMTP)
+ *
+ * Required env vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN
+ * Set EMAIL_PROVIDER=gmail to use this.
+ */
+async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
+  try {
+    const auth = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI,
+    );
+    auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+
+    const gmail = google.gmail({ version: 'v1', auth });
+    const from =
+      process.env.SMTP_FROM ||
+      process.env.SMTP_USER ||
+      process.env.GOOGLE_CALENDAR_ID ||
+      '';
+
+    const subject = '✅ Consultation Booking Confirmed - MHT CET Guidance';
+    const htmlBody = formatEmailHTML(booking);
+    const textBody = formatEmailContent(booking);
+
+    // Build RFC 2822 message
+    const messageParts = [
+      `From: MHT CET Guidance <${from}>`,
+      `To: ${booking.email}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: multipart/alternative; boundary="boundary"',
+      '',
+      '--boundary',
+      'Content-Type: text/plain; charset=UTF-8',
+      '',
+      textBody,
+      '--boundary',
+      'Content-Type: text/html; charset=UTF-8',
+      '',
+      htmlBody,
+      '--boundary--',
+    ];
+    const raw = Buffer.from(messageParts.join('\r\n'))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
+    logger.info(`✓ Email sent successfully to ${booking.email} via Gmail API`);
+    return true;
+  } catch (error) {
+    logger.error(`✗ Gmail API email failed to ${booking.email}:`, {
+      message: (error as any)?.message,
+      code: (error as any)?.code,
+    });
+    return false;
+  }
 }
 
 /**

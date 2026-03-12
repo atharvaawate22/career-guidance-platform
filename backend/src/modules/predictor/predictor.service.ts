@@ -10,9 +10,7 @@ const predictorRepository = new PredictorRepository();
 const SAFE_BUFFER = 3;
 
 export class PredictorService {
-  async predictColleges(
-    request: PredictorRequest,
-  ): Promise<PredictorResponse> {
+  async predictColleges(request: PredictorRequest): Promise<PredictorResponse> {
     // Validate percentile
     if (
       request.percentile < 0 ||
