@@ -75,9 +75,9 @@ export async function getBookedSlotsForDate(
   dateIST: string,
 ): Promise<string[]> {
   const result = await query(
-    `SELECT TO_CHAR(meeting_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI') AS slot
+    `SELECT TO_CHAR((meeting_time AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata', 'HH24:MI') AS slot
      FROM bookings
-     WHERE DATE(meeting_time AT TIME ZONE 'Asia/Kolkata') = $1
+     WHERE DATE((meeting_time AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') = $1
        AND booking_status NOT IN ('cancelled', 'no_show')`,
     [dateIST],
   );
