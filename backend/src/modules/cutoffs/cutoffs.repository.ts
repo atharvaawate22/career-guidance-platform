@@ -13,9 +13,12 @@ export class CutoffsRepository {
       conditions.push(`year = $${p++}`);
       values.push(filters.year);
     }
-    if (filters.branch) {
-      conditions.push(`branch ILIKE $${p++}`);
-      values.push(`%${filters.branch}%`);
+    if (filters.branches && filters.branches.length > 0) {
+      const branchConditions = filters.branches.map(
+        () => `branch ILIKE $${p++}`,
+      );
+      conditions.push(`(${branchConditions.join(' OR ')})`);
+      filters.branches.forEach((b) => values.push(`%${b}%`));
     }
     if (filters.category) {
       conditions.push(`category = $${p++}`);

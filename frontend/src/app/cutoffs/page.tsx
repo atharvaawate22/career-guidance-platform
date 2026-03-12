@@ -55,7 +55,7 @@ export default function CutoffsPage() {
   // Filter state — declared BEFORE the useEffect that depends on 'year'
   const [year, setYear] = useState("2022");
   const [collegeName, setCollegeName] = useState("");
-  const [branch, setBranch] = useState("");
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
   const [level, setLevel] = useState("");
@@ -67,26 +67,74 @@ export default function CutoffsPage() {
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [cityOptions, setCityOptions] = useState<string[]>([]);
 
-  // Fetch meta suggestions whenever year changes
-  useEffect(() => {
-    const fetchMeta = async () => {
-      try {
-        const params = year ? `?year=${year}` : "";
-        const res = await fetch(
-          `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta${params}`
-        );
-        const data = await res.json();
-        if (data.success) {
-          setCollegeOptions(data.data.colleges);
-          setBranchOptions(data.data.branches);
+  const fetchMeta = async (opts?: {
+    college?: string;
+    branches?: string[];
+    cities?: string[];
+  }) => {
+    try {
+      const params = new URLSearchParams();
+      if (year) params.set("year", year);
+      if (opts?.college) params.set("college_name", opts.college);
+      opts?.branches?.forEach((b) => params.append("branch", b));
+      opts?.cities?.forEach((c) => params.append("city", c));
+      const res = await fetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
+      );
+      const data = await res.json();
+      if (data.success) {
+        if (!opts?.college) setCollegeOptions(data.data.colleges);
+        if (!opts?.branches?.length) setBranchOptions(data.data.branches);
+        if (!opts?.college && !opts?.branches?.length)
           setCityOptions(data.data.cities ?? []);
-        }
-      } catch {
-        // silently ignore
       }
-    };
+    } catch {
+      // silently ignore
+    }
+  };
+
+  // Fetch full meta on year change (resets both lists)
+  useEffect(() => {
     fetchMeta();
+    setCollegeName("");
+    setSelectedBranches([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
+
+  // When college changes: narrow branches to only those in that college
+  const handleCollegeChange = (value: string) => {
+    setCollegeName(value);
+    if (value) {
+      fetchMeta({ college: value });
+    } else {
+      fetchMeta(
+        selectedBranches.length || selectedCities.length
+          ? {
+              branches: selectedBranches.length ? selectedBranches : undefined,
+              cities: selectedCities.length ? selectedCities : undefined,
+            }
+          : undefined
+      );
+    }
+  };
+
+  // When branches change: narrow colleges to those that have at least one selected branch
+  const handleBranchesChange = (values: string[]) => {
+    setSelectedBranches(values);
+    fetchMeta({
+      branches: values.length ? values : undefined,
+      cities: selectedCities.length ? selectedCities : undefined,
+    });
+  };
+
+  // When cities change: narrow colleges to those in selected cities
+  const handleCitiesChange = (values: string[]) => {
+    setSelectedCities(values);
+    fetchMeta({
+      branches: selectedBranches.length ? selectedBranches : undefined,
+      cities: values.length ? values : undefined,
+    });
+  };
 
   const handleSearch = async () => {
     setLoading(true);
@@ -96,7 +144,7 @@ export default function CutoffsPage() {
     try {
       const params = new URLSearchParams();
       if (year) params.append("year", year);
-      if (branch) params.append("branch", branch);
+      selectedBranches.forEach((b) => params.append("branch", b));
       if (category) params.append("category", category);
       if (gender) params.append("gender", gender);
       if (collegeName) params.append("college_name", collegeName);
@@ -124,7 +172,7 @@ export default function CutoffsPage() {
 
   const handleReset = () => {
     setYear("2022");
-    setBranch("");
+    setSelectedBranches([]);
     setCategory("");
     setGender("");
     setCollegeName("");
@@ -135,6 +183,7 @@ export default function CutoffsPage() {
     setTotal(null);
     setError("");
     setHasSearched(false);
+    fetchMeta();
   };
 
   const categoryColor = (cat: string) => {
@@ -198,7 +247,7 @@ export default function CutoffsPage() {
               <ComboBox
                 id="collegeName"
                 value={collegeName}
-                onChange={setCollegeName}
+                onChange={handleCollegeChange}
                 options={collegeOptions}
                 placeholder="e.g., VJTI, COEP, Government College..."
                 maxLength={200}
@@ -213,13 +262,12 @@ export default function CutoffsPage() {
               >
                 Branch
               </label>
-              <ComboBox
+              <MultiSelect
                 id="branch"
-                value={branch}
-                onChange={setBranch}
+                value={selectedBranches}
+                onChange={handleBranchesChange}
                 options={branchOptions}
-                placeholder="e.g., Computer Engineering"
-                maxLength={100}
+                placeholder="e.g., Computer Engineering..."
               />
             </div>
 
@@ -289,7 +337,7 @@ export default function CutoffsPage() {
             </label>
             <MultiSelect
               value={selectedCities}
-              onChange={setSelectedCities}
+              onChange={handleCitiesChange}
               options={cityOptions}
               placeholder="Filter by city (e.g. Pune, Mumbai, Nagpur)..."
             />

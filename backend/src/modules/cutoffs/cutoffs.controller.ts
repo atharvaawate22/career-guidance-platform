@@ -13,31 +13,91 @@ export class CutoffsController {
   ): Promise<void> {
     try {
       const year = req.query.year ? Number(req.query.year) : null;
-      const where = year ? `WHERE year = $1` : ``;
-      const vals = year ? [year] : [];
+      const filterCollege = req.query.college_name as string | undefined;
+      const filterBranches: string[] = req.query.branch
+        ? ((Array.isArray(req.query.branch)
+            ? req.query.branch
+            : [req.query.branch]) as string[])
+        : [];
+      const filterCities: string[] = req.query.city
+        ? ((Array.isArray(req.query.city)
+            ? req.query.city
+            : [req.query.city]) as string[])
+        : [];
+
+      // Build per-query conditions independently
+      // Colleges: filtered by year + branches (OR) + cities (OR)
+      const collegeVals: unknown[] = [];
+      const collegeConditions: string[] = [];
+      if (year) {
+        collegeConditions.push(`year = $${collegeVals.length + 1}`);
+        collegeVals.push(year);
+      }
+      if (filterBranches.length > 0) {
+        const orParts = filterBranches.map(
+          (_, i) => `branch ILIKE $${collegeVals.length + 1 + i}`,
+        );
+        collegeConditions.push(`(${orParts.join(' OR ')})`);
+        filterBranches.forEach((b) => collegeVals.push(`%${b}%`));
+      }
+      if (filterCities.length > 0) {
+        const orParts = filterCities.map(
+          (_, i) => `college_name ILIKE $${collegeVals.length + 1 + i}`,
+        );
+        collegeConditions.push(`(${orParts.join(' OR ')})`);
+        filterCities.forEach((c) => collegeVals.push(`%, ${c}`));
+      }
+      const collegeWhere = collegeConditions.length
+        ? `WHERE ${collegeConditions.join(' AND ')}`
+        : '';
+
+      // Branches: filtered by year + college_name (if provided)
+      const branchVals: unknown[] = [];
+      const branchConditions: string[] = [];
+      if (year) {
+        branchConditions.push(`year = $${branchVals.length + 1}`);
+        branchVals.push(year);
+      }
+      if (filterCollege) {
+        branchConditions.push(`college_name ILIKE $${branchVals.length + 1}`);
+        branchVals.push(`%${filterCollege}%`);
+      }
+      const branchWhere = branchConditions.length
+        ? `WHERE ${branchConditions.join(' AND ')}`
+        : '';
+
+      // Cities: filtered by year only
+      const cityVals: unknown[] = [];
+      const cityConditions: string[] = ["college_name LIKE '%,%'"];
+      if (year) {
+        cityConditions.push(`year = $${cityVals.length + 1}`);
+        cityVals.push(year);
+      }
+      const cityWhere = `WHERE ${cityConditions.join(' AND ')}`;
 
       const [colleges, branches, cities] = await Promise.all([
         query(
-          `SELECT DISTINCT college_name FROM cutoff_data ${where} ORDER BY college_name LIMIT 1000`,
-          vals,
+          `SELECT DISTINCT college_name FROM cutoff_data ${collegeWhere} ORDER BY college_name LIMIT 1000`,
+          collegeVals,
         ),
         query(
-          `SELECT DISTINCT branch FROM cutoff_data ${where} ORDER BY branch LIMIT 500`,
-          vals,
+          `SELECT DISTINCT branch FROM cutoff_data ${branchWhere} ORDER BY branch LIMIT 500`,
+          branchVals,
         ),
         query(
           `SELECT DISTINCT
              INITCAP(TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(college_name, '^.*,\\s*', '')))) AS city
            FROM cutoff_data
-           ${year ? 'WHERE year = $1 AND' : 'WHERE'} college_name LIKE '%,%'
+           ${cityWhere}
            ORDER BY city LIMIT 300`,
-          vals,
+          cityVals,
         ),
       ]);
 
       const EXCLUDE_KEYWORDS =
         /college|inst(itute)?|tech(nolog|nical)|engg|engineer|univer|campus|school|manage|society|group|research|centre|center|iceem|vjti|coep|somaiya|gramin/i;
-      const EXCLUDE_TAL_DIST = /\btal\b|\btal\.|\bdist\b|\bdist\.|\bdistrict\b/i;
+      const EXCLUDE_TAL_DIST =
+        /\btal\b|\btal\.|\bdist\b|\bdist\.|\bdistrict\b/i;
 
       res.json({
         success: true,
@@ -71,7 +131,11 @@ export class CutoffsController {
     try {
       const filters: CutoffFilters = {
         year: req.query.year ? Number(req.query.year) : undefined,
-        branch: req.query.branch as string | undefined,
+        branches: req.query.branch
+          ? ((Array.isArray(req.query.branch)
+              ? req.query.branch
+              : [req.query.branch]) as string[])
+          : undefined,
         category: req.query.category as string | undefined,
         gender: req.query.gender as string | undefined,
         home_university: req.query.home_university as string | undefined,

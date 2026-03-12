@@ -18,7 +18,7 @@ export interface CutoffData {
 
 export interface CutoffFilters {
   year?: number;
-  branch?: string;
+  branches?: string[];
   category?: string;
   gender?: string;
   home_university?: string;
