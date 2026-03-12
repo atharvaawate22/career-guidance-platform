@@ -24,4 +24,7 @@ router.get('/', (_req, res) => {
 // Public route for creating bookings
 router.post('/', bookingController.createBooking);
 
+// Public route for fetching booked slots on a given date
+router.get('/slots', bookingController.getBookedSlots);
+
 export default router;

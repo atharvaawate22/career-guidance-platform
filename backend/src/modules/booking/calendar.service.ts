@@ -140,10 +140,14 @@ async function createCalendarEvent(event: CalendarEvent) {
     refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
   });
   const calendar = google.calendar({ version: 'v3', auth });
-  const response = await calendar.events.insert({
+  const insertPromise = calendar.events.insert({
     calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
     conferenceDataVersion: 1,
     requestBody: event,
   });
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Calendar API timeout after 20s')), 20000)
+  );
+  const response = await Promise.race([insertPromise, timeoutPromise]);
   return response.data;
 }

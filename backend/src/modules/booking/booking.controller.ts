@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as bookingService from './booking.service';
+import * as bookingRepository from './booking.repository';
 import { CreateBookingRequest } from './booking.types';
 
 export async function createBooking(
@@ -34,6 +35,24 @@ export async function createBooking(
     }
 
     res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getBookedSlots(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const date = req.query.date as string;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      res.status(400).json({ error: 'date query param required (YYYY-MM-DD)' });
+      return;
+    }
+    const slots = await bookingRepository.getBookedSlotsForDate(date);
+    res.json({ date, booked: slots });
   } catch (error) {
     next(error);
   }

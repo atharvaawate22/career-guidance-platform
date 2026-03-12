@@ -120,8 +120,8 @@ function validateBookingRequest(request: CreateBookingRequest): string | null {
     return 'Invalid meeting time format';
   }
 
-  if (meetingTime <= new Date()) {
-    return 'Meeting time must be in the future';
+  if (meetingTime < new Date(Date.now() + 3 * 60 * 60 * 1000)) {
+    return 'Booking must be made at least 3 hours in advance';
   }
 
   // Validate required fields

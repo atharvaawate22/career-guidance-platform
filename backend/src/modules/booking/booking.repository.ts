@@ -66,3 +66,20 @@ export async function deleteBooking(bookingId: string): Promise<boolean> {
   );
   return result.rows.length > 0;
 }
+
+/**
+ * Returns booked HH:MM slot strings (IST) for a given date (YYYY-MM-DD, IST).
+ * Only counts confirmed/pending bookings (not cancelled/no_show).
+ */
+export async function getBookedSlotsForDate(
+  dateIST: string,
+): Promise<string[]> {
+  const result = await query(
+    `SELECT TO_CHAR(meeting_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI') AS slot
+     FROM bookings
+     WHERE DATE(meeting_time AT TIME ZONE 'Asia/Kolkata') = $1
+       AND booking_status NOT IN ('cancelled', 'no_show')`,
+    [dateIST],
+  );
+  return result.rows.map((r: { slot: string }) => r.slot);
+}

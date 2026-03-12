@@ -42,6 +42,32 @@ function formatTimeLabel(time: string) {
   return `${display}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
+function getNowIST() {
+  return new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+}
+
+function getMinDate() {
+  const nowIST = getNowIST();
+  const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+  const todayIST = nowIST.toISOString().slice(0, 10);
+  // If even the last slot (17:30) minus 3h = 14:30 has already passed, jump to tomorrow
+  if (nowMinutes + 180 > 17 * 60 + 30) {
+    return new Date(nowIST.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  }
+  return todayIST;
+}
+
+function getAvailableSlots(dateStr: string) {
+  const nowIST = getNowIST();
+  const todayIST = nowIST.toISOString().slice(0, 10);
+  if (dateStr !== todayIST) return TIME_SLOTS;
+  const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+  return TIME_SLOTS.filter((slot) => {
+    const [h, m] = slot.split(":").map(Number);
+    return h * 60 + m >= nowMinutes + 180;
+  });
+}
+
 export default function BookPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -50,6 +76,8 @@ export default function BookPage() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -64,9 +92,16 @@ export default function BookPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.meeting_time) {
+      setError("Please select a meeting date and time slot.");
+      return;
+    }
     setLoading(true);
     setError("");
     setSuccess(false);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
       const response = await fetch(
@@ -80,9 +115,11 @@ export default function BookPage() {
             ...formData,
             percentile: Number(formData.percentile),
           }),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeoutId);
       const data = await response.json();
 
       if (data.success) {
@@ -105,8 +142,13 @@ export default function BookPage() {
           data.error?.message || data.message || "Failed to create booking"
         );
       }
-    } catch {
-      setError("Error connecting to server");
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Request timed out. The server may be starting up — please try again in a moment.");
+      } else {
+        setError("Error connecting to server. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -155,13 +197,24 @@ export default function BookPage() {
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const date = e.target.value;
     setSelectedDate(date);
-    if (selectedTime) {
-      setFormData({
-        ...formData,
-        meeting_time: `${date}T${selectedTime}:00+05:30`,
-      });
+    const available = getAvailableSlots(date);
+    const timeStillValid = selectedTime && available.includes(selectedTime);
+    if (timeStillValid) {
+      setFormData({ ...formData, meeting_time: `${date}T${selectedTime}:00+05:30` });
     } else {
+      if (selectedTime) setSelectedTime("");
       setFormData({ ...formData, meeting_time: "" });
+    }
+    // Fetch booked slots for this date
+    if (date) {
+      setSlotsLoading(true);
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/bookings/slots?date=${date}`)
+        .then((r) => r.json())
+        .then((data) => setBookedSlots(data.booked ?? []))
+        .catch(() => setBookedSlots([]))
+        .finally(() => setSlotsLoading(false));
+    } else {
+      setBookedSlots([]);
     }
   };
 
@@ -404,42 +457,65 @@ export default function BookPage() {
                   required
                   value={selectedDate}
                   onChange={handleDateChange}
-                  min={new Date().toISOString().split("T")[0]}
+                  min={getMinDate()}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-gray-700 font-medium mb-2">
                   Meeting Time <span className="text-red-500">*</span>
                 </label>
-                <CustomSelect
-                  value={selectedTime}
-                  onChange={(v) => {
-                    setSelectedTime(v);
-                    if (selectedDate && v) {
-                      setFormData({
-                        ...formData,
-                        meeting_time: `${selectedDate}T${v}:00+05:30`,
-                      });
-                    } else {
-                      setFormData({ ...formData, meeting_time: "" });
-                    }
-                  }}
-                  placeholder="Select a time slot"
-                  required
-                  options={[
-                    { value: "", label: "Select a time slot" },
-                    ...TIME_SLOTS.map((slot) => ({
-                      value: slot,
-                      label: formatTimeLabel(slot),
-                    })),
-                  ]}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Available slots: 10:00 AM – 5:30 PM (last slot ends at 6:00
-                  PM)
-                </p>
+                {!selectedDate ? (
+                  <p className="text-sm text-gray-400 italic">Please select a date first.</p>
+                ) : slotsLoading ? (
+                  <p className="text-sm text-gray-400 italic">Loading slots…</p>
+                ) : (
+                  <>
+                    <div className="flex gap-3 flex-wrap text-xs mb-2">
+                      <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span> Available</span>
+                      <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-red-400"></span> Booked</span>
+                      <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-gray-300"></span> Unavailable</span>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {TIME_SLOTS.map((slot) => {
+                        const isBooked = bookedSlots.includes(slot);
+                        const isUnavailable = !getAvailableSlots(selectedDate).includes(slot);
+                        const isSelected = selectedTime === slot;
+                        let cls = "";
+                        if (isBooked) {
+                          cls = "bg-red-100 text-red-400 border-red-200 cursor-not-allowed line-through";
+                        } else if (isUnavailable) {
+                          cls = "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
+                        } else if (isSelected) {
+                          cls = "bg-purple-600 text-white border-purple-600 shadow-md scale-105";
+                        } else {
+                          cls = "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 cursor-pointer";
+                        }
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            disabled={isBooked || isUnavailable}
+                            onClick={() => {
+                              if (isBooked || isUnavailable) return;
+                              setSelectedTime(slot);
+                              setFormData({ ...formData, meeting_time: `${selectedDate}T${slot}:00+05:30` });
+                            }}
+                            className={`border rounded-lg py-2 px-1 text-xs font-medium text-center transition-all ${cls}`}
+                          >
+                            {formatTimeLabel(slot)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!selectedTime && (
+                      <p className="text-xs text-gray-500 mt-2">Select a green slot to book.</p>
+                    )}
+                  </>
+                )}
+                {/* Hidden input to keep form required validation working */}
+                <input type="hidden" name="meeting_time" required value={formData.meeting_time} />
               </div>
             </div>
 

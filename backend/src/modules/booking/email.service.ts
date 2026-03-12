@@ -69,10 +69,12 @@ function formatEmailContent(booking: BookingConfirmation): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'Asia/Kolkata',
   });
   const time = booking.meetingTime.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Kolkata',
   });
 
   return `
@@ -114,10 +116,12 @@ function formatEmailHTML(booking: BookingConfirmation): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'Asia/Kolkata',
   });
   const time = booking.meetingTime.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Kolkata',
   });
 
   return `
@@ -205,7 +209,8 @@ async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
       process.env.GOOGLE_CALENDAR_ID ||
       '';
 
-    const subject = '✅ Consultation Booking Confirmed - MHT CET Guidance';
+    const subject = 'Booking Confirmed - MHT CET Guidance';
+    const encodedSubject = `=?UTF-8?B?${Buffer.from('✅ ' + subject).toString('base64')}?=`;
     const htmlBody = formatEmailHTML(booking);
     const textBody = formatEmailContent(booking);
 
@@ -213,7 +218,7 @@ async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
     const messageParts = [
       `From: MHT CET Guidance <${from}>`,
       `To: ${booking.email}`,
-      `Subject: ${subject}`,
+      `Subject: ${encodedSubject}`,
       'MIME-Version: 1.0',
       'Content-Type: multipart/alternative; boundary="boundary"',
       '',
