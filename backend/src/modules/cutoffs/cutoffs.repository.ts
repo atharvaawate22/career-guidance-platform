@@ -5,6 +5,9 @@ export class CutoffsRepository {
   async getCutoffs(
     filters: CutoffFilters,
   ): Promise<{ rows: CutoffData[]; total: number }> {
+    const citySqlExpr =
+      "LOWER(TRIM(TRAILING '.' FROM TRIM(SPLIT_PART(college_name, ',', 2))))";
+
     const conditions: string[] = [];
     const values: unknown[] = [];
     let p = 1;
@@ -53,11 +56,9 @@ export class CutoffsRepository {
       values.push(filters.level);
     }
     if (filters.cities && filters.cities.length > 0) {
-      const cityConditions = filters.cities.map(
-        () => `college_name ILIKE $${p++}`,
-      );
+      const cityConditions = filters.cities.map(() => `${citySqlExpr} = $${p++}`);
       conditions.push(`(${cityConditions.join(' OR ')})`);
-      filters.cities.forEach((c) => values.push(`%, ${c}`));
+      filters.cities.forEach((c) => values.push(c.trim().toLowerCase()));
     }
 
     const whereClause =
