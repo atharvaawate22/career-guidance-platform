@@ -1,0 +1,41 @@
+export const CUTOFF_CATEGORIES = [
+  'OPEN',
+  'SC',
+  'ST',
+  'VJ',
+  'NT1',
+  'NT2',
+  'NT3',
+  'OBC',
+  'SEBC',
+  'EWS',
+  'TFWS',
+  'MI',
+  'ORPHAN',
+  'DEF_OPEN',
+  'DEF_OBC',
+  'DEF_SC',
+  'DEF_ST',
+  'DEF_SEBC',
+  'DEF_VJ',
+  'DEF_NT1',
+  'DEF_NT2',
+  'DEF_NT3',
+  'PWD_OPEN',
+  'PWD_OBC',
+  'PWD_SC',
+  'PWD_ST',
+  'PWD_SEBC',
+  'PWD_VJ',
+  'PWD_NT1',
+  'PWD_NT2',
+  'PWD_NT3',
+] as const;
+
+export const CUTOFF_LEVELS = [
+  'State Level',
+  'Home University Level',
+  'Other Than Home University Level',
+] as const;
+
+export const CUTOFF_STAGES = ['I', 'II'] as const;

@@ -25,8 +25,8 @@ import json
 import urllib.request
 from collections import defaultdict
 
-RE_COMBINED = re.compile(r'^(\d{4})(\d{5})\s*[-\u2013]\s*(.+)$')
-RE_COLLEGE  = re.compile(r'^(\d{4})\s*[-\u2013]\s*(.+)$')
+RE_COMBINED = re.compile(r'^(\d{4,5})(\d{5})[A-Za-z]?\s*[-\u2013]\s*(.+)$')
+RE_COLLEGE  = re.compile(r'^(\d{4,5})\s*[-\u2013]\s*(.+)$')
 
 
 def page_text(page: object) -> str:

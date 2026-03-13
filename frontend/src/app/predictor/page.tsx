@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
+import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const PREDICTOR_YEAR = 2025;
 
 /** Mirrors backend getDynamicThresholds — keep in sync */
 function getThresholds(percentile: number) {
@@ -20,30 +22,10 @@ function fmtN(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-const CATEGORIES = [
-  "OPEN",
-  "SC",
-  "ST",
-  "VJ",
-  "NT1",
-  "NT2",
-  "NT3",
-  "OBC",
-  "EWS",
-  "TFWS",
-  "DEF_OPEN",
-  "DEF_OBC",
-  "PWD_OPEN",
-];
-
-const LEVELS = [
-  { value: "State Level", label: "State Level (All India Seats)" },
-  { value: "Home University Level", label: "Home University Level" },
-  {
-    value: "Other Than Home University Level",
-    label: "Other Than Home University Level",
-  },
-];
+const LEVELS = CUTOFF_LEVELS.map((value) => ({
+  value,
+  label: value === "State Level" ? "State Level (All India Seats)" : value,
+}));
 
 interface CollegeOption {
   id: string;
@@ -72,7 +54,6 @@ export default function PredictorPage() {
 
   // Form state
   const [percentile, setPercentile] = useState("");
-  const [year, setYear] = useState("2022");
   const [category, setCategory] = useState("OPEN");
   const [gender, setGender] = useState("All");
   const [level, setLevel] = useState("");
@@ -86,7 +67,7 @@ export default function PredictorPage() {
     const load = async () => {
       try {
         const res = await fetch(
-          `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta?year=${year}`
+          `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta?year=${PREDICTOR_YEAR}`
         );
         const d = await res.json();
         if (d.success) {
@@ -98,7 +79,7 @@ export default function PredictorPage() {
       }
     };
     load();
-  }, [year]);
+  }, []);
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +96,7 @@ export default function PredictorPage() {
 
       const body: Record<string, unknown> = {
         percentile: Number(percentile),
-        year: Number(year),
+        year: PREDICTOR_YEAR,
         category,
         gender,
         level,
@@ -290,7 +271,7 @@ export default function PredictorPage() {
             College Predictor
           </h1>
           <p className="text-gray-600 text-lg">
-            Based on MHT-CET 2022 CAP Round I cutoffs — enter your percentile to
+            Based on MHT-CET 2025 CAP Round I cutoffs — enter your percentile to
             see eligible colleges
           </p>
         </div>
@@ -327,23 +308,15 @@ export default function PredictorPage() {
                 </p>
               </div>
 
-              {/* Year */}
               <div>
-                <label
-                  htmlFor="year"
-                  className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                  Year <span className="text-red-500">*</span>
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Data Year
                 </label>
-                <CustomSelect
-                  id="year"
-                  value={year}
-                  onChange={setYear}
-                  options={[{ value: "2022", label: "2022" }]}
-                  required
-                />
+                <div className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
+                  2025 CAP Round 1
+                </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  More years coming soon
+                  Predictor is locked to the 2025 dataset
                 </p>
               </div>
 
@@ -359,7 +332,10 @@ export default function PredictorPage() {
                   id="category"
                   value={category}
                   onChange={setCategory}
-                  options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+                  options={CUTOFF_CATEGORIES.map((c) => ({
+                    value: c,
+                    label: c,
+                  }))}
                 />
               </div>
 
@@ -481,7 +457,7 @@ export default function PredictorPage() {
           <div className="text-center py-16 bg-white/70 backdrop-blur-sm rounded-2xl">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
             <div className="text-xl text-gray-700 font-medium">
-              Analysing 14,000+ cutoffs...
+              Analysing 2025 cutoffs...
             </div>
           </div>
         )}

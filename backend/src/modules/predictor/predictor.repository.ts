@@ -1,5 +1,6 @@
 import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
+import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
 
 export class PredictorRepository {
   async getEligibleColleges(
@@ -54,10 +55,10 @@ export class PredictorRepository {
     // Optional cities filter (OR across selected cities)
     if (filters.cities && filters.cities.length > 0) {
       const cityConditions = filters.cities.map(
-        () => `college_name ILIKE $${p++}`,
+        () => `${CITY_NORMALIZED_SQL} = $${p++}`,
       );
       conditions.push(`(${cityConditions.join(' OR ')})`);
-      filters.cities.forEach((c) => values.push(`%, ${c}`));
+      filters.cities.forEach((c) => values.push(c.trim().toLowerCase()));
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;

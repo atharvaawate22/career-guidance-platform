@@ -206,8 +206,8 @@ export default function Home() {
                   </h4>
                   <p className="text-gray-600 leading-relaxed">
                     Simply provide your MHT-CET percentile and category. Our
-                    system handles all 13 reservation categories for pinpoint
-                    accuracy.
+                    system covers the full 2025 reservation-category set for
+                    more accurate predictions.
                   </p>
                 </div>
 
@@ -242,9 +242,9 @@ export default function Home() {
                     Instantly see your Safe, Target, and Dream options. Powered
                     by{" "}
                     <span className="font-bold text-purple-600">
-                      14,793 actual records
+                      33,497 actual records
                     </span>{" "}
-                    from the 2022 CAP Round.
+                    from the 2025 CAP Round.
                   </p>
                 </div>
               </div>

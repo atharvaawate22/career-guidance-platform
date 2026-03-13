@@ -120,7 +120,7 @@ def main() -> None:
         print(f"Token acquired.")
 
     print(f"Reading {csv_path}...")
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, dtype={"college_code": str, "branch_code": str})
     print(f"Loaded {len(df):,} rows.")
 
     records = build_rows(df)

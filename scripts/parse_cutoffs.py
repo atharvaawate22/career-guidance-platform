@@ -5,6 +5,11 @@ Fix over v3: when finding the branch heading above a table, restrict search
 to the SPACE BETWEEN the previous table's bottom and the current table's top.
 This prevents a subsequent table from being attributed to the wrong branch when
 the page layout puts branch headings non-contiguously with their data tables.
+Fix in v5: RE_COMBINED now accepts an optional letter suffix after the branch
+code digits (e.g. "303524550F" or "303319113K"). Some colleges (women's colleges,
+special-quota institutes) use this convention in the MHT-CET PDFs. Without this
+fix the parser cannot identify the branch heading and carries forward a stale
+branch context, creating duplicate/mis-attributed rows for those colleges.
 
 Usage:
   pip install pdfplumber pandas
@@ -62,11 +67,89 @@ COLUMN_MAP: dict[str, tuple[str, str]] = {
     "LOBCH":    ("OBC",    "Female"),
     "DEFOPENH": ("DEF_OPEN","All"),
     "EWSH":     ("EWS",    "All"),
+    # Other-than-HU variants (O suffix — new in 2025)
+    "GOPENO":   ("OPEN",   "All"),
+    "GSCO":     ("SC",     "All"),
+    "GSTO":     ("ST",     "All"),
+    "GVJO":     ("VJ",     "All"),
+    "GNT1O":    ("NT1",    "All"),
+    "GNT2O":    ("NT2",    "All"),
+    "GNT3O":    ("NT3",    "All"),
+    "GOBCO":    ("OBC",    "All"),
+    "GSEBCO":   ("SEBC",   "All"),
+    "LOPENO":   ("OPEN",   "Female"),
+    "LSCO":     ("SC",     "Female"),
+    "LSTO":     ("ST",     "Female"),
+    "LVJO":     ("VJ",     "Female"),
+    "LNT1O":    ("NT1",    "Female"),
+    "LNT2O":    ("NT2",    "Female"),
+    "LNT3O":    ("NT3",    "Female"),
+    "LOBCO":    ("OBC",    "Female"),
+    "LSEBCO":   ("SEBC",  "Female"),
+    # New categories added in 2025 (SEBC, additional PWD/DEF reserved, Orphan)
+    "GSEBCS":   ("SEBC",     "All"),
+    "LSEBCS":   ("SEBC",    "Female"),
+    "GSEBCH":   ("SEBC",     "All"),
+    "LSEBCH":   ("SEBC",    "Female"),
+    "PWDOBCS":  ("PWD_OBC", "All"),
+    "PWDOBCH":  ("PWD_OBC", "All"),
+    "PWDOPENH": ("PWD_OPEN","All"),
+    "PWDRSCS":  ("PWD_SC",  "All"),
+    "PWDROBCS": ("PWD_OBC", "All"),
+    "PWDRNT2S": ("PWD_NT2", "All"),
+    "DEFOBCS":  ("DEF_OBC", "All"),
+    "DEFRNT3S": ("DEF_NT3", "All"),
+    "DEFRSCS":  ("DEF_SC",  "All"),
+    "DEFRSEBCS":("DEF_SEBC","All"),
+    "DEFSEBCS": ("DEF_SEBC","All"),
+    "DEFSCS":   ("DEF_SC",  "All"),
+    "DEFSTS":   ("DEF_ST",  "All"),
+    "DEFRSTS":  ("DEF_ST",  "All"),
+    "DEFRVJS":  ("DEF_VJ",  "All"),
+    "DEFRNT1S": ("DEF_NT1", "All"),
+    "DEFRNT2S": ("DEF_NT2", "All"),
+    "ORPHAN":   ("ORPHAN",  "All"),
+    "MI":       ("MI",      "All"),
+    "PWDSCS":   ("PWD_SC",  "All"),
+    "PWDSTS":   ("PWD_ST",  "All"),
+    "PWDSEBCS": ("PWD_SEBC","All"),
+    "PWDRSCH":  ("PWD_SC",  "All"),
+    "PWDRSTS":  ("PWD_ST",  "All"),
+    "PWDRSEBCS":("PWD_SEBC","All"),
+    "PWDRNT1S": ("PWD_NT1", "All"),
+    "PWDRNT3S": ("PWD_NT3", "All"),
+    "PWDROBCH": ("PWD_OBC", "All"),
+    "PWDRVJS":  ("PWD_VJ",  "All"),
 }
 
-RE_COMBINED = re.compile(r'^(\d{4})(\d{5})\s*[-\u2013]\s*(.+)$')
-RE_COLLEGE  = re.compile(r'^(\d{4})\s*[-\u2013]\s*(.+)$')
+# Allow optional single letter after branch digits (e.g. F for female-quota colleges,
+# K for Kashmiri-migrant colleges). The captured branch_code is still the 5-digit part.
+# \d{4,5} handles both 2022 (4-digit college codes) and 2025 (5-digit college codes).
+RE_COMBINED = re.compile(r'^(\d{4,5})(\d{5})[A-Za-z]?\s*[-\u2013]\s*(.+)$')
+RE_COLLEGE  = re.compile(r'^(\d{4,5})\s*[-\u2013]\s*(.+)$')
 RE_CELL     = re.compile(r'(\d+)\s*\(([0-9.]+)\)')
+
+# Matches the meaningful college-type prefix in a Status: line.
+# 2025 PDFs append Home University info: "Un-Aided Home University : XYZ University"
+# This regex captures only the type portion, ignoring the HU suffix.
+_STATUS_TYPE_RE = re.compile(
+    r'^('
+    r'Deemed University|University Department|University Autonomous'
+    r'|University Managed[^,]*|University Home|University'
+    r'|Government-Aided|Government|Un-Aided|Aided|Minority'
+    r')'
+    r'(?:\s+Autonomous)?'
+    r'(?:\s+(?:Linguistic|Religious)\s+Minority\s+-\s+(?:Roman Catholics|[\w()]+))?'
+    r'(?=\s|$)',
+    re.IGNORECASE,
+)
+
+
+def normalize_college_status(raw: str) -> str:
+    """Strip verbose 2025 Home-University suffix from a Status: field value."""
+    s = re.sub(r'\s+Home University\s*:.*$', '', raw, flags=re.IGNORECASE).strip()
+    m = _STATUS_TYPE_RE.match(s)
+    return s[: m.end()].strip() if m else s
 
 
 def parse_cell(raw: str) -> tuple[int | None, float | None]:
@@ -141,7 +224,7 @@ def context_from_gap(
                 level_found = True
 
         if not status_found and line.lower().startswith('status:'):
-            ctx['college_status'] = line.split(':', 1)[1].strip()
+            ctx['college_status'] = normalize_college_status(line.split(':', 1)[1].strip())
             status_found = True
 
         if branch_found and college_found and level_found and status_found:
@@ -212,7 +295,7 @@ def parse_pdf(pdf_path: str, year: int) -> pd.DataFrame:
                 elif 'state level' in low:
                     ctx['level'] = 'State Level'
                 if line_s.lower().startswith('status:'):
-                    ctx['college_status'] = line_s.split(':', 1)[1].strip()
+                    ctx['college_status'] = normalize_college_status(line_s.split(':', 1)[1].strip())
 
             # ── Step 3: find all tables on page, sorted top→bottom ────────
             tables = page.find_tables()  # type: ignore[attr-defined]

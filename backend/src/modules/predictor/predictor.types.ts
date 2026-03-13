@@ -1,6 +1,6 @@
 export interface PredictorRequest {
   percentile: number;
-  year: number;
+  year?: number;
   category?: string;
   gender?: string;
   level?: string; // 'State Level' | 'Home University Level' | 'Other Than Home University Level'

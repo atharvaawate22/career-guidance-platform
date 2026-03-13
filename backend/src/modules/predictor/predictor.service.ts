@@ -6,6 +6,7 @@ import {
 } from './predictor.types';
 
 const predictorRepository = new PredictorRepository();
+const PREDICTOR_YEAR = 2025;
 
 /**
  * Dynamic thresholds — fully continuous, no flat zones.
@@ -57,14 +58,9 @@ export class PredictorService {
       throw new Error('Percentile must be between 0 and 100');
     }
 
-    // Validate year
-    if (!request.year || request.year < 2000 || request.year > 2100) {
-      throw new Error('Invalid year provided');
-    }
-
     // Get eligible colleges from repository
     const colleges = await predictorRepository.getEligibleColleges({
-      year: request.year,
+      year: PREDICTOR_YEAR,
       category: request.category,
       gender: request.gender,
       level: request.level,
