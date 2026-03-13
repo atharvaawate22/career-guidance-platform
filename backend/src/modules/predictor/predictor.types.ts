@@ -1,5 +1,6 @@
 export interface PredictorRequest {
-  rank: number;
+  rank?: number;
+  percentile?: number;
   year?: number;
   category?: string;
   gender?: string;
@@ -26,6 +27,11 @@ export interface PredictorResponse {
   safe: CollegeOption[];
   target: CollegeOption[];
   dream: CollegeOption[];
+  meta: {
+    inputMode: 'rank' | 'percentile';
+    effectiveRank: number;
+    inputPercentile?: number;
+  };
 }
 
 export interface PredictorFilters {
