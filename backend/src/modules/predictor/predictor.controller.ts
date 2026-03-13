@@ -14,12 +14,12 @@ export class PredictorController {
       const body = req.body as PredictorRequest;
 
       // Validate required fields
-      if (body.percentile === undefined || body.percentile === null) {
+      if (body.rank === undefined || body.rank === null) {
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Percentile is required',
+            message: 'Rank is required',
           },
         });
         return;
@@ -46,7 +46,7 @@ export class PredictorController {
       // Only service-level validation errors should return 400
       if (
         error instanceof Error &&
-        (error.message.includes('Percentile must be between') ||
+        (error.message.includes('Rank must be a positive') ||
           error.message.includes('Invalid year'))
       ) {
         res.status(400).json({
