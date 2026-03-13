@@ -14,12 +14,15 @@ export class PredictorController {
       const body = req.body as PredictorRequest;
 
       // Validate required fields
-      if (body.rank === undefined || body.rank === null) {
+      if (
+        (body.rank === undefined || body.rank === null) &&
+        (body.percentile === undefined || body.percentile === null)
+      ) {
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Rank is required',
+            message: 'Either rank or percentile is required',
           },
         });
         return;
@@ -36,6 +39,9 @@ export class PredictorController {
       if (
         error instanceof Error &&
         (error.message.includes('Rank must be a positive') ||
+          error.message.includes('Percentile must be between') ||
+          error.message.includes('Either rank or percentile is required') ||
+          error.message.includes('Unable to estimate rank from percentile') ||
           error.message.includes('Invalid year'))
       ) {
         res.status(400).json({
