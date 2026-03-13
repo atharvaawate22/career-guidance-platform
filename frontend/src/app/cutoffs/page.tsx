@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
+import {
+  CUTOFF_CATEGORIES,
+  CUTOFF_LEVELS,
+  CUTOFF_STAGES,
+} from "@/lib/cutoffOptions";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -23,28 +28,6 @@ interface CutoffData {
   cutoff_rank: number | null;
 }
 
-const CATEGORIES = [
-  "OPEN",
-  "SC",
-  "ST",
-  "VJ",
-  "NT1",
-  "NT2",
-  "NT3",
-  "OBC",
-  "EWS",
-  "TFWS",
-  "DEF_OPEN",
-  "DEF_OBC",
-  "PWD_OPEN",
-];
-
-const LEVELS = [
-  "State Level",
-  "Home University Level",
-  "Other Than Home University Level",
-];
-
 export default function CutoffsPage() {
   const [cutoffs, setCutoffs] = useState<CutoffData[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -53,7 +36,7 @@ export default function CutoffsPage() {
   const [hasSearched, setHasSearched] = useState(false);
 
   // Filter state — declared BEFORE the useEffect that depends on 'year'
-  const [year, setYear] = useState("2022");
+  const [year, setYear] = useState("2025");
   const [collegeName, setCollegeName] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
@@ -171,7 +154,7 @@ export default function CutoffsPage() {
   };
 
   const handleReset = () => {
-    setYear("2022");
+    setYear("2025");
     setSelectedBranches([]);
     setCategory("");
     setGender("");
@@ -207,8 +190,8 @@ export default function CutoffsPage() {
             Cutoff Explorer
           </h1>
           <p className="text-gray-600 text-lg">
-            Search historical MHT-CET cutoff data — ranks and percentiles by
-            college, branch &amp; category
+            Search 2025 MHT-CET cutoff data — ranks and percentiles by college,
+            branch &amp; category
           </p>
         </div>
 
@@ -229,10 +212,10 @@ export default function CutoffsPage() {
                 id="year"
                 value={year}
                 onChange={setYear}
-                options={[{ value: "2022", label: "2022 (CAP Round 1)" }]}
+                options={[{ value: "2025", label: "2025 (CAP Round 1)" }]}
               />
               <p className="text-xs text-gray-400 mt-1">
-                More years coming soon
+                2025 is currently the primary dataset
               </p>
             </div>
 
@@ -285,7 +268,7 @@ export default function CutoffsPage() {
                 onChange={setCategory}
                 options={[
                   { value: "", label: "All Categories" },
-                  ...CATEGORIES.map((c) => ({ value: c, label: c })),
+                  ...CUTOFF_CATEGORIES.map((c) => ({ value: c, label: c })),
                 ]}
               />
             </div>
@@ -324,7 +307,28 @@ export default function CutoffsPage() {
                 onChange={setLevel}
                 options={[
                   { value: "", label: "All Levels" },
-                  ...LEVELS.map((l) => ({ value: l, label: l })),
+                  ...CUTOFF_LEVELS.map((l) => ({ value: l, label: l })),
+                ]}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="stage"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                Stage
+              </label>
+              <CustomSelect
+                id="stage"
+                value={stage}
+                onChange={setStage}
+                options={[
+                  { value: "", label: "All Stages" },
+                  ...CUTOFF_STAGES.map((s) => ({
+                    value: s,
+                    label: `Stage ${s}`,
+                  })),
                 ]}
               />
             </div>
@@ -382,7 +386,7 @@ export default function CutoffsPage() {
               Set your filters and click Search
             </div>
             <div className="text-gray-500 mt-2 text-sm">
-              14,793 cutoff records available for 2022 CAP Round 1
+              33,497 cutoff records available for 2025 CAP Round 1
             </div>
           </div>
         ) : cutoffs.length === 0 ? (

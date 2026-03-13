@@ -25,17 +25,6 @@ export class PredictorController {
         return;
       }
 
-      if (!body.year) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Year is required',
-          },
-        });
-        return;
-      }
-
       const predictions = await predictorService.predictColleges(body);
 
       res.status(200).json({
@@ -46,8 +35,7 @@ export class PredictorController {
       // Only service-level validation errors should return 400
       if (
         error instanceof Error &&
-        (error.message.includes('Percentile must be between') ||
-          error.message.includes('Invalid year'))
+        error.message.includes('Percentile must be between')
       ) {
         res.status(400).json({
           success: false,

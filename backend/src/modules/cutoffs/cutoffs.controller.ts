@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CutoffsService } from './cutoffs.service';
 import { CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { query } from '../../config/database';
+import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
 
 const cutoffsService = new CutoffsService();
 
@@ -12,7 +13,7 @@ export class CutoffsController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const year = req.query.year ? Number(req.query.year) : null;
+      const year = req.query.year ? Number(req.query.year) : 2025;
       const filterCollege = req.query.college_name as string | undefined;
       const filterBranches: string[] = req.query.branch
         ? ((Array.isArray(req.query.branch)
@@ -42,10 +43,10 @@ export class CutoffsController {
       }
       if (filterCities.length > 0) {
         const orParts = filterCities.map(
-          (_, i) => `college_name ILIKE $${collegeVals.length + 1 + i}`,
+          (_, i) => `${CITY_NORMALIZED_SQL} = $${collegeVals.length + 1 + i}`,
         );
         collegeConditions.push(`(${orParts.join(' OR ')})`);
-        filterCities.forEach((c) => collegeVals.push(`%, ${c}`));
+        filterCities.forEach((c) => collegeVals.push(c.trim().toLowerCase()));
       }
       const collegeWhere = collegeConditions.length
         ? `WHERE ${collegeConditions.join(' AND ')}`
@@ -68,7 +69,7 @@ export class CutoffsController {
 
       // Cities: filtered by year only
       const cityVals: unknown[] = [];
-      const cityConditions: string[] = ["college_name LIKE '%,%'"];
+      const cityConditions: string[] = [`${CITY_NORMALIZED_SQL} IS NOT NULL`];
       if (year) {
         cityConditions.push(`year = $${cityVals.length + 1}`);
         cityVals.push(year);
@@ -86,7 +87,7 @@ export class CutoffsController {
         ),
         query(
           `SELECT DISTINCT
-             INITCAP(TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(college_name, '^.*,\\s*', '')))) AS city
+             INITCAP(${CITY_NORMALIZED_SQL}) AS city
            FROM cutoff_data
            ${cityWhere}
            ORDER BY city LIMIT 300`,
@@ -130,7 +131,7 @@ export class CutoffsController {
   ): Promise<void> {
     try {
       const filters: CutoffFilters = {
-        year: req.query.year ? Number(req.query.year) : undefined,
+        year: req.query.year ? Number(req.query.year) : 2025,
         branches: req.query.branch
           ? ((Array.isArray(req.query.branch)
               ? req.query.branch

@@ -1,0 +1,70 @@
+college_code,college_name,city_normalized,source
+01119,ANURADHA COLLEGE OF ENGINEERING & TECHNOLOGY,Akola,manual
+01276,"Manav School of Engineering & Technology, Gut No. 1035 Nagpur Surat Highway, NH No. 6 Tal.Vyala, Balapur, Akola, 444302",Akola,parsed-suffix
+02189,"Vishweshwarayya Institute Of Engineering And Technology, Almala, Tq. Ausa, Dist. Latur",Latur,parsed-suffix
+02508,GRAMIN TECHNICAL AND MANAGEMENT CAMPUS NANDED.,Nanded,parsed-suffix
+02516,International Centre Of Excellence In Engineering and Management (ICEEM),Chhatrapati Sambhajinagar,manual
+02637,"Jijau Institute of Engineering Technology and Management, Khandgaon (Bendri), Taluka Naigaon, District Nanded",Nanded,parsed-suffix
+02641,Dr. V.K. Patil College of Engineering & Technology,Jalgaon,manual
+02666,Mangaldeep College of Engineering,Nanded,manual
+02758,Sant Eknath College of Engineering,Aurangabad,manual
+02771,Amolak College of Engineering Kada,Beed,manual
+02772,JSPM College of Engineering,Chhatrapati Sambhajinagar,manual
+02777,CDS College of Engineering,Aurangabad,manual
+02779,NKSPT INSTITUTE OF ENGINEERING AND TECHNOLOGY PATHIKAR CAMPUS,Beed,manual
+03025,Svkm's Shri Bhagubhai Mafatlal Polytechnic & College of Engineering,Mumbai,manual
+03202,Rajendra Mane College of Engineering & Technology Ambav Deorukh,Deorukh,manual
+03217,"Vighnaharata Trust's Shivajirao S. Jondhale College of Engineering & Technology, Shahapur, Asangaon, Dist Thane",Thane,parsed-suffix
+03219,"Koti Vidya Charitable Trust's Smt. Alamuri Ratnamala Institute of Engineering and Technology, Sapgaon, Tal. Shahapur",Shahapur,manual
+03220,Yadavrao Tasgaonkar College of Engineering & Management,Karjat,manual
+03223,"Mahatma Education Society's Pillai HOC College of Engineering & Technology, Tal. Khalapur. Dist. Raigad",Raigad,parsed-suffix
+03277,Pravin Rohidas Patil College of Engineering & Technology,Boisar,manual
+03436,"B.R. Harne College of Engineering & Technology, Karav, Tal-Ambernath.",Ambernath,manual
+03445,"Vishwatmak Jangli Maharaj Ashram Trust (Kokamthan), Atma Malik Institute Of Technology & Research",Kokamthan,manual
+03465,"Ideal Institute of Technology, Wada, Dist.Thane",Thane,parsed-suffix
+03467,"Vishwaniketan's Institute of Management Entrepreneurship and Engineering Technology(i MEET), Khalapur Dist Raigad",Raigad,parsed-suffix
+03470,YASHWANTRAO BHONSALE INSTITUTE OF TECHNOLOGY,Sawantwadi,manual
+03503,"Indala College Of Engineering, Bapsai Tal.Kalyan",Kalyan,manual
+03546,Devi Mahalaxmi College of Engineering and Technology,Palghar,manual
+03723,Navjeevan Education Society's College of Engineering,Nashik,manual
+03724,Thakur Shree DPS College of Engineering & Management,Nashik,manual
+03726,Imperial College of Engineering,Nashik,manual
+04163,Rajiv Gandhi College of Engineering Research & Technology Chandrapur,Chandrapur,parsed-suffix
+04304,"Cummins College of Engineering For Women, Sukhali (Gupchup), Tal. Hingna Hingna Nagpur",Nagpur,parsed-suffix
+04648,"R.V. Parankar College of Engineering & Technology, Arvi, Dist Wardha",Wardha,parsed-suffix
+05125,"Pravara Rural Education Society's Sir Visvesvaraya Institute of Technology, Chincholi Dist. Nashik",Nashik,parsed-suffix
+05164,"P.S.G.V.P. Mandal's D.N. Patel College of Engineering, Shahada, Dist. Nandurbar",Nandurbar,parsed-suffix
+05169,"Nagaon Education Society's Gangamai College of Engineering, Nagaon, Tal Dist Dhule",Dhule,parsed-suffix
+05184,"Amruta Vaishnavi Education & Welfare Trust's Shatabdi Institute of Engineering & Research, Agaskhind Tal. Sinnar",Sinnar,manual
+05239,JAMIA INSTITUTE OF TECHNOLOGY,Jalgaon,manual
+05303,"Hon. Shri. Babanrao Pachpute Vichardhara Trust, Group of Institutions (Integrated Campus)-Parikrama, Kashti Shrigondha,",Shrigonda,manual
+05380,"Adsul's Technical Campus, Chas Dist. Ahmednagar",Ahmednagar,parsed-suffix
+05395,Ashok Institute of Engineering & Technology,Nashik,manual
+05409,"Rajiv Gandhi College of Engineering, At Post Karjule Hariya Tal.Parner, Dist.Ahmednagar",Ahmednagar,parsed-suffix
+05597,VAMANRAO ITHAPE COLLEGE OF ENGINEERING AND MANAGEMENT,Ahmednagar,manual
+06149,"Siddhant College of Engineering, A/p Sudumbare, Tal.Maval, Dist-Pune",Pune,parsed-suffix
+06185,Sinhgad Institute of Technology,Pune,manual
+06217,"Shri. Balasaheb Mane Shikshan Prasarak Mandal's, Ashokrao Mane Group of Institutions",Kolhapur,manual
+06271,Pune Institute of Computer Technology,Pune,parsed-suffix
+06274,PVG College of Engineering Technology and Management,Pune,manual
+06284,"Vidya Pratishthan's Kamalnayan Bajaj Institute of Engineering & Technology, Baramati Dist.Pune",Pune,parsed-suffix
+06307,"Dhole Patil Education Society, Dhole Patil College of Engineering, Wagholi, Tal. Haveli",Pune,manual
+06313,"Jaywant College of Engineering & Polytechnic , Kille Macchindragad Tal. Walva District- Sangali",Sangli,manual
+06315,Sanjeevan Group of Institutions,Kolhapur,manual
+06319,"Shahajirao Patil Vikas Pratishthan, S.B.Patil College of Engineering, Vangali, Tal. Indapur",Indapur,manual
+06324,Rajgad Technical Campus,Pune,manual
+06326,Karmayogi Institute of Technology,Solapur,manual
+06622,ISBM College Of Engineering Pune,Pune,parsed-suffix
+06628,"Dattakala Group Of Institutions, Swami - Chincholi Tal. Daund Dist. Pune",Pune,parsed-suffix
+06632,Navsahyadri Education Society's Group of Institutions,Pune,manual
+06635,Samarth College of Engineering and Management,Pune,manual
+06643,"S K N Sinhgad College of Engineering, Korti Tal. Pandharpur Dist Solapur",Solapur,parsed-suffix
+06714,"APPASAHEB ALIAS SA.RE.PATIL INSTITUTE OF TECHNOLOGY, Dattanagar Tal-Shirol, Dist Kolhapur",Kolhapur,parsed-suffix
+06715,Babasaheb Phadtare Engineering & Technology Kalamb-Walchandnagar Tal Indapur Dist Pune,Pune,parsed-suffix
+06766,Phaltan Education Society's College of Engineering Thakurki Tal- Phaltan Dist-Satara,Satara,parsed-suffix
+06811,Sanjay Ghodawat Institute,Kolhapur,manual
+06938,Shree Siddheshwar Women's College Of Engineering Solapur.,Solapur,parsed-suffix
+16006,COEP Technological University,Pune,manual
+16354,DNYANVILAS COLLEGE OF ENGINEERING,Pune,manual
+16355,Audyogik Shikshan Mandal's Nextgen Technical Campus,Pune,manual
+16357,MES MUKUNDDAS LOHIA COLLEGE OF ENGINEERING,Pune,manual
