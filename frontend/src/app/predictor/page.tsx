@@ -59,11 +59,6 @@ interface PredictionResults {
   safe: CollegeOption[];
   target: CollegeOption[];
   dream: CollegeOption[];
-  meta?: {
-    inputMode: "rank" | "percentile";
-    effectiveRank: number;
-    inputPercentile?: number;
-  };
 }
 
 export default function PredictorPage() {
@@ -72,10 +67,6 @@ export default function PredictorPage() {
   const [results, setResults] = useState<PredictionResults | null>(null);
 
   // Form state
-  const [inputMode, setInputMode] = useState<"percentile" | "rank">(
-    "percentile"
-  );
-  const [percentile, setPercentile] = useState("");
   const [rank, setRank] = useState("");
   const [year, setYear] = useState("2022");
   const [category, setCategory] = useState("OPEN");
@@ -107,11 +98,7 @@ export default function PredictorPage() {
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputMode === "percentile" && !percentile) {
-      setError("Percentile is required");
-      return;
-    }
-    if (inputMode === "rank" && !rank) {
+    if (!rank) {
       setError("Rank is required");
       return;
     }
@@ -123,13 +110,12 @@ export default function PredictorPage() {
       const preferred_branches = selectedBranches;
 
       const body: Record<string, unknown> = {
+        rank: Number(rank),
         year: Number(year),
         category,
         gender,
         level,
       };
-      if (inputMode === "percentile") body.percentile = Number(percentile);
-      if (inputMode === "rank") body.rank = Number(rank);
       if (preferred_branches.length > 0)
         body.preferred_branches = preferred_branches;
       if (selectedCities.length > 0) body.cities = selectedCities;
@@ -300,8 +286,8 @@ export default function PredictorPage() {
             College Predictor
           </h1>
           <p className="text-gray-600 text-lg">
-            Based on MHT-CET 2022 CAP Round I cutoffs — enter your percentile or
-            rank to see eligible colleges
+            Based on MHT-CET 2022 CAP Round I cutoffs — enter your rank to see
+            eligible colleges
           </p>
         </div>
 
@@ -310,93 +296,32 @@ export default function PredictorPage() {
           <h2 className="text-xl font-semibold mb-5 text-gray-800">
             Your Details
           </h2>
-
-          <div className="mb-5">
-            <p className="block mb-2 text-sm font-medium text-gray-700">
-              Input Type
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setInputMode("percentile")}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  inputMode === "percentile"
-                    ? "bg-purple-100 border-purple-300 text-purple-700"
-                    : "bg-white border-gray-300 text-gray-600"
-                }`}
-              >
-                Percentile
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("rank")}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  inputMode === "rank"
-                    ? "bg-purple-100 border-purple-300 text-purple-700"
-                    : "bg-white border-gray-300 text-gray-600"
-                }`}
-              >
-                Rank (more accurate)
-              </button>
-            </div>
-          </div>
-
           <form onSubmit={handlePredict}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-              {/* Percentile */}
-              {inputMode === "percentile" && (
-                <div>
-                  <label
-                    htmlFor="percentile"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Percentile <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    id="percentile"
-                    value={percentile}
-                    onChange={(e) => setPercentile(e.target.value)}
-                    min="0"
-                    max="100"
-                    step="0.0001"
-                    required={inputMode === "percentile"}
-                    placeholder="e.g., 96.5000"
-                    className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Recommended during attempt phase; rank is estimated from
-                    available data
-                  </p>
-                </div>
-              )}
-
               {/* Rank */}
-              {inputMode === "rank" && (
-                <div>
-                  <label
-                    htmlFor="rank"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Rank <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    id="rank"
-                    value={rank}
-                    onChange={(e) => setRank(e.target.value)}
-                    min="1"
-                    max="500000"
-                    step="1"
-                    required={inputMode === "rank"}
-                    placeholder="e.g., 5000"
-                    className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Best option once official rank is published
-                  </p>
-                </div>
-              )}
+              <div>
+                <label
+                  htmlFor="rank"
+                  className="block mb-2 text-sm font-medium text-gray-700"
+                >
+                  Rank <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="rank"
+                  value={rank}
+                  onChange={(e) => setRank(e.target.value)}
+                  min="1"
+                  max="500000"
+                  step="1"
+                  required
+                  placeholder="e.g., 5000"
+                  className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Your MHT-CET category rank
+                </p>
+              </div>
 
               {/* Year */}
               <div>
@@ -530,8 +455,6 @@ export default function PredictorPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setInputMode("percentile");
-                  setPercentile("");
                   setRank("");
                   setCategory("OPEN");
                   setGender("All");
@@ -592,34 +515,15 @@ export default function PredictorPage() {
               </div>
             </div>
 
-            {/* Legend – thresholds shown are dynamic based on the effective rank */}
+            {/* Legend – thresholds shown are dynamic based on the entered percentile */}
             {(() => {
-              const resolvedRank =
-                results?.meta?.effectiveRank ??
-                (inputMode === "rank" ? Number(rank) : Number.NaN);
-              const r = resolvedRank;
-              if (!Number.isFinite(r) || r <= 0) return null;
+              const r = Number(rank);
               const { targetAbove, targetBelow, floorGap, ceilGap } =
                 getThresholds(r);
               const floorVal = Math.max(1, r - ceilGap).toLocaleString();
               const ceilVal = (r + floorGap).toLocaleString();
               return (
                 <div className="bg-white/70 rounded-xl p-4 border border-gray-200 mb-8 flex flex-col gap-3 text-sm">
-                  {results?.meta?.inputMode === "percentile" && (
-                    <div className="text-purple-700 font-medium">
-                      Your predicted/expected rank is{" "}
-                      <span className="font-bold">
-                        {results.meta.effectiveRank.toLocaleString()}
-                      </span>
-                      {results.meta.inputPercentile !== undefined && (
-                        <span className="text-gray-500 font-normal">
-                          {" "}
-                          (from {results.meta.inputPercentile.toFixed(4)}{" "}
-                          percentile)
-                        </span>
-                      )}
-                    </div>
-                  )}
                   <div className="flex gap-6 flex-wrap">
                     <div>
                       <span className="font-semibold text-green-600">Safe</span>{" "}
@@ -647,7 +551,7 @@ export default function PredictorPage() {
                     and{" "}
                     <span className="font-medium text-gray-500">{ceilVal}</span>{" "}
                     are shown — colleges far outside this range are not relevant
-                    for your rank basis.
+                    for your rank.
                   </div>
                 </div>
               );
