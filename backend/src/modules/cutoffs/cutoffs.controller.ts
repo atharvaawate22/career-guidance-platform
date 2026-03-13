@@ -12,9 +12,6 @@ export class CutoffsController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const citySqlExpr =
-        "LOWER(TRIM(TRAILING '.' FROM TRIM(SPLIT_PART(college_name, ',', 2))))";
-
       const year = req.query.year ? Number(req.query.year) : null;
       const filterCollege = req.query.college_name as string | undefined;
       const filterBranches: string[] = req.query.branch
@@ -45,10 +42,10 @@ export class CutoffsController {
       }
       if (filterCities.length > 0) {
         const orParts = filterCities.map(
-          (_, i) => `${citySqlExpr} = $${collegeVals.length + 1 + i}`,
+          (_, i) => `college_name ILIKE $${collegeVals.length + 1 + i}`,
         );
         collegeConditions.push(`(${orParts.join(' OR ')})`);
-        filterCities.forEach((c) => collegeVals.push(c.trim().toLowerCase()));
+        filterCities.forEach((c) => collegeVals.push(`%, ${c}`));
       }
       const collegeWhere = collegeConditions.length
         ? `WHERE ${collegeConditions.join(' AND ')}`
@@ -89,7 +86,7 @@ export class CutoffsController {
         ),
         query(
           `SELECT DISTINCT
-             INITCAP(TRIM(TRAILING '.' FROM TRIM(SPLIT_PART(college_name, ',', 2)))) AS city
+             INITCAP(TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(college_name, '^.*,\\s*', '')))) AS city
            FROM cutoff_data
            ${cityWhere}
            ORDER BY city LIMIT 300`,

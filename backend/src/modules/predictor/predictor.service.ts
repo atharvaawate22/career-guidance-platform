@@ -32,55 +32,14 @@ function getDynamicThresholds(rank: number): {
 
 export class PredictorService {
   async predictColleges(request: PredictorRequest): Promise<PredictorResponse> {
-    // Validate at least one score input
-    if (
-      (request.rank === undefined || request.rank === null) &&
-      (request.percentile === undefined || request.percentile === null)
-    ) {
-      throw new Error('Either rank or percentile is required');
-    }
-
-    if (
-      request.rank !== undefined &&
-      (request.rank < 1 || isNaN(request.rank))
-    ) {
+    // Validate rank
+    if (!request.rank || request.rank < 1 || isNaN(request.rank)) {
       throw new Error('Rank must be a positive number');
-    }
-
-    if (
-      request.percentile !== undefined &&
-      (request.percentile < 0 ||
-        request.percentile > 100 ||
-        isNaN(request.percentile))
-    ) {
-      throw new Error('Percentile must be between 0 and 100');
     }
 
     // Validate year
     if (!request.year || request.year < 2000 || request.year > 2100) {
       throw new Error('Invalid year provided');
-    }
-
-    const inputMode: 'rank' | 'percentile' =
-      request.rank !== undefined && request.rank !== null
-        ? 'rank'
-        : 'percentile';
-
-    let effectiveRank: number;
-    if (inputMode === 'rank') {
-      effectiveRank = Number(request.rank);
-    } else {
-      const estimatedRank =
-        await predictorRepository.estimateRankFromPercentile(
-          request.year,
-          Number(request.percentile),
-        );
-      if (!estimatedRank) {
-        throw new Error(
-          'Unable to estimate rank from percentile for the selected year',
-        );
-      }
-      effectiveRank = estimatedRank;
     }
 
     // Get eligible colleges from repository
@@ -109,11 +68,11 @@ export class PredictorService {
     const deduped = Array.from(seen.values());
 
     const { targetAbove, targetBelow, floorGap, ceilGap } =
-      getDynamicThresholds(effectiveRank);
+      getDynamicThresholds(request.rank);
 
     // Relevance window: in rank space, lower rank = better.
     // Include colleges with cutoff_rank in [r - ceilGap, r + floorGap].
-    const r = effectiveRank;
+    const r = request.rank;
     const relevant = deduped.filter((c) => {
       const cr = Number(c.cutoff_rank);
       if (!cr) return false; // skip null ranks
@@ -151,12 +110,6 @@ export class PredictorService {
       safe,
       target,
       dream,
-      meta: {
-        inputMode,
-        effectiveRank,
-        inputPercentile:
-          inputMode === 'percentile' ? Number(request.percentile) : undefined,
-      },
     };
   }
 }

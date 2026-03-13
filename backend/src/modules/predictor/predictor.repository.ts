@@ -2,33 +2,9 @@ import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
 
 export class PredictorRepository {
-  async estimateRankFromPercentile(
-    year: number,
-    percentile: number,
-  ): Promise<number | null> {
-    const sql = `
-      SELECT cutoff_rank
-      FROM cutoff_data
-      WHERE year = $1
-        AND stage = 'I'
-        AND cutoff_rank IS NOT NULL
-        AND percentile IS NOT NULL
-      ORDER BY ABS(percentile - $2), cutoff_rank ASC
-      LIMIT 1
-    `;
-
-    const result = await query(sql, [year, percentile]);
-    if (result.rows.length === 0) return null;
-
-    return Number(result.rows[0].cutoff_rank);
-  }
-
   async getEligibleColleges(
     filters: PredictorFilters,
   ): Promise<CollegeOption[]> {
-    const citySqlExpr =
-      "LOWER(TRIM(TRAILING '.' FROM TRIM(SPLIT_PART(college_name, ',', 2))))";
-
     const conditions: string[] = [];
     const values: unknown[] = [];
     let p = 1;
@@ -77,9 +53,11 @@ export class PredictorRepository {
 
     // Optional cities filter (OR across selected cities)
     if (filters.cities && filters.cities.length > 0) {
-      const cityConditions = filters.cities.map(() => `${citySqlExpr} = $${p++}`);
+      const cityConditions = filters.cities.map(
+        () => `college_name ILIKE $${p++}`,
+      );
       conditions.push(`(${cityConditions.join(' OR ')})`);
-      filters.cities.forEach((c) => values.push(c.trim().toLowerCase()));
+      filters.cities.forEach((c) => values.push(`%, ${c}`));
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;

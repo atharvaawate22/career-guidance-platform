@@ -23,15 +23,6 @@ interface CutoffData {
   cutoff_rank: number | null;
 }
 
-type SortOption =
-  | "percentile-desc"
-  | "percentile-asc"
-  | "rank-asc"
-  | "rank-desc"
-  | "college-asc"
-  | "branch-asc"
-  | "round-asc";
-
 const CATEGORIES = [
   "OPEN",
   "SC",
@@ -54,35 +45,12 @@ const LEVELS = [
   "Other Than Home University Level",
 ];
 
-function formatRound(stage: string | null) {
-  if (!stage) return "—";
-
-  const normalized = stage.trim().toUpperCase();
-  const romanToNumber: Record<string, string> = {
-    I: "1",
-    II: "2",
-    III: "3",
-    IV: "4",
-  };
-
-  if (romanToNumber[normalized]) {
-    return `CAP Round ${romanToNumber[normalized]}`;
-  }
-
-  if (normalized.includes("ROUND") || normalized.includes("CAP")) {
-    return stage;
-  }
-
-  return `Round ${stage}`;
-}
-
 export default function CutoffsPage() {
   const [cutoffs, setCutoffs] = useState<CutoffData[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("percentile-desc");
 
   // Filter state — declared BEFORE the useEffect that depends on 'year'
   const [year, setYear] = useState("2022");
@@ -91,6 +59,7 @@ export default function CutoffsPage() {
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
   const [level, setLevel] = useState("");
+  const [stage, setStage] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   // Autocomplete state
@@ -180,6 +149,7 @@ export default function CutoffsPage() {
       if (gender) params.append("gender", gender);
       if (collegeName) params.append("college_name", collegeName);
       if (level) params.append("level", level);
+      if (stage) params.append("stage", stage);
       selectedCities.forEach((c) => params.append("city", c));
 
       const response = await fetch(
@@ -207,6 +177,7 @@ export default function CutoffsPage() {
     setGender("");
     setCollegeName("");
     setLevel("");
+    setStage("");
     setSelectedCities([]);
     setCutoffs([]);
     setTotal(null);
@@ -226,27 +197,6 @@ export default function CutoffsPage() {
     };
     return map[cat] ?? "bg-gray-100 text-gray-700";
   };
-
-  const sortedCutoffs = [...cutoffs].sort((left, right) => {
-    switch (sortBy) {
-      case "percentile-asc":
-        return Number(left.percentile) - Number(right.percentile);
-      case "percentile-desc":
-        return Number(right.percentile) - Number(left.percentile);
-      case "rank-asc":
-        return Number(left.cutoff_rank ?? Number.MAX_SAFE_INTEGER) - Number(right.cutoff_rank ?? Number.MAX_SAFE_INTEGER);
-      case "rank-desc":
-        return Number(right.cutoff_rank ?? -1) - Number(left.cutoff_rank ?? -1);
-      case "college-asc":
-        return left.college_name.localeCompare(right.college_name);
-      case "branch-asc":
-        return left.branch.localeCompare(right.branch);
-      case "round-asc":
-        return formatRound(left.stage).localeCompare(formatRound(right.stage), undefined, { numeric: true });
-      default:
-        return 0;
-    }
-  });
 
   return (
     <div className="min-h-screen p-8">
@@ -450,35 +400,11 @@ export default function CutoffsPage() {
                 Showing <strong>{cutoffs.length}</strong> of{" "}
                 <strong>{total?.toLocaleString()}</strong> results
               </span>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="cutoff-sort"
-                    className="text-sm font-medium text-gray-600"
-                  >
-                    Sort by
-                  </label>
-                  <select
-                    id="cutoff-sort"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-purple-500 focus:outline-hidden"
-                  >
-                    <option value="percentile-desc">Percentile: High to Low</option>
-                    <option value="percentile-asc">Percentile: Low to High</option>
-                    <option value="rank-asc">Rank: Low to High</option>
-                    <option value="rank-desc">Rank: High to Low</option>
-                    <option value="college-asc">College Name: A to Z</option>
-                    <option value="branch-asc">Branch: A to Z</option>
-                    <option value="round-asc">Round</option>
-                  </select>
-                </div>
-                {total !== null && total > 500 && (
-                  <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200">
-                    ⚠ Showing first 500 — add more filters to narrow results
-                  </span>
-                )}
-              </div>
+              {total !== null && total > 500 && (
+                <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200">
+                  ⚠ Showing first 500 — add more filters to narrow results
+                </span>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -504,7 +430,7 @@ export default function CutoffsPage() {
                       Level
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                      Round
+                      Stage
                     </th>
                     <th className="px-4 py-3 text-right font-semibold text-gray-700">
                       Rank
@@ -515,7 +441,7 @@ export default function CutoffsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedCutoffs.map((c) => (
+                  {cutoffs.map((c) => (
                     <tr
                       key={c.id}
                       className="border-t border-gray-100 hover:bg-purple-50/40 transition-colors"
@@ -523,8 +449,8 @@ export default function CutoffsPage() {
                       <td className="px-4 py-3 text-gray-800 font-medium">
                         {c.year}
                       </td>
-                      <td className="px-4 py-3 text-gray-800 font-medium min-w-72 align-top">
-                        <div className="whitespace-normal wrap-break-word leading-snug">
+                      <td className="px-4 py-3 text-gray-800 font-medium max-w-55">
+                        <div className="truncate" title={c.college_name}>
                           {c.college_name}
                         </div>
                         {c.college_code && (
@@ -533,8 +459,8 @@ export default function CutoffsPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 min-w-64 align-top">
-                        <div className="whitespace-normal wrap-break-word leading-snug">
+                      <td className="px-4 py-3 text-gray-700 max-w-45">
+                        <div className="truncate" title={c.branch}>
                           {c.branch}
                         </div>
                       </td>
@@ -553,8 +479,8 @@ export default function CutoffsPage() {
                           {c.level || "—"}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs whitespace-nowrap">
-                        {formatRound(c.stage)}
+                      <td className="px-4 py-3 text-gray-600">
+                        {c.stage || "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-gray-800">
                         {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
