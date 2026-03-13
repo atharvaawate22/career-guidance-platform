@@ -7,13 +7,17 @@ import MultiSelect from "@/components/MultiSelect";
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /** Mirrors backend getDynamicThresholds — keep in sync */
-function getThresholds(rank: number) {
-  const h = Math.round(50 * Math.sqrt(rank));
-  const targetAbove = Math.round(0.5 * h);
-  const targetBelow = Math.round(0.3 * h);
-  const floorGap = h;
-  const ceilGap = h;
+function getThresholds(percentile: number) {
+  const targetAbove = Math.min(8, 0.5 + (100 - percentile) * 0.1);
+  const targetBelow = Math.min(15, targetAbove * 2);
+  const floorGap = Math.min(22, Math.max(3, targetBelow * 1.5));
+  const ceilGap = Math.min(15, Math.max(5, targetAbove * 3));
   return { targetAbove, targetBelow, floorGap, ceilGap };
+}
+
+function fmtN(n: number) {
+  // Show one decimal only when not a whole number
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
 const CATEGORIES = [
@@ -67,7 +71,7 @@ export default function PredictorPage() {
   const [results, setResults] = useState<PredictionResults | null>(null);
 
   // Form state
-  const [rank, setRank] = useState("");
+  const [percentile, setPercentile] = useState("");
   const [year, setYear] = useState("2022");
   const [category, setCategory] = useState("OPEN");
   const [gender, setGender] = useState("All");
@@ -98,8 +102,8 @@ export default function PredictorPage() {
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rank) {
-      setError("Rank is required");
+    if (!percentile) {
+      setError("Percentile is required");
       return;
     }
     setLoading(true);
@@ -110,7 +114,7 @@ export default function PredictorPage() {
       const preferred_branches = selectedBranches;
 
       const body: Record<string, unknown> = {
-        rank: Number(rank),
+        percentile: Number(percentile),
         year: Number(year),
         category,
         gender,
@@ -215,10 +219,10 @@ export default function PredictorPage() {
                       Level
                     </th>
                     <th className="px-4 py-3 text-right font-semibold text-gray-700">
-                      Cutoff Rank
+                      Cutoff %
                     </th>
                     <th className="px-4 py-3 text-right font-semibold text-gray-700">
-                      %ile
+                      Rank
                     </th>
                   </tr>
                 </thead>
@@ -246,10 +250,10 @@ export default function PredictorPage() {
                         {c.level}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-purple-700">
-                        {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
+                        {Number(c.cutoff_percentile).toFixed(4)}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-600">
-                        {Number(c.cutoff_percentile).toFixed(2)}
+                        {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
                       </td>
                     </tr>
                   ))}
@@ -286,8 +290,8 @@ export default function PredictorPage() {
             College Predictor
           </h1>
           <p className="text-gray-600 text-lg">
-            Based on MHT-CET 2022 CAP Round I cutoffs — enter your rank to see
-            eligible colleges
+            Based on MHT-CET 2022 CAP Round I cutoffs — enter your percentile to
+            see eligible colleges
           </p>
         </div>
 
@@ -298,28 +302,28 @@ export default function PredictorPage() {
           </h2>
           <form onSubmit={handlePredict}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-              {/* Rank */}
+              {/* Percentile */}
               <div>
                 <label
-                  htmlFor="rank"
+                  htmlFor="percentile"
                   className="block mb-2 text-sm font-medium text-gray-700"
                 >
-                  Rank <span className="text-red-500">*</span>
+                  Percentile <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  id="rank"
-                  value={rank}
-                  onChange={(e) => setRank(e.target.value)}
-                  min="1"
-                  max="500000"
-                  step="1"
+                  id="percentile"
+                  value={percentile}
+                  onChange={(e) => setPercentile(e.target.value)}
+                  min="0"
+                  max="100"
+                  step="0.0001"
                   required
-                  placeholder="e.g., 5000"
+                  placeholder="e.g., 92.5000"
                   className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Your MHT-CET category rank
+                  4 decimal places (as on your scorecard)
                 </p>
               </div>
 
@@ -455,7 +459,7 @@ export default function PredictorPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setRank("");
+                  setPercentile("");
                   setCategory("OPEN");
                   setGender("All");
                   setLevel("State Level");
@@ -517,41 +521,41 @@ export default function PredictorPage() {
 
             {/* Legend – thresholds shown are dynamic based on the entered percentile */}
             {(() => {
-              const r = Number(rank);
+              const p = Number(percentile);
               const { targetAbove, targetBelow, floorGap, ceilGap } =
-                getThresholds(r);
-              const floorVal = Math.max(1, r - ceilGap).toLocaleString();
-              const ceilVal = (r + floorGap).toLocaleString();
+                getThresholds(p);
+              const floorVal = fmtN(Math.max(0, p - floorGap));
+              const ceilVal = fmtN(Math.min(100, p + ceilGap));
               return (
                 <div className="bg-white/70 rounded-xl p-4 border border-gray-200 mb-8 flex flex-col gap-3 text-sm">
                   <div className="flex gap-6 flex-wrap">
                     <div>
                       <span className="font-semibold text-green-600">Safe</span>{" "}
-                      — Your rank is {targetBelow.toLocaleString()}+ ranks above
-                      the cutoff rank
+                      — Your percentile is &gt;{fmtN(targetBelow)}pts above the
+                      cutoff
                     </div>
                     <div>
                       <span className="font-semibold text-amber-600">
                         Target
                       </span>{" "}
-                      — Cutoff rank is within {targetAbove.toLocaleString()}{" "}
-                      above or {targetBelow.toLocaleString()} below your rank
+                      — Cutoff is within {fmtN(targetBelow)}pts below or{" "}
+                      {fmtN(targetAbove)}pt above your percentile
                     </div>
                     <div>
                       <span className="font-semibold text-blue-600">Dream</span>{" "}
-                      — Cutoff rank is {targetAbove.toLocaleString()}+ above
-                      yours
+                      — Cutoff is more than {fmtN(targetAbove)}pt above your
+                      percentile
                     </div>
                   </div>
                   <div className="text-gray-400 text-xs border-t border-gray-100 pt-2">
-                    Only colleges with cutoff ranks between{" "}
+                    Only colleges with cutoffs between{" "}
                     <span className="font-medium text-gray-500">
                       {floorVal}
                     </span>{" "}
                     and{" "}
                     <span className="font-medium text-gray-500">{ceilVal}</span>{" "}
                     are shown — colleges far outside this range are not relevant
-                    for your rank.
+                    for your score.
                   </div>
                 </div>
               );
