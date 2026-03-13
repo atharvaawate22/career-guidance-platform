@@ -1,5 +1,5 @@
 export interface PredictorRequest {
-  percentile: number;
+  rank: number;
   year?: number;
   category?: string;
   gender?: string;
