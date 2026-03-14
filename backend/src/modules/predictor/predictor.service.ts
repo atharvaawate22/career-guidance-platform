@@ -87,6 +87,7 @@ export class PredictorService {
       level: request.level,
       preferred_branches: request.preferred_branches,
       cities: request.cities,
+      include_tfws: request.include_tfws,
     });
 
     // Deduplicate: when multiple level rows exist for the same college+branch+category+gender,

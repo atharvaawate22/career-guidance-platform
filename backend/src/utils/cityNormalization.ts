@@ -97,7 +97,9 @@ const CITY_ALIAS_CASE_SQL = Object.entries(CITY_ALIAS_BY_COLLEGE_CODE)
   .join('\n        ');
 
 export const CITY_ALIAS_BY_LOCALITY: Record<string, string> = {
+  // Aurangabad → canonical new name
   aurangabad: 'Chhatrapati Sambhajinagar',
+  // Pune localities
   bibwewadi: 'Pune',
   'narhe (ambegaon)': 'Pune',
   narhe: 'Pune',
@@ -105,29 +107,86 @@ export const CITY_ALIAS_BY_LOCALITY: Record<string, string> = {
   'pimpri chinchwad college of engineering': 'Pune',
   pisoli: 'Pune',
   'vadgaon (bk)': 'Pune',
+  'vadgaon,pune': 'Pune',
   karvenagar: 'Pune',
+  'karvenagar,pune': 'Pune',
   alandi: 'Pune',
   lohegaon: 'Pune',
+  lohgaon: 'Pune',
   wagholi: 'Pune',
   ravet: 'Pune',
   'avasari khurd': 'Pune',
+  haveli: 'Pune',       // Haveli taluka → Pune
+  sasewadi: 'Pune',     // near Pune (Haveli)
+  kuran: 'Pune',        // Khed taluka, Pune
+  bhima: 'Pune',        // Koregaon Bhima, near Pune
+  'someshwar nagar': 'Pune',  // near Indapur/Baramati, Pune
+  'baner-balewadi': 'Pune',
+  dhankavdi: 'Pune',
+  'katraj, dhankawadi': 'Pune',
+  lavale: 'Pune',
+  lonikand: 'Pune',
+  'kondhwa (bk.)': 'Pune',
+  talegaon: 'Pune',     // Talegaon Dabhade, Maval taluka, Pune
+  yewalewadi: 'Pune',
+  // Navi Mumbai localities
   airoli: 'Navi Mumbai',
   kamothe: 'Navi Mumbai',
   nerul: 'Navi Mumbai',
   kharghar: 'Navi Mumbai',
   'kharghar navi mumbai': 'Navi Mumbai',
   'new panvel': 'Navi Mumbai',
+  'kopar khairane': 'Navi Mumbai',
+  // Mumbai localities
   matunga: 'Mumbai',
   andheri: 'Mumbai',
+  bandra: 'Mumbai',
+  'bandra,mumbai': 'Mumbai',
+  byculla: 'Mumbai',
+  chembur: 'Mumbai',
+  'malad(west)': 'Mumbai',
+  'malad(west),mumbai': 'Mumbai',
+  'vile parle': 'Mumbai',
+  'vile parle,mumbai': 'Mumbai',
+  'mira road': 'Mumbai',
+  sion: 'Mumbai',
+  borivali: 'Mumbai',
+  wadala: 'Mumbai',
+  mahim: 'Mumbai',
+  // Nashik localities
   adgaon: 'Nashik',
   'adgaon nashik': 'Nashik',
   ohar: 'Nashik',
-  wanadongri: 'Nagpur',
+  dumbarwadi: 'Nashik',  // near Deolali/Nashik
+  kokamthan: 'Nashik',   // Sinnar area, Nashik
+  trimbakeshwar: 'Nashik',
+  eklahare: 'Nashik',
   '(nashik)': 'Nashik',
+  'nashik.': 'Nashik',
+  shirgaon: 'Palghar',   // near Vasai-Virar, Palghar
+  // Nagpur localities
+  wanadongri: 'Nagpur',
+  kalmeshwar: 'Nagpur',
+  dongargaon: 'Nagpur',  // near Gondia/Nagpur
+  // Nandurbar
   nadurbar: 'Nandurbar',
+  // Thane
   'thane (e)': 'Thane',
+  'kopri, thane (e)': 'Thane',
+  // Solapur
   'solapur(north)': 'Solapur',
+  'kegaon, solapur': 'Solapur',
+  // Sangli
+  ashta: 'Sangli',
+  // Amravati
+  badnera: 'Amravati',   // Badnera is a suburb of Amravati city
+  // Chandrapur
+  'mouza bamni': 'Chandrapur',  // Ballarpur Institute, Chandrapur dist
+  // Kolhapur
+  jaysingpur: 'Kolhapur',  // city in Kolhapur dist
+  // Ichalkaranji
   'yadrav(ichalkaranji)': 'Ichalkaranji',
+  'ichalkaranji.': 'Ichalkaranji',
 };
 
 const CITY_RAW_SQL = `

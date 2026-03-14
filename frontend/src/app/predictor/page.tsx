@@ -60,6 +60,7 @@ export default function PredictorPage() {
   const [percentile, setPercentile] = useState("");
   const [rank, setRank] = useState("");
   const [category, setCategory] = useState("OPEN");
+  const [includeTfws, setIncludeTfws] = useState(false);
   const [gender, setGender] = useState("All");
   const [level, setLevel] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
@@ -108,6 +109,7 @@ export default function PredictorPage() {
         category,
         gender,
         level,
+        include_tfws: includeTfws,
       };
       if (inputMode === "percentile") body.percentile = Number(percentile);
       if (inputMode === "rank") body.rank = Number(rank);
@@ -402,12 +404,34 @@ export default function PredictorPage() {
                 <CustomSelect
                   id="category"
                   value={category}
-                  onChange={setCategory}
-                  options={CUTOFF_CATEGORIES.map((c) => ({
-                    value: c,
-                    label: c,
-                  }))}
+                  onChange={(val) => {
+                    setCategory(val);
+                    // TFWS-only category selected → uncheck the extra TFWS toggle
+                    if (val === "TFWS") setIncludeTfws(false);
+                  }}
+                  options={CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
+                    (c) => ({ value: c, label: c })
+                  )}
                 />
+                {/* TFWS checkbox — only shown when not already selecting TFWS */}
+                {category !== "TFWS" && (
+                  <label className="mt-2 flex items-center gap-2 cursor-pointer select-none group">
+                    <input
+                      type="checkbox"
+                      id="includeTfws"
+                      checked={includeTfws}
+                      onChange={(e) => setIncludeTfws(e.target.checked)}
+                      className="w-4 h-4 accent-purple-600 rounded"
+                    />
+                    <span className="text-sm text-gray-700 group-hover:text-purple-700 transition-colors">
+                      Also include{" "}
+                      <span className="font-semibold text-purple-700">
+                        TFWS
+                      </span>{" "}
+                      seats
+                    </span>
+                  </label>
+                )}
               </div>
 
               {/* Gender */}
@@ -416,7 +440,7 @@ export default function PredictorPage() {
                   htmlFor="gender"
                   className="block mb-2 text-sm font-medium text-gray-700"
                 >
-                  Gender
+                  Candidate Eligibility
                 </label>
                 <CustomSelect
                   id="gender"
@@ -516,8 +540,9 @@ export default function PredictorPage() {
                   setPercentile("");
                   setRank("");
                   setCategory("OPEN");
+                  setIncludeTfws(false);
                   setGender("All");
-                  setLevel("State Level");
+                  setLevel("");
                   setSelectedBranches([]);
                   setSelectedCities([]);
                   setResults(null);

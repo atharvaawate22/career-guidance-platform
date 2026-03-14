@@ -7,6 +7,7 @@ export interface PredictorRequest {
   level?: string; // 'State Level' | 'Home University Level' | 'Other Than Home University Level'
   preferred_branches?: string[];
   cities?: string[];
+  include_tfws?: boolean; // also include TFWS seats alongside the chosen category
 }
 
 export interface CollegeOption {
@@ -41,4 +42,5 @@ export interface PredictorFilters {
   level?: string;
   preferred_branches?: string[];
   cities?: string[];
+  include_tfws?: boolean;
 }
