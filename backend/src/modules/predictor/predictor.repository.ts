@@ -45,11 +45,12 @@ export class PredictorRepository {
       values.push(filters.category);
     }
 
-    // Optional gender — if not specified, return 'All' gender rows
-    // (avoids duplicating entries for Male/Female-only seats)
-    if (filters.gender) {
-      conditions.push(`gender = $${p++}`);
-      values.push(filters.gender);
+    // Candidate gender handling:
+    // - Female candidates can compete for both gender-neutral ('All') and ladies seats.
+    // - All/unspecified means gender-neutral seats only.
+    if (filters.gender === 'Female') {
+      conditions.push(`(gender = $${p++} OR gender = $${p++})`);
+      values.push('All', 'Female');
     } else {
       conditions.push(`gender = $${p++}`);
       values.push('All');

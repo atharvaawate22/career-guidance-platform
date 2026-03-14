@@ -423,8 +423,14 @@ export default function PredictorPage() {
                   value={gender}
                   onChange={setGender}
                   options={[
-                    { value: "All", label: "All (General seats)" },
-                    { value: "Female", label: "Female (Ladies seats only)" },
+                    {
+                      value: "All",
+                      label: "Gender-Neutral Seats Only",
+                    },
+                    {
+                      value: "Female",
+                      label: "Female Candidate (Gender-Neutral + Ladies)",
+                    },
                   ]}
                 />
               </div>

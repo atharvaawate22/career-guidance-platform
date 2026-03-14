@@ -4,11 +4,7 @@ import { useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
-import {
-  CUTOFF_CATEGORIES,
-  CUTOFF_LEVELS,
-  CUTOFF_STAGES,
-} from "@/lib/cutoffOptions";
+import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -73,7 +69,6 @@ export default function CutoffsPage() {
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
   const [level, setLevel] = useState("");
-  const [stage, setStage] = useState("I");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   // Autocomplete state
@@ -163,7 +158,6 @@ export default function CutoffsPage() {
       if (gender) params.append("gender", gender);
       if (collegeName) params.append("college_name", collegeName);
       if (level) params.append("level", level);
-      if (stage) params.append("stage", stage);
       selectedCities.forEach((c) => params.append("city", c));
 
       const response = await fetch(
@@ -191,7 +185,6 @@ export default function CutoffsPage() {
     setGender("");
     setCollegeName("");
     setLevel("");
-    setStage("I");
     setSelectedCities([]);
     setCutoffs([]);
     setTotal(null);
@@ -219,7 +212,10 @@ export default function CutoffsPage() {
       case "percentile-desc":
         return Number(right.percentile) - Number(left.percentile);
       case "rank-asc":
-        return Number(left.cutoff_rank ?? Number.MAX_SAFE_INTEGER) - Number(right.cutoff_rank ?? Number.MAX_SAFE_INTEGER);
+        return (
+          Number(left.cutoff_rank ?? Number.MAX_SAFE_INTEGER) -
+          Number(right.cutoff_rank ?? Number.MAX_SAFE_INTEGER)
+        );
       case "rank-desc":
         return Number(right.cutoff_rank ?? -1) - Number(left.cutoff_rank ?? -1);
       case "college-asc":
@@ -227,7 +223,11 @@ export default function CutoffsPage() {
       case "branch-asc":
         return left.branch.localeCompare(right.branch);
       case "round-asc":
-        return formatRound(left.stage).localeCompare(formatRound(right.stage), undefined, { numeric: true });
+        return formatRound(left.stage).localeCompare(
+          formatRound(right.stage),
+          undefined,
+          { numeric: true }
+        );
       default:
         return 0;
     }
@@ -325,22 +325,28 @@ export default function CutoffsPage() {
               />
             </div>
 
-            {/* Gender */}
+            {/* Seat Type */}
             <div>
               <label
                 htmlFor="gender"
                 className="block mb-2 text-sm font-medium text-gray-700"
               >
-                Gender
+                Seat Type
               </label>
               <CustomSelect
                 id="gender"
                 value={gender}
                 onChange={setGender}
                 options={[
-                  { value: "", label: "Any" },
-                  { value: "All", label: "All (General seats)" },
-                  { value: "Female", label: "Female (Ladies seats)" },
+                  { value: "", label: "Any Seat Type" },
+                  {
+                    value: "All",
+                    label: "Gender-Neutral Seats Only",
+                  },
+                  {
+                    value: "Female",
+                    label: "Ladies Seats Only",
+                  },
                 ]}
               />
             </div>
@@ -360,27 +366,6 @@ export default function CutoffsPage() {
                 options={[
                   { value: "", label: "All Levels" },
                   ...CUTOFF_LEVELS.map((l) => ({ value: l, label: l })),
-                ]}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="stage"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Stage
-              </label>
-              <CustomSelect
-                id="stage"
-                value={stage}
-                onChange={setStage}
-                options={[
-                  { value: "", label: "All Stages" },
-                  ...CUTOFF_STAGES.map((s) => ({
-                    value: s,
-                    label: `Stage ${s}`,
-                  })),
                 ]}
               />
             </div>
@@ -470,8 +455,12 @@ export default function CutoffsPage() {
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-purple-500 focus:outline-hidden"
                   >
-                    <option value="percentile-desc">Percentile: High to Low</option>
-                    <option value="percentile-asc">Percentile: Low to High</option>
+                    <option value="percentile-desc">
+                      Percentile: High to Low
+                    </option>
+                    <option value="percentile-asc">
+                      Percentile: Low to High
+                    </option>
                     <option value="rank-asc">Rank: Low to High</option>
                     <option value="rank-desc">Rank: High to Low</option>
                     <option value="college-asc">College Name: A to Z</option>
