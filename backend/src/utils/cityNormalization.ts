@@ -96,7 +96,41 @@ const CITY_ALIAS_CASE_SQL = Object.entries(CITY_ALIAS_BY_COLLEGE_CODE)
   .map(([code, city]) => `WHEN college_code = '${code}' THEN '${city}'`)
   .join('\n        ');
 
-export const CITY_NORMALIZED_SQL = `
+export const CITY_ALIAS_BY_LOCALITY: Record<string, string> = {
+  aurangabad: 'Chhatrapati Sambhajinagar',
+  bibwewadi: 'Pune',
+  'narhe (ambegaon)': 'Pune',
+  narhe: 'Pune',
+  pimpri: 'Pune',
+  'pimpri chinchwad college of engineering': 'Pune',
+  pisoli: 'Pune',
+  'vadgaon (bk)': 'Pune',
+  karvenagar: 'Pune',
+  alandi: 'Pune',
+  lohegaon: 'Pune',
+  wagholi: 'Pune',
+  ravet: 'Pune',
+  'avasari khurd': 'Pune',
+  airoli: 'Navi Mumbai',
+  kamothe: 'Navi Mumbai',
+  nerul: 'Navi Mumbai',
+  kharghar: 'Navi Mumbai',
+  'kharghar navi mumbai': 'Navi Mumbai',
+  'new panvel': 'Navi Mumbai',
+  matunga: 'Mumbai',
+  andheri: 'Mumbai',
+  adgaon: 'Nashik',
+  'adgaon nashik': 'Nashik',
+  ohar: 'Nashik',
+  wanadongri: 'Nagpur',
+  '(nashik)': 'Nashik',
+  nadurbar: 'Nandurbar',
+  'thane (e)': 'Thane',
+  'solapur(north)': 'Solapur',
+  'yadrav(ichalkaranji)': 'Ichalkaranji',
+};
+
+const CITY_RAW_SQL = `
   LOWER(
     COALESCE(
       CASE
@@ -118,4 +152,19 @@ export const CITY_NORMALIZED_SQL = `
       )
     )
   )
+`;
+
+const CITY_LOCALITY_ALIAS_CASE_SQL = Object.entries(CITY_ALIAS_BY_LOCALITY)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(
+    ([locality, city]) =>
+      `WHEN ${CITY_RAW_SQL} = '${locality}' THEN '${city.toLowerCase()}'`,
+  )
+  .join('\n      ');
+
+export const CITY_NORMALIZED_SQL = `
+  CASE
+      ${CITY_LOCALITY_ALIAS_CASE_SQL}
+      ELSE ${CITY_RAW_SQL}
+    END
 `;

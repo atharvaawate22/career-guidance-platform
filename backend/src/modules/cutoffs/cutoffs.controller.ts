@@ -104,7 +104,15 @@ export class CutoffsController {
         success: true,
         data: {
           colleges: colleges.rows.map((r) => r.college_name),
-          branches: branches.rows.map((r) => r.branch),
+          branches: branches.rows
+            .map((r) => r.branch as string)
+            .filter((branch) => {
+              if (!branch) return false;
+              const trimmed = branch.trim();
+              if (trimmed.length < 4) return false;
+              if (/^[0-9 ./,()_-]+$/.test(trimmed)) return false;
+              return true;
+            }),
           cities: cities.rows
             .map((r) => r.city as string)
             .filter((c) => {
