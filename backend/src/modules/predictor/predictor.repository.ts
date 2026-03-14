@@ -39,10 +39,15 @@ export class PredictorRepository {
     conditions.push(`stage = $${p++}`);
     values.push('I');
 
-    // Optional category
+    // Optional category — when include_tfws is true, also match TFWS rows
     if (filters.category) {
-      conditions.push(`category = $${p++}`);
-      values.push(filters.category);
+      if (filters.include_tfws && filters.category !== 'TFWS') {
+        conditions.push(`(category = $${p++} OR category = $${p++})`);
+        values.push(filters.category, 'TFWS');
+      } else {
+        conditions.push(`category = $${p++}`);
+        values.push(filters.category);
+      }
     }
 
     // Candidate gender handling:

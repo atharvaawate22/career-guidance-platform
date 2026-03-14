@@ -98,8 +98,12 @@ export class CutoffsController {
       const EXCLUDE_KEYWORDS =
         /college|inst(itute)?|tech(nolog|nical)|engg|engineer|univer|campus|school|manage|society|group|research|centre|center|iceem|vjti|coep|somaiya|gramin/i;
       const EXCLUDE_TAL_DIST =
-        /\btal\b|\btal\.|\bdist\b|\bdist\.|\bdistrict\b/i;
-
+        /\btal\b|\btal\.|\bdist\b|\bdist\.|\bdistrict\b/i;      // Known localities/villages that are not city-level entries
+      const KNOWN_NON_CITY = new Set([
+        'nepti', 'nile', 'yelgaon', 'wadwadi', 'dumbarwadi', 'sasewadi',
+        'babulgaon', 'bota sangamner', 'shirgaon', 'someshwar nagar',
+        'mouza bamni', 'kokamthan', 'kuran', 'haveli', 'bhima',
+      ]);
       res.json({
         success: true,
         data: {
@@ -116,13 +120,14 @@ export class CutoffsController {
           cities: cities.rows
             .map((r) => r.city as string)
             .filter((c) => {
-              if (!c || c.length < 3 || c.length > 25) return false;
+              if (!c || c.length < 3 || c.length > 30) return false;
               if (/\d/.test(c)) return false; // PIN codes or mixed digits
               if (EXCLUDE_KEYWORDS.test(c)) return false; // college name fragments
               if (EXCLUDE_TAL_DIST.test(c)) return false; // taluka/district refs
               if (/[()]/.test(c)) return false; // parenthesised variants
               if (/-/.test(c)) return false; // hyphenated address combos
               if (c.split(/\s+/).length > 3) return false; // long address phrases
+              if (KNOWN_NON_CITY.has(c.toLowerCase())) return false;
               return true;
             })
             .sort((a, b) => a.localeCompare(b)),
