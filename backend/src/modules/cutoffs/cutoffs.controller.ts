@@ -13,7 +13,7 @@ export class CutoffsController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const year = req.query.year ? Number(req.query.year) : 2025;
+      const year = req.query.year ? Number(req.query.year) : undefined;
       const filterCollege = req.query.college_name as string | undefined;
       const filterBranches: string[] = req.query.branch
         ? ((Array.isArray(req.query.branch)
@@ -156,7 +156,7 @@ export class CutoffsController {
   ): Promise<void> {
     try {
       const filters: CutoffFilters = {
-        year: req.query.year ? Number(req.query.year) : 2025,
+        year: req.query.year ? Number(req.query.year) : undefined,
         branches: req.query.branch
           ? ((Array.isArray(req.query.branch)
               ? req.query.branch

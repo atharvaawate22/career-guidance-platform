@@ -77,7 +77,7 @@ export default function BookPage() {
   const [meetLink, setMeetLink] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [countryCode, setCountryCode] = useState("+91");
+  const [countryCode, setCountryCode] = useState("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
@@ -366,11 +366,15 @@ export default function BookPage() {
                   <CustomSelect
                     value={countryCode}
                     onChange={setCountryCode}
+                    placeholder="Select code"
                     className="w-28 shrink-0"
-                    options={COUNTRY_CODES.map((c) => ({
-                      value: c.code,
-                      label: `${c.flag} ${c.code}`,
-                    }))}
+                    options={[
+                      { value: "", label: "Code" },
+                      ...COUNTRY_CODES.map((c) => ({
+                        value: c.code,
+                        label: `${c.flag} ${c.code}`,
+                      })),
+                    ]}
                   />
                   <input
                     type="tel"
