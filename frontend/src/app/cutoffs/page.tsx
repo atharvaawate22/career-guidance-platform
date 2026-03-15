@@ -102,9 +102,7 @@ export default function CutoffsPage() {
     try {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          const res = await fetch(
-            `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
-          );
+          const res = await fetch(`${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`);
           if (!res.ok) {
             throw new Error(`Meta fetch failed with status ${res.status}`);
           }
@@ -114,10 +112,37 @@ export default function CutoffsPage() {
             throw new Error("Meta endpoint returned unsuccessful response");
           }
 
-          if (!opts?.college) setCollegeOptions(data.data.colleges ?? []);
-          if (!opts?.branches?.length) setBranchOptions(data.data.branches ?? []);
+          let colleges = data.data.colleges ?? [];
+          let branches = data.data.branches ?? [];
+          let cities = data.data.cities ?? [];
+
+          // If a year-specific query returns empty metadata, fallback to all-years list.
+          const isBaseMetaRequest =
+            !opts?.college &&
+            !(opts?.branches?.length ?? 0) &&
+            !(opts?.cities?.length ?? 0);
+          if (
+            isBaseMetaRequest &&
+            year &&
+            colleges.length === 0 &&
+            branches.length === 0 &&
+            cities.length === 0
+          ) {
+            const fallbackRes = await fetch(`${API_BASE_URL}/api/cutoffs/meta`);
+            if (fallbackRes.ok) {
+              const fallbackData = await fallbackRes.json();
+              if (fallbackData.success) {
+                colleges = fallbackData.data.colleges ?? [];
+                branches = fallbackData.data.branches ?? [];
+                cities = fallbackData.data.cities ?? [];
+              }
+            }
+          }
+
+          if (!opts?.college) setCollegeOptions(colleges);
+          if (!opts?.branches?.length) setBranchOptions(branches);
           if (!opts?.college && !opts?.branches?.length) {
-            setCityOptions(data.data.cities ?? []);
+            setCityOptions(cities);
           }
 
           // Cache only base metadata (no narrowing filters) for instant next load.
@@ -125,9 +150,9 @@ export default function CutoffsPage() {
             localStorage.setItem(
               metaCacheKey(year),
               JSON.stringify({
-                colleges: data.data.colleges ?? [],
-                branches: data.data.branches ?? [],
-                cities: data.data.cities ?? [],
+                colleges,
+                branches,
+                cities,
               })
             );
           }
@@ -139,7 +164,7 @@ export default function CutoffsPage() {
         }
       }
     } catch {
-      // Silent fail: keep UI fast and uncluttered.
+      // Keep existing cached values; this avoids blank dropdowns on transient failures.
     }
   };
 
