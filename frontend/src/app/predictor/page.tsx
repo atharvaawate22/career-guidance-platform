@@ -95,21 +95,50 @@ export default function PredictorPage() {
 
     const load = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cutoffs/meta?year=${PREDICTOR_YEAR}`);
-        const d = await res.json();
-        if (d.success) {
-          setBranchOptions(d.data.branches ?? []);
-          setCityOptions(d.data.cities ?? []);
-          localStorage.setItem(
-            cacheKey,
-            JSON.stringify({
-              branches: d.data.branches ?? [],
-              cities: d.data.cities ?? [],
-            })
-          );
+        let branches: string[] = [];
+        let cities: string[] = [];
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const res = await fetch(
+              `${API_BASE_URL}/api/cutoffs/meta?year=${PREDICTOR_YEAR}`
+            );
+            if (!res.ok) throw new Error(`Meta status ${res.status}`);
+            const d = await res.json();
+            if (!d.success) throw new Error("Meta response not successful");
+
+            branches = d.data.branches ?? [];
+            cities = d.data.cities ?? [];
+            break;
+          } catch {
+            if (attempt === 3) throw new Error("Predictor meta fetch failed");
+            await new Promise((resolve) => setTimeout(resolve, 350 * attempt));
+          }
         }
+
+        // If 2025 metadata is empty, fallback to all-years metadata for dropdown usability.
+        if (branches.length === 0 && cities.length === 0) {
+          const fallbackRes = await fetch(`${API_BASE_URL}/api/cutoffs/meta`);
+          if (fallbackRes.ok) {
+            const fallback = await fallbackRes.json();
+            if (fallback.success) {
+              branches = fallback.data.branches ?? [];
+              cities = fallback.data.cities ?? [];
+            }
+          }
+        }
+
+        setBranchOptions(branches);
+        setCityOptions(cities);
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            branches,
+            cities,
+          })
+        );
       } catch {
-        /* ignore */
+        // Keep cache-backed values if network fails.
       }
     };
     load();
