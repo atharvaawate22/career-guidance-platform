@@ -266,6 +266,72 @@ const initializeDatabase = async (): Promise<boolean> => {
       CREATE INDEX IF NOT EXISTS idx_bookings_email ON bookings(email)
     `);
 
+    // ---------------------------------------------------------------------
+    // Supabase Security hardening: enable RLS on public tables.
+    // Public read is allowed only where the app intentionally exposes data.
+    // Sensitive tables keep RLS enabled with no public policies.
+    // ---------------------------------------------------------------------
+    await query(`ALTER TABLE updates ENABLE ROW LEVEL SECURITY`);
+    await query(`ALTER TABLE resources ENABLE ROW LEVEL SECURITY`);
+    await query(`ALTER TABLE guides ENABLE ROW LEVEL SECURITY`);
+    await query(`ALTER TABLE cutoff_data ENABLE ROW LEVEL SECURITY`);
+    await query(`ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY`);
+    await query(`ALTER TABLE guide_downloads ENABLE ROW LEVEL SECURITY`);
+    await query(`ALTER TABLE bookings ENABLE ROW LEVEL SECURITY`);
+
+    // Public read policies for data that is intentionally visible in the app.
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'updates' AND policyname = 'updates_public_read'
+        ) THEN
+          CREATE POLICY updates_public_read ON updates FOR SELECT USING (true);
+        END IF;
+      END
+      $$;
+    `);
+
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'cutoff_data' AND policyname = 'cutoff_data_public_read'
+        ) THEN
+          CREATE POLICY cutoff_data_public_read ON cutoff_data FOR SELECT USING (true);
+        END IF;
+      END
+      $$;
+    `);
+
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'guides' AND policyname = 'guides_public_read_active'
+        ) THEN
+          CREATE POLICY guides_public_read_active ON guides FOR SELECT USING (is_active = true);
+        END IF;
+      END
+      $$;
+    `);
+
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'resources' AND policyname = 'resources_public_read_active'
+        ) THEN
+          CREATE POLICY resources_public_read_active ON resources FOR SELECT USING (is_active = true);
+        END IF;
+      END
+      $$;
+    `);
+
     logger.info('Database tables initialized successfully');
 
     // Insert sample data if table is empty (for testing)
