@@ -80,7 +80,7 @@ export default function AdminPage() {
     title: "",
     description: "",
     file_url: "",
-    category: "Seat Matrix",
+    category: "",
   });
   const [resourceSubmitting, setResourceSubmitting] = useState(false);
 
@@ -1264,10 +1264,13 @@ export default function AdminPage() {
                       }
                       required
                       inputSize="sm"
-                      options={RESOURCE_CATEGORIES.map((c) => ({
-                        value: c,
-                        label: c,
-                      }))}
+                      options={[
+                        { value: "", label: "Select Category" },
+                        ...RESOURCE_CATEGORIES.map((c) => ({
+                          value: c,
+                          label: c,
+                        })),
+                      ]}
                     />
                   </div>
                 </div>

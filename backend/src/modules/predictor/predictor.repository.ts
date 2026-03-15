@@ -52,11 +52,12 @@ export class PredictorRepository {
 
     // Candidate gender handling:
     // - Female candidates can compete for both gender-neutral ('All') and ladies seats.
-    // - All/unspecified means gender-neutral seats only.
+    // - All means gender-neutral seats only.
+    // - Unspecified means no gender filter (all seat types).
     if (filters.gender === 'Female') {
       conditions.push(`(gender = $${p++} OR gender = $${p++})`);
       values.push('All', 'Female');
-    } else {
+    } else if (filters.gender === 'All') {
       conditions.push(`gender = $${p++}`);
       values.push('All');
     }

@@ -27,6 +27,12 @@ interface CutoffData {
   cutoff_rank: number | null;
 }
 
+interface CutoffMetaResponse {
+  colleges?: string[];
+  branches?: string[];
+  cities?: string[];
+}
+
 type SortOption =
   | "percentile-desc"
   | "percentile-asc"
@@ -66,7 +72,7 @@ export default function CutoffsPage() {
   const [sortBy, setSortBy] = useState<SortOption>("percentile-desc");
 
   // Filter state — declared BEFORE the useEffect that depends on 'year'
-  const [year, setYear] = useState("2025");
+  const [year, setYear] = useState("");
   const [collegeName, setCollegeName] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
@@ -78,15 +84,15 @@ export default function CutoffsPage() {
   const [collegeOptions, setCollegeOptions] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [cityOptions, setCityOptions] = useState<string[]>([]);
-  const [metaLoading, setMetaLoading] = useState(false);
-  const [metaError, setMetaError] = useState("");
+
+  const metaCacheKey = (yearValue: string) =>
+    `cutoffs:meta:${yearValue || "all"}`;
 
   const fetchMeta = async (opts?: {
     college?: string;
     branches?: string[];
     cities?: string[];
   }) => {
-    setMetaLoading(true);
     const params = new URLSearchParams();
     if (year) params.set("year", year);
     if (opts?.college) params.set("college_name", opts.college);
@@ -114,7 +120,18 @@ export default function CutoffsPage() {
             setCityOptions(data.data.cities ?? []);
           }
 
-          setMetaError("");
+          // Cache only base metadata (no narrowing filters) for instant next load.
+          if (!opts) {
+            localStorage.setItem(
+              metaCacheKey(year),
+              JSON.stringify({
+                colleges: data.data.colleges ?? [],
+                branches: data.data.branches ?? [],
+                cities: data.data.cities ?? [],
+              })
+            );
+          }
+
           return;
         } catch {
           if (attempt === 3) throw new Error("Failed to load dropdown metadata");
@@ -122,23 +139,60 @@ export default function CutoffsPage() {
         }
       }
     } catch {
-      if (!opts) {
-        setMetaError(
-          "Could not load college/branch/city list. Retrying failed; click Reset once or refresh."
-        );
-      }
-    } finally {
-      setMetaLoading(false);
+      // Silent fail: keep UI fast and uncluttered.
+    }
+  };
+
+  const prefetchYearMeta = async (yearValue: string) => {
+    try {
+      const params = new URLSearchParams();
+      if (yearValue) params.set("year", yearValue);
+      const res = await fetch(`${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+      localStorage.setItem(
+        metaCacheKey(yearValue),
+        JSON.stringify({
+          colleges: data.data.colleges ?? [],
+          branches: data.data.branches ?? [],
+          cities: data.data.cities ?? [],
+        })
+      );
+    } catch {
+      // Ignore prefetch failures.
     }
   };
 
   // Fetch full meta on year change (resets both lists)
   useEffect(() => {
+    // Load cached base metadata immediately for snappy dropdowns.
+    try {
+      const cached = localStorage.getItem(metaCacheKey(year));
+      if (cached) {
+        const parsed = JSON.parse(cached) as CutoffMetaResponse;
+        setCollegeOptions(parsed.colleges ?? []);
+        setBranchOptions(parsed.branches ?? []);
+        setCityOptions(parsed.cities ?? []);
+      }
+    } catch {
+      // Ignore cache parse errors and continue with network fetch.
+    }
+
+    // Refresh from network in background.
     fetchMeta();
     setCollegeName("");
     setSelectedBranches([]);
+    setSelectedCities([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
+
+  // Preload key years in background once for faster year switches.
+  useEffect(() => {
+    prefetchYearMeta("2025");
+    prefetchYearMeta("2022");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // When college changes: narrow branches to only those in that college
   const handleCollegeChange = (value: string) => {
@@ -209,7 +263,7 @@ export default function CutoffsPage() {
   };
 
   const handleReset = () => {
-    setYear("2025");
+    setYear("");
     setSelectedBranches([]);
     setCategory("");
     setGender("");
@@ -272,7 +326,7 @@ export default function CutoffsPage() {
             Cutoff Explorer
           </h1>
           <p className="text-gray-600 text-lg">
-            Search 2025 MHT-CET cutoff data — ranks and percentiles by college,
+            Search MHT-CET cutoff data — ranks and percentiles by college,
             branch &amp; category
           </p>
         </div>
@@ -294,10 +348,14 @@ export default function CutoffsPage() {
                 id="year"
                 value={year}
                 onChange={setYear}
-                options={[{ value: "2025", label: "2025 (CAP Round 1)" }]}
+                options={[
+                  { value: "", label: "Select Year (All Years)" },
+                  { value: "2025", label: "2025 (CAP Round 1)" },
+                  { value: "2022", label: "2022 (CAP Rounds 1, 2, 3)" },
+                ]}
               />
               <p className="text-xs text-gray-400 mt-1">
-                2025 is currently the primary dataset
+                Leave year unselected to include all available years
               </p>
             </div>
 
@@ -314,11 +372,7 @@ export default function CutoffsPage() {
                 value={collegeName}
                 onChange={handleCollegeChange}
                 options={collegeOptions}
-                placeholder={
-                  metaLoading
-                    ? "Loading colleges..."
-                    : "e.g., VJTI, COEP, Government College..."
-                }
+                placeholder="Select college (All Colleges)"
                 maxLength={200}
               />
             </div>
@@ -336,11 +390,7 @@ export default function CutoffsPage() {
                 value={selectedBranches}
                 onChange={handleBranchesChange}
                 options={branchOptions}
-                placeholder={
-                  metaLoading
-                    ? "Loading branches..."
-                    : "e.g., Computer Engineering..."
-                }
+                placeholder="Select branch (All Branches)"
               />
             </div>
 
@@ -357,7 +407,7 @@ export default function CutoffsPage() {
                 value={category}
                 onChange={setCategory}
                 options={[
-                  { value: "", label: "All Categories" },
+                  { value: "", label: "Select Category (All Categories)" },
                   ...CUTOFF_CATEGORIES.map((c) => ({ value: c, label: c })),
                 ]}
               />
@@ -376,7 +426,7 @@ export default function CutoffsPage() {
                 value={gender}
                 onChange={setGender}
                 options={[
-                  { value: "", label: "Any Seat Type" },
+                  { value: "", label: "Select Seat Type (All Seat Types)" },
                   {
                     value: "All",
                     label: "Gender-Neutral Seats Only",
@@ -402,7 +452,7 @@ export default function CutoffsPage() {
                 value={level}
                 onChange={setLevel}
                 options={[
-                  { value: "", label: "All Levels" },
+                  { value: "", label: "Select Level (All Levels)" },
                   ...CUTOFF_LEVELS.map((l) => ({ value: l, label: l })),
                 ]}
               />
@@ -418,15 +468,8 @@ export default function CutoffsPage() {
               value={selectedCities}
               onChange={handleCitiesChange}
               options={cityOptions}
-              placeholder={
-                metaLoading
-                  ? "Loading cities..."
-                  : "Filter by city (e.g. Pune, Mumbai, Nagpur)..."
-              }
+              placeholder="Select city (All Cities)"
             />
-            {metaError && (
-              <p className="text-xs text-amber-700 mt-2">{metaError}</p>
-            )}
           </div>
 
           <div className="flex gap-4">

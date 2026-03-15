@@ -1,11 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
 
-const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
 const PREDICTOR_YEAR = 2025;
 
 /** Mirrors backend getDynamicThresholds — keep in sync */
@@ -48,6 +52,11 @@ interface PredictionResults {
   };
 }
 
+interface PredictorMetaResponse {
+  branches?: string[];
+  cities?: string[];
+}
+
 export default function PredictorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -59,9 +68,9 @@ export default function PredictorPage() {
   );
   const [percentile, setPercentile] = useState("");
   const [rank, setRank] = useState("");
-  const [category, setCategory] = useState("OPEN");
+  const [category, setCategory] = useState("");
   const [includeTfws, setIncludeTfws] = useState(false);
-  const [gender, setGender] = useState("All");
+  const [gender, setGender] = useState("");
   const [level, setLevel] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
@@ -70,15 +79,34 @@ export default function PredictorPage() {
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [cityOptions, setCityOptions] = useState<string[]>([]);
   useEffect(() => {
+    const cacheKey = `predictor:meta:${PREDICTOR_YEAR}`;
+
+    // Serve cached metadata first for instant dropdown responsiveness.
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as PredictorMetaResponse;
+        setBranchOptions(parsed.branches ?? []);
+        setCityOptions(parsed.cities ?? []);
+      }
+    } catch {
+      // Ignore cache parse errors.
+    }
+
     const load = async () => {
       try {
-        const res = await fetch(
-          `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta?year=${PREDICTOR_YEAR}`
-        );
+        const res = await fetch(`${API_BASE_URL}/api/cutoffs/meta?year=${PREDICTOR_YEAR}`);
         const d = await res.json();
         if (d.success) {
-          setBranchOptions(d.data.branches);
+          setBranchOptions(d.data.branches ?? []);
           setCityOptions(d.data.cities ?? []);
+          localStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              branches: d.data.branches ?? [],
+              cities: d.data.cities ?? [],
+            })
+          );
         }
       } catch {
         /* ignore */
@@ -117,7 +145,7 @@ export default function PredictorPage() {
         body.preferred_branches = preferred_branches;
       if (selectedCities.length > 0) body.cities = selectedCities;
 
-      const res = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/predict`, {
+      const res = await fetch(`${API_BASE_URL}/api/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -286,6 +314,10 @@ export default function PredictorPage() {
             Based on MHT-CET 2025 CAP Round I cutoffs — enter your percentile or
             rank to see eligible colleges
           </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Predictions are generated from historical cutoff data (2025 CAP Round
+            1 dataset).
+          </p>
         </div>
 
         {/* Input Form */}
@@ -381,18 +413,6 @@ export default function PredictorPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Data Year
-                </label>
-                <div className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
-                  2025 CAP Round 1
-                </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  Predictor is locked to the 2025 dataset
-                </p>
-              </div>
-
               {/* Category */}
               <div>
                 <label
@@ -409,9 +429,12 @@ export default function PredictorPage() {
                     // TFWS-only category selected → uncheck the extra TFWS toggle
                     if (val === "TFWS") setIncludeTfws(false);
                   }}
-                  options={CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
-                    (c) => ({ value: c, label: c })
-                  )}
+                  options={[
+                    { value: "", label: "Select Category (All Categories)" },
+                    ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
+                      (c) => ({ value: c, label: c })
+                    ),
+                  ]}
                 />
                 {/* TFWS checkbox — only shown when not already selecting TFWS */}
                 {category !== "TFWS" && (
@@ -448,6 +471,10 @@ export default function PredictorPage() {
                   onChange={setGender}
                   options={[
                     {
+                      value: "",
+                      label: "Select Eligibility (All Seat Types)",
+                    },
+                    {
                       value: "All",
                       label: "Gender-Neutral Seats Only",
                     },
@@ -472,7 +499,7 @@ export default function PredictorPage() {
                   value={level}
                   onChange={setLevel}
                   options={[
-                    { value: "", label: "All Levels" },
+                    { value: "", label: "Select Level (All Levels)" },
                     ...LEVELS.map((l) => ({
                       value: l.value,
                       label: l.label,
@@ -494,7 +521,7 @@ export default function PredictorPage() {
                   value={selectedBranches}
                   onChange={setSelectedBranches}
                   options={branchOptions}
-                  placeholder="Search and select branches..."
+                  placeholder="Select branch (All Branches)"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   Select one or more. Leave blank for all branches.
@@ -511,7 +538,7 @@ export default function PredictorPage() {
                   value={selectedCities}
                   onChange={setSelectedCities}
                   options={cityOptions}
-                  placeholder="Filter by city (e.g. Pune, Mumbai, Nagpur)..."
+                  placeholder="Select city (All Cities)"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   Select one or more. Leave blank for all cities.
@@ -524,6 +551,19 @@ export default function PredictorPage() {
                 {error}
               </div>
             )}
+
+            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 flex flex-wrap items-center justify-between gap-3">
+              <span>
+                Results are purely cutoff-data based. For more accurate end-to-end
+                guidance, book a consultation session.
+              </span>
+              <Link
+                href="/book"
+                className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-white font-medium hover:bg-blue-700 transition-colors"
+              >
+                Book a Session Now
+              </Link>
+            </div>
 
             <div className="flex gap-3">
               <button
@@ -539,9 +579,9 @@ export default function PredictorPage() {
                   setInputMode("percentile");
                   setPercentile("");
                   setRank("");
-                  setCategory("OPEN");
+                  setCategory("");
                   setIncludeTfws(false);
-                  setGender("All");
+                  setGender("");
                   setLevel("");
                   setSelectedBranches([]);
                   setSelectedCities([]);
