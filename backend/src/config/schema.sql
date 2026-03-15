@@ -148,5 +148,62 @@ CREATE INDEX IF NOT EXISTS idx_bookings_status
 ON bookings(booking_status);
 
 -- ============================================================================
+-- ROW LEVEL SECURITY (RLS)
+-- Purpose: Protect Supabase Data API exposure while allowing intended public reads
+-- ============================================================================
+ALTER TABLE updates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cutoff_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guide_downloads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+
+-- Public read policies for app-facing content
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'updates' AND policyname = 'updates_public_read'
+  ) THEN
+    CREATE POLICY updates_public_read ON updates FOR SELECT USING (true);
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'cutoff_data' AND policyname = 'cutoff_data_public_read'
+  ) THEN
+    CREATE POLICY cutoff_data_public_read ON cutoff_data FOR SELECT USING (true);
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'guides' AND policyname = 'guides_public_read_active'
+  ) THEN
+    CREATE POLICY guides_public_read_active ON guides FOR SELECT USING (is_active = true);
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'resources' AND policyname = 'resources_public_read_active'
+  ) THEN
+    CREATE POLICY resources_public_read_active ON resources FOR SELECT USING (is_active = true);
+  END IF;
+END
+$$;
+
+-- ============================================================================
 -- END OF SCHEMA
 -- ============================================================================
