@@ -6,7 +6,10 @@ import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
 
-const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
 
 interface CutoffData {
   id: string;
@@ -75,30 +78,57 @@ export default function CutoffsPage() {
   const [collegeOptions, setCollegeOptions] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [metaLoading, setMetaLoading] = useState(false);
+  const [metaError, setMetaError] = useState("");
 
   const fetchMeta = async (opts?: {
     college?: string;
     branches?: string[];
     cities?: string[];
   }) => {
+    setMetaLoading(true);
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    if (opts?.college) params.set("college_name", opts.college);
+    opts?.branches?.forEach((b) => params.append("branch", b));
+    opts?.cities?.forEach((c) => params.append("city", c));
+
     try {
-      const params = new URLSearchParams();
-      if (year) params.set("year", year);
-      if (opts?.college) params.set("college_name", opts.college);
-      opts?.branches?.forEach((b) => params.append("branch", b));
-      opts?.cities?.forEach((c) => params.append("city", c));
-      const res = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
-      );
-      const data = await res.json();
-      if (data.success) {
-        if (!opts?.college) setCollegeOptions(data.data.colleges);
-        if (!opts?.branches?.length) setBranchOptions(data.data.branches);
-        if (!opts?.college && !opts?.branches?.length)
-          setCityOptions(data.data.cities ?? []);
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await fetch(
+            `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
+          );
+          if (!res.ok) {
+            throw new Error(`Meta fetch failed with status ${res.status}`);
+          }
+
+          const data = await res.json();
+          if (!data.success) {
+            throw new Error("Meta endpoint returned unsuccessful response");
+          }
+
+          if (!opts?.college) setCollegeOptions(data.data.colleges ?? []);
+          if (!opts?.branches?.length) setBranchOptions(data.data.branches ?? []);
+          if (!opts?.college && !opts?.branches?.length) {
+            setCityOptions(data.data.cities ?? []);
+          }
+
+          setMetaError("");
+          return;
+        } catch {
+          if (attempt === 3) throw new Error("Failed to load dropdown metadata");
+          await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+        }
       }
     } catch {
-      // silently ignore
+      if (!opts) {
+        setMetaError(
+          "Could not load college/branch/city list. Retrying failed; click Reset once or refresh."
+        );
+      }
+    } finally {
+      setMetaLoading(false);
     }
   };
 
@@ -161,7 +191,7 @@ export default function CutoffsPage() {
       selectedCities.forEach((c) => params.append("city", c));
 
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/cutoffs?${params.toString()}`
+        `${API_BASE_URL}/api/cutoffs?${params.toString()}`
       );
       const data = await response.json();
 
@@ -284,7 +314,11 @@ export default function CutoffsPage() {
                 value={collegeName}
                 onChange={handleCollegeChange}
                 options={collegeOptions}
-                placeholder="e.g., VJTI, COEP, Government College..."
+                placeholder={
+                  metaLoading
+                    ? "Loading colleges..."
+                    : "e.g., VJTI, COEP, Government College..."
+                }
                 maxLength={200}
               />
             </div>
@@ -302,7 +336,11 @@ export default function CutoffsPage() {
                 value={selectedBranches}
                 onChange={handleBranchesChange}
                 options={branchOptions}
-                placeholder="e.g., Computer Engineering..."
+                placeholder={
+                  metaLoading
+                    ? "Loading branches..."
+                    : "e.g., Computer Engineering..."
+                }
               />
             </div>
 
@@ -380,8 +418,15 @@ export default function CutoffsPage() {
               value={selectedCities}
               onChange={handleCitiesChange}
               options={cityOptions}
-              placeholder="Filter by city (e.g. Pune, Mumbai, Nagpur)..."
+              placeholder={
+                metaLoading
+                  ? "Loading cities..."
+                  : "Filter by city (e.g. Pune, Mumbai, Nagpur)..."
+              }
             />
+            {metaError && (
+              <p className="text-xs text-amber-700 mt-2">{metaError}</p>
+            )}
           </div>
 
           <div className="flex gap-4">
