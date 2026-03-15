@@ -116,18 +116,18 @@ export const CITY_ALIAS_BY_LOCALITY: Record<string, string> = {
   wagholi: 'Pune',
   ravet: 'Pune',
   'avasari khurd': 'Pune',
-  haveli: 'Pune',       // Haveli taluka → Pune
-  sasewadi: 'Pune',     // near Pune (Haveli)
-  kuran: 'Pune',        // Khed taluka, Pune
-  bhima: 'Pune',        // Koregaon Bhima, near Pune
-  'someshwar nagar': 'Pune',  // near Indapur/Baramati, Pune
+  haveli: 'Pune', // Haveli taluka → Pune
+  sasewadi: 'Pune', // near Pune (Haveli)
+  kuran: 'Pune', // Khed taluka, Pune
+  bhima: 'Pune', // Koregaon Bhima, near Pune
+  'someshwar nagar': 'Pune', // near Indapur/Baramati, Pune
   'baner-balewadi': 'Pune',
   dhankavdi: 'Pune',
   'katraj, dhankawadi': 'Pune',
   lavale: 'Pune',
   lonikand: 'Pune',
   'kondhwa (bk.)': 'Pune',
-  talegaon: 'Pune',     // Talegaon Dabhade, Maval taluka, Pune
+  talegaon: 'Pune', // Talegaon Dabhade, Maval taluka, Pune
   yewalewadi: 'Pune',
   // Navi Mumbai localities
   airoli: 'Navi Mumbai',
@@ -157,17 +157,17 @@ export const CITY_ALIAS_BY_LOCALITY: Record<string, string> = {
   adgaon: 'Nashik',
   'adgaon nashik': 'Nashik',
   ohar: 'Nashik',
-  dumbarwadi: 'Nashik',  // near Deolali/Nashik
-  kokamthan: 'Nashik',   // Sinnar area, Nashik
+  dumbarwadi: 'Nashik', // near Deolali/Nashik
+  kokamthan: 'Nashik', // Sinnar area, Nashik
   trimbakeshwar: 'Nashik',
   eklahare: 'Nashik',
   '(nashik)': 'Nashik',
   'nashik.': 'Nashik',
-  shirgaon: 'Palghar',   // near Vasai-Virar, Palghar
+  shirgaon: 'Palghar', // near Vasai-Virar, Palghar
   // Nagpur localities
   wanadongri: 'Nagpur',
   kalmeshwar: 'Nagpur',
-  dongargaon: 'Nagpur',  // near Gondia/Nagpur
+  dongargaon: 'Nagpur', // near Gondia/Nagpur
   // Nandurbar
   nadurbar: 'Nandurbar',
   // Thane
@@ -179,11 +179,11 @@ export const CITY_ALIAS_BY_LOCALITY: Record<string, string> = {
   // Sangli
   ashta: 'Sangli',
   // Amravati
-  badnera: 'Amravati',   // Badnera is a suburb of Amravati city
+  badnera: 'Amravati', // Badnera is a suburb of Amravati city
   // Chandrapur
-  'mouza bamni': 'Chandrapur',  // Ballarpur Institute, Chandrapur dist
+  'mouza bamni': 'Chandrapur', // Ballarpur Institute, Chandrapur dist
   // Kolhapur
-  jaysingpur: 'Kolhapur',  // city in Kolhapur dist
+  jaysingpur: 'Kolhapur', // city in Kolhapur dist
   // Ichalkaranji
   'yadrav(ichalkaranji)': 'Ichalkaranji',
   'ichalkaranji.': 'Ichalkaranji',

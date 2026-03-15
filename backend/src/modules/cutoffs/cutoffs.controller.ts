@@ -98,11 +98,23 @@ export class CutoffsController {
       const EXCLUDE_KEYWORDS =
         /college|inst(itute)?|tech(nolog|nical)|engg|engineer|univer|campus|school|manage|society|group|research|centre|center|iceem|vjti|coep|somaiya|gramin/i;
       const EXCLUDE_TAL_DIST =
-        /\btal\b|\btal\.|\bdist\b|\bdist\.|\bdistrict\b/i;      // Known localities/villages that are not city-level entries
+        /\btal\b|\btal\.|\bdist\b|\bdist\.|\bdistrict\b/i; // Known localities/villages that are not city-level entries
       const KNOWN_NON_CITY = new Set([
-        'nepti', 'nile', 'yelgaon', 'wadwadi', 'dumbarwadi', 'sasewadi',
-        'babulgaon', 'bota sangamner', 'shirgaon', 'someshwar nagar',
-        'mouza bamni', 'kokamthan', 'kuran', 'haveli', 'bhima',
+        'nepti',
+        'nile',
+        'yelgaon',
+        'wadwadi',
+        'dumbarwadi',
+        'sasewadi',
+        'babulgaon',
+        'bota sangamner',
+        'shirgaon',
+        'someshwar nagar',
+        'mouza bamni',
+        'kokamthan',
+        'kuran',
+        'haveli',
+        'bhima',
       ]);
       res.json({
         success: true,
