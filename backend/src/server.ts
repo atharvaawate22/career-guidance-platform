@@ -24,7 +24,9 @@ const frontendOrigins = (
   .split(',')
   .map(normalizeOrigin)
   .filter(Boolean);
-const allowedOrigins = Array.from(new Set(['http://localhost:3000', ...frontendOrigins]));
+const allowedOrigins = Array.from(
+  new Set(['http://localhost:3000', ...frontendOrigins]),
+);
 import bcrypt from 'bcrypt';
 import errorHandler from './middleware/errorHandler';
 import updatesRoutes from './modules/updates/updates.routes';
@@ -43,7 +45,10 @@ const app = express();
 app.use(express.json({ limit: '50kb' }));
 app.use(
   cors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       // Allow requests with no origin (e.g. server-to-server, curl)
       if (!origin) {
         callback(null, true);
@@ -164,14 +169,24 @@ const initializeDatabase = async (): Promise<boolean> => {
     `);
 
     // Migrate existing tables — add new columns if missing
-    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_code TEXT`);
-    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS branch_code TEXT`);
-    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_status TEXT`);
+    await query(
+      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_code TEXT`,
+    );
+    await query(
+      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS branch_code TEXT`,
+    );
+    await query(
+      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_status TEXT`,
+    );
     await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS stage TEXT`);
     await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS level TEXT`);
-    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS cutoff_rank INTEGER`);
+    await query(
+      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS cutoff_rank INTEGER`,
+    );
     // Make home_university nullable for rows where data is unknown
-    await query(`ALTER TABLE cutoff_data ALTER COLUMN home_university SET DEFAULT 'All'`).catch(() => {});
+    await query(
+      `ALTER TABLE cutoff_data ALTER COLUMN home_university SET DEFAULT 'All'`,
+    ).catch(() => {});
 
     // Create indexes for cutoff_data
     await query(`

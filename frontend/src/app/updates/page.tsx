@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
+
 interface Update {
   id: string;
   title: string;
@@ -17,16 +22,8 @@ export default function UpdatesPage() {
 
   useEffect(() => {
     const fetchUpdates = async () => {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-      if (!apiBaseUrl) {
-        setError("API base URL not configured");
-        setLoading(false);
-        return;
-      }
-
       try {
-        const response = await fetch(`${apiBaseUrl}/api/updates`);
+        const response = await fetch(`${API_BASE_URL}/api/updates`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -69,7 +66,7 @@ export default function UpdatesPage() {
   };
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">

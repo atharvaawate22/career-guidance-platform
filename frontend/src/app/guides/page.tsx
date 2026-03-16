@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from "react";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
+
 interface Guide {
   id: string;
   title: string;
@@ -35,9 +40,7 @@ export default function GuidesPage() {
     try {
       setLoading(true);
       setError("");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/guides`
-      );
+      const response = await fetch(`${API_BASE_URL}/api/guides`);
       const data = await response.json();
 
       if (data.success) {
@@ -96,7 +99,7 @@ export default function GuidesPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/guides/download`,
+        `${API_BASE_URL}/api/guides/download`,
         {
           method: "POST",
           headers: {
@@ -143,7 +146,7 @@ export default function GuidesPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">

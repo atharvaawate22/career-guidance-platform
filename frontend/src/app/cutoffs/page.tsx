@@ -102,7 +102,9 @@ export default function CutoffsPage() {
     try {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`);
+          const res = await fetch(
+            `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
+          );
           if (!res.ok) {
             throw new Error(`Meta fetch failed with status ${res.status}`);
           }
@@ -159,7 +161,8 @@ export default function CutoffsPage() {
 
           return;
         } catch {
-          if (attempt === 3) throw new Error("Failed to load dropdown metadata");
+          if (attempt === 3)
+            throw new Error("Failed to load dropdown metadata");
           await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
         }
       }
@@ -172,7 +175,9 @@ export default function CutoffsPage() {
     try {
       const params = new URLSearchParams();
       if (yearValue) params.set("year", yearValue);
-      const res = await fetch(`${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`);
+      const res = await fetch(
+        `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
+      );
       if (!res.ok) return;
       const data = await res.json();
       if (!data.success) return;
@@ -343,7 +348,7 @@ export default function CutoffsPage() {
   });
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -357,160 +362,203 @@ export default function CutoffsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 mb-8 relative z-10">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">Filters</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            {/* Year */}
-            <div>
-              <label
-                htmlFor="year"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Year
-              </label>
-              <CustomSelect
-                id="year"
-                value={year}
-                onChange={setYear}
-                options={[
-                  { value: "", label: "Select Year (All Years)" },
-                  { value: "2025", label: "2025 (CAP Round 1)" },
-                  { value: "2022", label: "2022 (CAP Rounds 1, 2, 3)" },
-                ]}
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Leave year unselected to include all available years
-              </p>
-            </div>
-
-            {/* College Name */}
-            <div>
-              <label
-                htmlFor="collegeName"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                College Name
-              </label>
-              <ComboBox
-                id="collegeName"
-                value={collegeName}
-                onChange={handleCollegeChange}
-                options={collegeOptions}
-                placeholder="Select college (All Colleges)"
-                maxLength={200}
-              />
-            </div>
-
-            {/* Branch */}
-            <div>
-              <label
-                htmlFor="branch"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Branch
-              </label>
-              <MultiSelect
-                id="branch"
-                value={selectedBranches}
-                onChange={handleBranchesChange}
-                options={branchOptions}
-                placeholder="Select branch (All Branches)"
-              />
-            </div>
-
-            {/* Category */}
-            <div>
-              <label
-                htmlFor="category"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Category
-              </label>
-              <CustomSelect
-                id="category"
-                value={category}
-                onChange={setCategory}
-                options={[
-                  { value: "", label: "Select Category (All Categories)" },
-                  ...CUTOFF_CATEGORIES.map((c) => ({ value: c, label: c })),
-                ]}
-              />
-            </div>
-
-            {/* Seat Type */}
-            <div>
-              <label
-                htmlFor="gender"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Seat Type
-              </label>
-              <CustomSelect
-                id="gender"
-                value={gender}
-                onChange={setGender}
-                options={[
-                  { value: "", label: "Select Seat Type (All Seat Types)" },
-                  {
-                    value: "All",
-                    label: "Gender-Neutral Seats Only",
-                  },
-                  {
-                    value: "Female",
-                    label: "Ladies Seats Only",
-                  },
-                ]}
-              />
-            </div>
-
-            {/* Level */}
-            <div>
-              <label
-                htmlFor="level"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Seat Level
-              </label>
-              <CustomSelect
-                id="level"
-                value={level}
-                onChange={setLevel}
-                options={[
-                  { value: "", label: "Select Level (All Levels)" },
-                  ...CUTOFF_LEVELS.map((l) => ({ value: l, label: l })),
-                ]}
-              />
-            </div>
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-8 relative z-10">
+          <div className="bg-linear-to-r from-purple-50 via-white to-pink-50 px-6 py-5 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800">Filters</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Start with search scope, then narrow by seat criteria
+            </p>
           </div>
 
-          {/* City filter — spans full width */}
-          <div className="mb-4">
-            <label className="block mb-2 text-sm font-medium text-gray-700">
-              City / Location
-            </label>
-            <MultiSelect
-              value={selectedCities}
-              onChange={handleCitiesChange}
-              options={cityOptions}
-              placeholder="Select city (All Cities)"
-            />
-          </div>
+          <div className="p-6">
+            {/* Step 1: Search Scope */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold shrink-0">
+                  1
+                </span>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                  Search Scope
+                </h3>
+              </div>
 
-          <div className="flex gap-4">
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="px-6 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
-            >
-              {loading ? "Searching..." : "Search"}
-            </button>
-            <button
-              onClick={handleReset}
-              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
-            >
-              Reset
-            </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Year */}
+                <div>
+                  <label
+                    htmlFor="year"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Year
+                  </label>
+                  <CustomSelect
+                    id="year"
+                    value={year}
+                    onChange={setYear}
+                    options={[
+                      { value: "", label: "All Years" },
+                      { value: "2025", label: "2025 (CAP Round 1)" },
+                      { value: "2022", label: "2022 (CAP Rounds 1, 2, 3)" },
+                    ]}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Keep unselected to search across all available years
+                  </p>
+                </div>
+
+                {/* College Name */}
+                <div>
+                  <label
+                    htmlFor="collegeName"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    College Name
+                  </label>
+                  <ComboBox
+                    id="collegeName"
+                    value={collegeName}
+                    onChange={handleCollegeChange}
+                    options={collegeOptions}
+                    placeholder="All Colleges"
+                    maxLength={200}
+                  />
+                </div>
+
+                {/* City filter */}
+                <div>
+                  <label
+                    htmlFor="cities"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    City / Location
+                  </label>
+                  <MultiSelect
+                    id="cities"
+                    value={selectedCities}
+                    onChange={handleCitiesChange}
+                    options={cityOptions}
+                    placeholder="All Cities"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-dashed border-gray-200 mb-6" />
+
+            {/* Step 2: Seat Criteria */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold shrink-0">
+                  2
+                </span>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                  Seat Criteria
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Branch */}
+                <div className="lg:col-span-2">
+                  <label
+                    htmlFor="branch"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Branch
+                  </label>
+                  <MultiSelect
+                    id="branch"
+                    value={selectedBranches}
+                    onChange={handleBranchesChange}
+                    options={branchOptions}
+                    placeholder="All Branches"
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label
+                    htmlFor="category"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Category
+                  </label>
+                  <CustomSelect
+                    id="category"
+                    value={category}
+                    onChange={setCategory}
+                    options={[
+                      { value: "", label: "All Categories" },
+                      ...CUTOFF_CATEGORIES.map((c) => ({ value: c, label: c })),
+                    ]}
+                  />
+                </div>
+
+                {/* Seat Type */}
+                <div>
+                  <label
+                    htmlFor="gender"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Seat Type
+                  </label>
+                  <CustomSelect
+                    id="gender"
+                    value={gender}
+                    onChange={setGender}
+                    options={[
+                      { value: "", label: "All Seat Types" },
+                      {
+                        value: "All",
+                        label: "Gender-Neutral Seats Only",
+                      },
+                      {
+                        value: "Female",
+                        label: "Ladies Seats Only",
+                      },
+                    ]}
+                  />
+                </div>
+
+                {/* Level */}
+                <div className="md:col-start-2 lg:col-start-auto">
+                  <label
+                    htmlFor="level"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Seat Level
+                  </label>
+                  <CustomSelect
+                    id="level"
+                    value={level}
+                    onChange={setLevel}
+                    options={[
+                      { value: "", label: "All Levels" },
+                      ...CUTOFF_LEVELS.map((l) => ({ value: l, label: l })),
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 mb-5">
+              Tip: Start broad, then add branch and category filters to narrow faster.
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-7 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              >
+                {loading ? "Searching..." : "Search Cutoffs"}
+              </button>
+              <button
+                onClick={handleReset}
+                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+              >
+                Reset All
+              </button>
+            </div>
           </div>
         </div>
 
