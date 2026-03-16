@@ -190,41 +190,6 @@ export default function PredictorPage() {
     }
   };
 
-  const renderBadge = (tier: "safe" | "target" | "dream") => {
-    const map = {
-      safe: {
-        bg: "bg-green-100",
-        text: "text-green-700",
-        border: "border-green-200",
-        dot: "bg-green-500",
-        label: "Safe",
-      },
-      target: {
-        bg: "bg-yellow-100",
-        text: "text-yellow-700",
-        border: "border-yellow-200",
-        dot: "bg-yellow-500",
-        label: "Target",
-      },
-      dream: {
-        bg: "bg-blue-100",
-        text: "text-blue-700",
-        border: "border-blue-200",
-        dot: "bg-blue-500",
-        label: "Dream",
-      },
-    };
-    const s = map[tier];
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 ${s.bg} ${s.text} rounded-full text-xs font-medium border ${s.border}`}
-      >
-        <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-        {s.label}
-      </span>
-    );
-  };
-
   const renderSection = (
     colleges: CollegeOption[],
     tier: "safe" | "target" | "dream",
@@ -332,7 +297,7 @@ export default function PredictorPage() {
     : 0;
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -344,263 +309,316 @@ export default function PredictorPage() {
             rank to see eligible colleges
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Predictions are generated from historical cutoff data (2025 CAP Round
-            1 dataset).
+            Predictions are generated from historical cutoff data (2025 CAP
+            Round 1 dataset).
           </p>
         </div>
 
         {/* Input Form */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 mb-8">
-          <h2 className="text-xl font-semibold mb-5 text-gray-800">
-            Your Details
-          </h2>
-
-          <div className="mb-5">
-            <p className="block mb-2 text-sm font-medium text-gray-700">
-              Input Type
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+          {/* Card header */}
+          <div className="bg-linear-to-r from-purple-50 via-white to-pink-50 px-6 py-5 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800">Your Details</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Fill in your score and preferences to find matching colleges
             </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setInputMode("percentile")}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  inputMode === "percentile"
-                    ? "bg-purple-100 border-purple-300 text-purple-700"
-                    : "bg-white border-gray-300 text-gray-600"
-                }`}
-              >
-                Percentile
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("rank")}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  inputMode === "rank"
-                    ? "bg-purple-100 border-purple-300 text-purple-700"
-                    : "bg-white border-gray-300 text-gray-600"
-                }`}
-              >
-                Rank (more accurate)
-              </button>
-            </div>
           </div>
 
-          <form onSubmit={handlePredict}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-              {/* Percentile */}
-              {inputMode === "percentile" && (
-                <div>
-                  <label
-                    htmlFor="percentile"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Percentile <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    id="percentile"
-                    value={percentile}
-                    onChange={(e) => setPercentile(e.target.value)}
-                    min="0"
-                    max="100"
-                    step="0.0001"
-                    required={inputMode === "percentile"}
-                    placeholder="e.g., 96.5000"
-                    className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Recommended during attempt phase; rank is estimated from
-                    available data
-                  </p>
-                </div>
-              )}
+          <form onSubmit={handlePredict} className="p-6 space-y-0">
 
-              {/* Rank */}
-              {inputMode === "rank" && (
-                <div>
-                  <label
-                    htmlFor="rank"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Rank <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    id="rank"
-                    value={rank}
-                    onChange={(e) => setRank(e.target.value)}
-                    min="1"
-                    max="500000"
-                    step="1"
-                    required={inputMode === "rank"}
-                    placeholder="e.g., 5000"
-                    className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Best option once official rank is published
-                  </p>
-                </div>
-              )}
+            {/* ── Step 1: Your Score ──────────────────────────────── */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold shrink-0">
+                  1
+                </span>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                  Your Score
+                </h3>
+              </div>
 
-              {/* Category */}
-              <div>
-                <label
-                  htmlFor="category"
-                  className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                  Category
-                </label>
-                <CustomSelect
-                  id="category"
-                  value={category}
-                  onChange={(val) => {
-                    setCategory(val);
-                    // TFWS-only category selected → uncheck the extra TFWS toggle
-                    if (val === "TFWS") setIncludeTfws(false);
-                  }}
-                  options={[
-                    { value: "", label: "Select Category (All Categories)" },
-                    ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
-                      (c) => ({ value: c, label: c })
-                    ),
-                  ]}
-                />
-                {/* TFWS checkbox — only shown when not already selecting TFWS */}
-                {category !== "TFWS" && (
-                  <label className="mt-2 flex items-center gap-2 cursor-pointer select-none group">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Input mode segmented control */}
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Input Type
+                  </label>
+                  <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("percentile")}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-150 ${
+                        inputMode === "percentile"
+                          ? "bg-white shadow text-purple-700 font-semibold"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Percentile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("rank")}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-150 ${
+                        inputMode === "rank"
+                          ? "bg-white shadow text-purple-700 font-semibold"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Rank
+                      <span className="ml-1 text-xs text-green-600 font-normal">
+                        (more accurate)
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Score input */}
+                {inputMode === "percentile" ? (
+                  <div>
+                    <label
+                      htmlFor="percentile"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Percentile <span className="text-red-500">*</span>
+                    </label>
                     <input
-                      type="checkbox"
-                      id="includeTfws"
-                      checked={includeTfws}
-                      onChange={(e) => setIncludeTfws(e.target.checked)}
-                      className="w-4 h-4 accent-purple-600 rounded"
+                      type="number"
+                      id="percentile"
+                      value={percentile}
+                      onChange={(e) => setPercentile(e.target.value)}
+                      min="0"
+                      max="100"
+                      step="0.0001"
+                      required={inputMode === "percentile"}
+                      placeholder="e.g., 96.5000"
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-shadow"
                     />
-                    <span className="text-sm text-gray-700 group-hover:text-purple-700 transition-colors">
+                    <p className="text-xs text-gray-400 mt-1.5">
+                      Rank is estimated from available percentile data
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <label
+                      htmlFor="rank"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Rank <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="rank"
+                      value={rank}
+                      onChange={(e) => setRank(e.target.value)}
+                      min="1"
+                      max="500000"
+                      step="1"
+                      required={inputMode === "rank"}
+                      placeholder="e.g., 5000"
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-shadow"
+                    />
+                    <p className="text-xs text-gray-400 mt-1.5">
+                      Best once your official rank is published
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-dashed border-gray-200 mb-6" />
+
+            {/* ── Step 2: Candidate Profile ───────────────────────── */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold shrink-0">
+                  2
+                </span>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                  Candidate Profile
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                {/* Category */}
+                <div>
+                  <label
+                    htmlFor="category"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Category
+                  </label>
+                  <CustomSelect
+                    id="category"
+                    value={category}
+                    onChange={(val) => {
+                      setCategory(val);
+                      if (val === "TFWS") setIncludeTfws(false);
+                    }}
+                    options={[
+                      { value: "", label: "All Categories" },
+                      ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
+                        (c) => ({ value: c, label: c })
+                      ),
+                    ]}
+                  />
+                </div>
+
+                {/* Candidate Eligibility */}
+                <div>
+                  <label
+                    htmlFor="gender"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Candidate Eligibility
+                  </label>
+                  <CustomSelect
+                    id="gender"
+                    value={gender}
+                    onChange={setGender}
+                    options={[
+                      { value: "", label: "All Seat Types" },
+                      { value: "All", label: "Gender-Neutral Seats Only" },
+                      {
+                        value: "Female",
+                        label: "Female (Gender-Neutral + Ladies)",
+                      },
+                    ]}
+                  />
+                </div>
+
+                {/* Seat Level */}
+                <div>
+                  <label
+                    htmlFor="level"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Seat Level
+                  </label>
+                  <CustomSelect
+                    id="level"
+                    value={level}
+                    onChange={setLevel}
+                    options={[
+                      { value: "", label: "All Levels" },
+                      ...LEVELS.map((l) => ({
+                        value: l.value,
+                        label: l.label,
+                      })),
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {/* TFWS toggle — styled card row */}
+              {category !== "TFWS" && (
+                <label
+                  className={`flex items-start gap-3 px-4 py-3 rounded-xl border cursor-pointer select-none transition-all duration-150 ${
+                    includeTfws
+                      ? "border-purple-300 bg-purple-50"
+                      : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={includeTfws}
+                    onChange={(e) => setIncludeTfws(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-purple-600 rounded shrink-0"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-800">
                       Also include{" "}
-                      <span className="font-semibold text-purple-700">
+                      <span className="text-purple-700 font-semibold">
                         TFWS
                       </span>{" "}
                       seats
                     </span>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Tuition Fee Waiver Scheme — for economically weaker
+                      sections (income-based eligibility)
+                    </p>
+                  </div>
+                </label>
+              )}
+            </div>
+
+            <div className="border-t border-dashed border-gray-200 mb-6" />
+
+            {/* ── Step 3: Preferences ─────────────────────────────── */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-300 text-white text-xs font-bold shrink-0">
+                  3
+                </span>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                  Preferences
+                </h3>
+                <span className="text-xs text-gray-400 font-normal">
+                  — optional, leave blank for all
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="branches"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Preferred Branches
                   </label>
-                )}
-              </div>
-
-              {/* Gender */}
-              <div>
-                <label
-                  htmlFor="gender"
-                  className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                  Candidate Eligibility
-                </label>
-                <CustomSelect
-                  id="gender"
-                  value={gender}
-                  onChange={setGender}
-                  options={[
-                    {
-                      value: "",
-                      label: "Select Eligibility (All Seat Types)",
-                    },
-                    {
-                      value: "All",
-                      label: "Gender-Neutral Seats Only",
-                    },
-                    {
-                      value: "Female",
-                      label: "Female Candidate (Gender-Neutral + Ladies)",
-                    },
-                  ]}
-                />
-              </div>
-
-              {/* Level */}
-              <div>
-                <label
-                  htmlFor="level"
-                  className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                  Seat Level
-                </label>
-                <CustomSelect
-                  id="level"
-                  value={level}
-                  onChange={setLevel}
-                  options={[
-                    { value: "", label: "Select Level (All Levels)" },
-                    ...LEVELS.map((l) => ({
-                      value: l.value,
-                      label: l.label,
-                    })),
-                  ]}
-                />
-              </div>
-
-              {/* Preferred Branches */}
-              <div>
-                <label
-                  htmlFor="branches"
-                  className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                  Preferred Branches (Optional)
-                </label>
-                <MultiSelect
-                  id="branches"
-                  value={selectedBranches}
-                  onChange={setSelectedBranches}
-                  options={branchOptions}
-                  placeholder="Select branch (All Branches)"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Select one or more. Leave blank for all branches.
-                </p>
-              </div>
-
-              {/* Preferred Cities */}
-              <div className="md:col-span-2 lg:col-span-3">
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Preferred Cities (Optional)
-                </label>
-                <MultiSelect
-                  id="cities"
-                  value={selectedCities}
-                  onChange={setSelectedCities}
-                  options={cityOptions}
-                  placeholder="Select city (All Cities)"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Select one or more. Leave blank for all cities.
-                </p>
+                  <MultiSelect
+                    id="branches"
+                    value={selectedBranches}
+                    onChange={setSelectedBranches}
+                    options={branchOptions}
+                    placeholder="All Branches"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="cities"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Preferred Cities
+                  </label>
+                  <MultiSelect
+                    id="cities"
+                    value={selectedCities}
+                    onChange={setSelectedCities}
+                    options={cityOptions}
+                    placeholder="All Cities"
+                  />
+                </div>
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-5 text-sm">
                 {error}
               </div>
             )}
 
-            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 flex flex-wrap items-center justify-between gap-3">
+            {/* CTA banner */}
+            <div className="mb-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 flex flex-wrap items-center justify-between gap-3">
               <span>
-                Results are purely cutoff-data based. For more accurate end-to-end
-                guidance, book a consultation session.
+                Results are purely cutoff-data based. For more accurate
+                end-to-end guidance, book a consultation session.
               </span>
               <Link
                 href="/book"
-                className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-white font-medium hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-white font-medium hover:bg-blue-700 transition-colors shrink-0"
               >
                 Book a Session Now
               </Link>
             </div>
 
+            {/* Action buttons */}
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={loading}
-                className="px-8 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold disabled:opacity-50 transition-all shadow-md hover:shadow-lg"
+                className="px-8 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-semibold disabled:opacity-50 transition-all shadow-md hover:shadow-lg"
               >
-                {loading ? "Predicting..." : "Predict Colleges"}
+                {loading ? "Predicting…" : "Predict Colleges"}
               </button>
               <button
                 type="button"
@@ -617,7 +635,7 @@ export default function PredictorPage() {
                   setResults(null);
                   setError("");
                 }}
-                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
+                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
               >
                 Reset
               </button>

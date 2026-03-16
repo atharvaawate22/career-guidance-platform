@@ -3,6 +3,11 @@
 import { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
+
 const TIME_SLOTS = [
   "10:00",
   "10:30",
@@ -107,7 +112,7 @@ export default function BookPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/bookings`,
+        `${API_BASE_URL}/api/bookings`,
         {
           method: "POST",
           headers: {
@@ -216,7 +221,7 @@ export default function BookPage() {
     if (date) {
       setSlotsLoading(true);
       fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/bookings/slots?date=${date}`
+        `${API_BASE_URL}/api/bookings/slots?date=${date}`
       )
         .then((r) => r.json())
         .then((data) => setBookedSlots(data.booked ?? []))
@@ -224,17 +229,6 @@ export default function BookPage() {
         .finally(() => setSlotsLoading(false));
     } else {
       setBookedSlots([]);
-    }
-  };
-
-  const handleTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const time = e.target.value;
-    setSelectedTime(time);
-    if (selectedDate) {
-      setFormData({
-        ...formData,
-        meeting_time: `${selectedDate}T${time}:00+05:30`,
-      });
     }
   };
 
@@ -304,7 +298,7 @@ export default function BookPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">

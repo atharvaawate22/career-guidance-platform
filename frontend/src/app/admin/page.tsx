@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 
-const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
 
 interface Update {
   id: string;
@@ -143,6 +146,7 @@ export default function AdminPage() {
       fetchGuides();
       fetchDownloads();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, token]);
 
   const formatDateTime = (dateString: string) => {
@@ -158,7 +162,7 @@ export default function AdminPage() {
   const fetchUpdates = async () => {
     try {
       setUpdatesLoading(true);
-      const response = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/updates`);
+      const response = await fetch(`${API_BASE_URL}/api/updates`);
       const data = await response.json();
       if (data.success) {
         setUpdates(data.data);
@@ -174,7 +178,7 @@ export default function AdminPage() {
     try {
       setBookingsLoading(true);
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/bookings`,
+        `${API_BASE_URL}/api/admin/bookings`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -202,7 +206,7 @@ export default function AdminPage() {
 
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/login`,
+        `${API_BASE_URL}/api/admin/login`,
         {
           method: "POST",
           headers: {
@@ -239,8 +243,8 @@ export default function AdminPage() {
 
     try {
       const url = editingId
-        ? `${NEXT_PUBLIC_API_BASE_URL}/api/admin/updates/${editingId}`
-        : `${NEXT_PUBLIC_API_BASE_URL}/api/admin/updates`;
+        ? `${API_BASE_URL}/api/admin/updates/${editingId}`
+        : `${API_BASE_URL}/api/admin/updates`;
 
       const method = editingId ? "PUT" : "POST";
 
@@ -301,7 +305,7 @@ export default function AdminPage() {
 
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/updates/${id}`,
+        `${API_BASE_URL}/api/admin/updates/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -326,7 +330,7 @@ export default function AdminPage() {
   const handleUpdateBookingStatus = async (id: string, status: string) => {
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/bookings/${id}/status`,
+        `${API_BASE_URL}/api/admin/bookings/${id}/status`,
         {
           method: "PATCH",
           headers: {
@@ -357,7 +361,7 @@ export default function AdminPage() {
 
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/bookings/${id}`,
+        `${API_BASE_URL}/api/admin/bookings/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -382,7 +386,7 @@ export default function AdminPage() {
   const fetchResources = async () => {
     try {
       setResourcesLoading(true);
-      const response = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/api/resources`);
+      const response = await fetch(`${API_BASE_URL}/api/resources`);
       const data = await response.json();
       if (data.success) setResources(data.data);
     } catch (error) {
@@ -399,7 +403,7 @@ export default function AdminPage() {
     setResourceSubmitting(true);
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/resources`,
+        `${API_BASE_URL}/api/admin/resources`,
         {
           method: "POST",
           headers: {
@@ -433,7 +437,7 @@ export default function AdminPage() {
     if (!confirm("Delete this resource?")) return;
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/resources/${id}`,
+        `${API_BASE_URL}/api/admin/resources/${id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -454,7 +458,7 @@ export default function AdminPage() {
   const handleToggleResource = async (id: string, current: boolean) => {
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/resources/${id}/toggle`,
+        `${API_BASE_URL}/api/admin/resources/${id}/toggle`,
         {
           method: "PATCH",
           headers: {
@@ -476,7 +480,7 @@ export default function AdminPage() {
     try {
       setGuidesLoading(true);
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/guides`,
+        `${API_BASE_URL}/api/admin/guides`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -503,7 +507,7 @@ export default function AdminPage() {
     try {
       setDownloadsLoading(true);
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/guides/downloads`,
+        `${API_BASE_URL}/api/admin/guides/downloads`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.status === 401) {
@@ -526,7 +530,7 @@ export default function AdminPage() {
     setGuideSubmitting(true);
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/guides`,
+        `${API_BASE_URL}/api/admin/guides`,
         {
           method: "POST",
           headers: {
@@ -555,7 +559,7 @@ export default function AdminPage() {
     if (!confirm("Delete this guide?")) return;
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/guides/${id}`,
+        `${API_BASE_URL}/api/admin/guides/${id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -587,7 +591,7 @@ export default function AdminPage() {
 
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const response = await fetch(
-      `${NEXT_PUBLIC_API_BASE_URL}/api/admin/upload?bucket=${encodeURIComponent(bucket)}&filename=${encodeURIComponent(filename)}`,
+      `${API_BASE_URL}/api/admin/upload?bucket=${encodeURIComponent(bucket)}&filename=${encodeURIComponent(filename)}`,
       {
         method: "POST",
         headers: {
@@ -622,7 +626,7 @@ export default function AdminPage() {
   const handleToggleGuide = async (id: string, current: boolean) => {
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_BASE_URL}/api/admin/guides/${id}/toggle`,
+        `${API_BASE_URL}/api/admin/guides/${id}/toggle`,
         {
           method: "PATCH",
           headers: {

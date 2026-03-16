@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
+
 interface FeatureCard {
   title: string;
   description: string;
@@ -69,18 +74,8 @@ export default function Home() {
 
   useEffect(() => {
     const checkBackendHealth = async () => {
-      const apiBaseUrl =
-        process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
-
-      if (!apiBaseUrl) {
-        setBackendStatus("disconnected");
-        return;
-      }
-
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || apiBaseUrl}/api/health`
-        );
+        const response = await fetch(`${API_BASE_URL}/api/health`);
         if (response.ok) {
           const data = await response.json();
           if (data.status === "ok" || data.success) {

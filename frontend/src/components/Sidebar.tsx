@@ -57,9 +57,25 @@ const navItems: NavItem[] = [
 ];
 
 export default function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const syncWithViewport = () => {
+      setIsCollapsed(window.innerWidth < 1024);
+    };
+
+    syncWithViewport();
+    window.addEventListener("resize", syncWithViewport);
+    return () => window.removeEventListener("resize", syncWithViewport);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("sidebarToggle", { detail: { collapsed: isCollapsed } })
+    );
+  }, [isCollapsed]);
 
   // Check if user is logged in as admin
   useEffect(() => {

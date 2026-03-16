@@ -10,47 +10,36 @@ export default function MainContent({
   const [marginClass, setMarginClass] = useState("lg:ml-72");
 
   useEffect(() => {
-    const updateMargin = () => {
+    const updateMargin = (collapsed?: boolean) => {
       const sidebar = document.querySelector("[data-collapsed]");
-
-      // If sidebar doesn't exist (e.g., admin login page), remove margin
-      if (!sidebar) {
+      if (!sidebar || window.innerWidth < 1024) {
         setMarginClass("lg:ml-0");
         return;
       }
-
-      // Check sidebar collapse state
-      if (window.innerWidth >= 1024) {
-        const isCollapsed = sidebar.getAttribute("data-collapsed") === "true";
-        setMarginClass(isCollapsed ? "lg:ml-20" : "lg:ml-72");
-      } else {
-        setMarginClass("lg:ml-0");
-      }
+      const isCollapsed =
+        typeof collapsed === "boolean"
+          ? collapsed
+          : sidebar.getAttribute("data-collapsed") === "true";
+      setMarginClass(isCollapsed ? "lg:ml-20" : "lg:ml-72");
     };
 
-    // Initial check
+    const onSidebarToggle = (event: Event) => {
+      const customEvent = event as CustomEvent<{ collapsed: boolean }>;
+      updateMargin(customEvent.detail?.collapsed);
+    };
+
+    const onResize = () => updateMargin();
+
     updateMargin();
-
-    // Watch for sidebar changes
-    const observer = new MutationObserver(updateMargin);
-    const sidebar = document.querySelector("[data-collapsed]");
-    if (sidebar) {
-      observer.observe(sidebar, {
-        attributes: true,
-        attributeFilter: ["data-collapsed"],
-      });
-    }
-
-    // Watch for window resize
-    window.addEventListener("resize", updateMargin);
-
-    // Check periodically in case sidebar appears/disappears (login/logout)
-    const interval = setInterval(updateMargin, 500);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("sidebarToggle", onSidebarToggle as EventListener);
 
     return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updateMargin);
-      clearInterval(interval);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener(
+        "sidebarToggle",
+        onSidebarToggle as EventListener
+      );
     };
   }, []);
 
