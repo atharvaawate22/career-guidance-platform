@@ -38,6 +38,7 @@ import guidesRoutes from './modules/guides/guides.routes';
 import resourcesRoutes from './modules/resources/resources.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import { testConnection, query } from './config/database';
+import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger from './utils/logger';
 
 const app = express();
@@ -204,6 +205,22 @@ const initializeDatabase = async (): Promise<boolean> => {
     await query(`
       CREATE INDEX IF NOT EXISTS idx_cutoff_home_university ON cutoff_data(home_university)
     `);
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cutoff_college_code ON cutoff_data(college_code)
+    `);
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_branch ON cutoff_data(year, branch)
+    `);
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_college_code_name
+      ON cutoff_data(year, college_code, college_name)
+    `);
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_city_normalized
+      ON cutoff_data(year, (${CITY_NORMALIZED_SQL}))
+    `).catch((error) => {
+      logger.warn('Skipping cutoff city metadata index creation', error);
+    });
 
     // Create guides table if not exists
     await query(`

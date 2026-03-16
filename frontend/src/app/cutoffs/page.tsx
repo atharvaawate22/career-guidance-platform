@@ -109,6 +109,7 @@ export default function CutoffsPage() {
 
   const fetchMeta = async (opts?: {
     college?: string;
+    collegeCode?: string;
     branches?: string[];
     cities?: string[];
   }) => {
@@ -122,6 +123,7 @@ export default function CutoffsPage() {
     const metadataYear = year || DEFAULT_META_YEAR;
     if (metadataYear) params.set("year", metadataYear);
     if (opts?.college) params.set("college_name", opts.college);
+    if (opts?.collegeCode) params.set("college_code", opts.collegeCode);
     opts?.branches?.forEach((b) => params.append("branch", b));
     opts?.cities?.forEach((c) => params.append("city", c));
 
@@ -252,13 +254,10 @@ export default function CutoffsPage() {
   // When college changes: narrow branches to only those in that college
   const handleCollegeChange = (value: string) => {
     setCollegeName(value);
-    // When the user picks a name from the dropdown, store its DTE code so the
-    // search can filter by college_code (exact, year-stable) rather than by
-    // college_name ILIKE (which breaks when names differ slightly across years).
-    const match = collegeOptions.find((c) => c.name === value);
+    const match = collegeOptions.find((college) => college.name === value);
     setCollegeCode(match?.code ?? null);
     if (value) {
-      fetchMeta({ college: value });
+      fetchMeta({ college: value, collegeCode: match?.code ?? undefined });
     } else {
       fetchMeta(
         selectedBranches.length || selectedCities.length

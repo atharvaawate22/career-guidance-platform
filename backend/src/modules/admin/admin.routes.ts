@@ -3,6 +3,7 @@ import express from 'express';
 import { authMiddleware } from '../../middleware/authMiddleware';
 import { UpdatesController } from '../updates/updates.controller';
 import { CutoffsController } from '../cutoffs/cutoffs.controller';
+import { invalidateCutoffMetaCache } from '../cutoffs/cutoffsMetaCache';
 import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
 import * as bookingRepository from '../booking/booking.repository';
@@ -50,6 +51,7 @@ router.delete(
         : 'DELETE FROM cutoff_data';
       const vals = year ? [year] : [];
       const result = await dbQuery(sql, vals);
+      invalidateCutoffMetaCache();
       res.json({
         success: true,
         deleted: result.rowCount,
