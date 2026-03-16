@@ -78,7 +78,20 @@ export class CutoffsController {
 
       const [colleges, branches, cities] = await Promise.all([
         query(
-          `SELECT DISTINCT college_name FROM cutoff_data ${collegeWhere} ORDER BY college_name LIMIT 1000`,
+          // Deduplicate by college_code so that slight name changes across years
+          // (e.g. "(Autonomous)" suffix, abbreviation differences) don't produce
+          // duplicate dropdown entries.  For each unique code we take the most
+          // recent year's name; rows without a code are deduplicated by name.
+          `SELECT college_code, college_name
+           FROM (
+             SELECT DISTINCT ON (COALESCE(college_code::text, college_name))
+               college_code, college_name
+             FROM cutoff_data
+             ${collegeWhere}
+             ORDER BY COALESCE(college_code::text, college_name), year DESC NULLS LAST
+           ) deduped
+           ORDER BY college_name
+           LIMIT 1000`,
           collegeVals,
         ),
         query(
@@ -119,7 +132,10 @@ export class CutoffsController {
       res.json({
         success: true,
         data: {
-          colleges: colleges.rows.map((r) => r.college_name),
+          colleges: colleges.rows.map((r) => ({
+            code: (r.college_code as string | null) || null,
+            name: r.college_name as string,
+          })),
           branches: branches.rows
             .map((r) => r.branch as string)
             .filter((branch) => {

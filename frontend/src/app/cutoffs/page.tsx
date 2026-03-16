@@ -10,6 +10,17 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000";
+const DEFAULT_META_YEAR = "2025";
+
+const fetchWithTimeout = async (url: string, timeoutMs = 12000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
 interface CutoffData {
   id: string;
@@ -27,8 +38,13 @@ interface CutoffData {
   cutoff_rank: number | null;
 }
 
+interface CollegeOption {
+  code: string | null;
+  name: string;
+}
+
 interface CutoffMetaResponse {
-  colleges?: string[];
+  colleges?: CollegeOption[];
   branches?: string[];
   cities?: string[];
 }
@@ -72,7 +88,7 @@ export default function CutoffsPage() {
   const [sortBy, setSortBy] = useState<SortOption>("percentile-desc");
 
   // Filter state — declared BEFORE the useEffect that depends on 'year'
-  const [year, setYear] = useState("");
+  const [year, setYear] = useState(DEFAULT_META_YEAR);
   const [collegeName, setCollegeName] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
@@ -81,12 +97,15 @@ export default function CutoffsPage() {
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   // Autocomplete state
-  const [collegeOptions, setCollegeOptions] = useState<string[]>([]);
+  const [collegeOptions, setCollegeOptions] = useState<CollegeOption[]>([]);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [cityOptions, setCityOptions] = useState<string[]>([]);
+  // Stable DTE college_code for the currently selected college (null = free-text)
+  const [collegeCode, setCollegeCode] = useState<string | null>(null);
 
+  // v2 cache key — stores CollegeOption[] (code+name) instead of plain string[]
   const metaCacheKey = (yearValue: string) =>
-    `cutoffs:meta:${yearValue || "all"}`;
+    `cutoffs:meta:v2:${yearValue || "all"}`;  
 
   const fetchMeta = async (opts?: {
     college?: string;
@@ -94,7 +113,14 @@ export default function CutoffsPage() {
     cities?: string[];
   }) => {
     const params = new URLSearchParams();
-    if (year) params.set("year", year);
+    const isBaseMetaRequest =
+      !opts?.college &&
+      !(opts?.branches?.length ?? 0) &&
+      !(opts?.cities?.length ?? 0);
+
+    // Avoid expensive all-years metadata by default; use latest year metadata for quick dropdown UX.
+    const metadataYear = year || DEFAULT_META_YEAR;
+    if (metadataYear) params.set("year", metadataYear);
     if (opts?.college) params.set("college_name", opts.college);
     opts?.branches?.forEach((b) => params.append("branch", b));
     opts?.cities?.forEach((c) => params.append("city", c));
@@ -102,7 +128,7 @@ export default function CutoffsPage() {
     try {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          const res = await fetch(
+          const res = await fetchWithTimeout(
             `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
           );
           if (!res.ok) {
@@ -114,27 +140,25 @@ export default function CutoffsPage() {
             throw new Error("Meta endpoint returned unsuccessful response");
           }
 
-          let colleges = data.data.colleges ?? [];
+          let colleges: CollegeOption[] = data.data.colleges ?? [];
           let branches = data.data.branches ?? [];
           let cities = data.data.cities ?? [];
 
           // If a year-specific query returns empty metadata, fallback to all-years list.
-          const isBaseMetaRequest =
-            !opts?.college &&
-            !(opts?.branches?.length ?? 0) &&
-            !(opts?.cities?.length ?? 0);
           if (
             isBaseMetaRequest &&
-            year &&
+            metadataYear &&
             colleges.length === 0 &&
             branches.length === 0 &&
             cities.length === 0
           ) {
-            const fallbackRes = await fetch(`${API_BASE_URL}/api/cutoffs/meta`);
+            const fallbackRes = await fetchWithTimeout(
+              `${API_BASE_URL}/api/cutoffs/meta?year=${DEFAULT_META_YEAR}`
+            );
             if (fallbackRes.ok) {
               const fallbackData = await fallbackRes.json();
               if (fallbackData.success) {
-                colleges = fallbackData.data.colleges ?? [];
+                colleges = (fallbackData.data.colleges as CollegeOption[]) ?? [];
                 branches = fallbackData.data.branches ?? [];
                 cities = fallbackData.data.cities ?? [];
               }
@@ -175,7 +199,7 @@ export default function CutoffsPage() {
     try {
       const params = new URLSearchParams();
       if (yearValue) params.set("year", yearValue);
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
       );
       if (!res.ok) return;
@@ -212,6 +236,7 @@ export default function CutoffsPage() {
     // Refresh from network in background.
     fetchMeta();
     setCollegeName("");
+    setCollegeCode(null);
     setSelectedBranches([]);
     setSelectedCities([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,6 +252,11 @@ export default function CutoffsPage() {
   // When college changes: narrow branches to only those in that college
   const handleCollegeChange = (value: string) => {
     setCollegeName(value);
+    // When the user picks a name from the dropdown, store its DTE code so the
+    // search can filter by college_code (exact, year-stable) rather than by
+    // college_name ILIKE (which breaks when names differ slightly across years).
+    const match = collegeOptions.find((c) => c.name === value);
+    setCollegeCode(match?.code ?? null);
     if (value) {
       fetchMeta({ college: value });
     } else {
@@ -270,7 +300,9 @@ export default function CutoffsPage() {
       selectedBranches.forEach((b) => params.append("branch", b));
       if (category) params.append("category", category);
       if (gender) params.append("gender", gender);
-      if (collegeName) params.append("college_name", collegeName);
+      // Prefer college_code (stable across years) over name-based ILIKE matching
+      if (collegeCode) params.append("college_code", collegeCode);
+      else if (collegeName) params.append("college_name", collegeName);
       if (level) params.append("level", level);
       selectedCities.forEach((c) => params.append("city", c));
 
@@ -293,11 +325,12 @@ export default function CutoffsPage() {
   };
 
   const handleReset = () => {
-    setYear("");
+    setYear(DEFAULT_META_YEAR);
     setSelectedBranches([]);
     setCategory("");
     setGender("");
     setCollegeName("");
+    setCollegeCode(null);
     setLevel("");
     setSelectedCities([]);
     setCutoffs([]);
@@ -402,7 +435,7 @@ export default function CutoffsPage() {
                     ]}
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Keep unselected to search across all available years
+                    Leaving this as All Years searches all years, while option lists are loaded from 2025 for speed.
                   </p>
                 </div>
 
@@ -418,7 +451,7 @@ export default function CutoffsPage() {
                     id="collegeName"
                     value={collegeName}
                     onChange={handleCollegeChange}
-                    options={collegeOptions}
+                    options={collegeOptions.map((c) => c.name)}
                     placeholder="All Colleges"
                     maxLength={200}
                   />
