@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
+import {
+  STATIC_CUTOFF_BRANCHES,
+  STATIC_CUTOFF_CITIES,
+} from "@/lib/cutoffStaticMeta";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -52,11 +56,6 @@ interface PredictionResults {
   };
 }
 
-interface PredictorMetaResponse {
-  branches?: string[];
-  cities?: string[];
-}
-
 export default function PredictorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -76,61 +75,8 @@ export default function PredictorPage() {
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   // Branch autocomplete
-  const [branchOptions, setBranchOptions] = useState<string[]>([]);
-  const [cityOptions, setCityOptions] = useState<string[]>([]);
-  useEffect(() => {
-    const cacheKey = `predictor:meta:${PREDICTOR_YEAR}`;
-
-    // Serve cached metadata first for instant dropdown responsiveness.
-    try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached) as PredictorMetaResponse;
-        setBranchOptions(parsed.branches ?? []);
-        setCityOptions(parsed.cities ?? []);
-      }
-    } catch {
-      // Ignore cache parse errors.
-    }
-
-    const load = async () => {
-      try {
-        let branches: string[] = [];
-        let cities: string[] = [];
-
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            const res = await fetch(
-              `${API_BASE_URL}/api/cutoffs/meta?year=${PREDICTOR_YEAR}`
-            );
-            if (!res.ok) throw new Error(`Meta status ${res.status}`);
-            const d = await res.json();
-            if (!d.success) throw new Error("Meta response not successful");
-
-            branches = d.data.branches ?? [];
-            cities = d.data.cities ?? [];
-            break;
-          } catch {
-            if (attempt === 3) throw new Error("Predictor meta fetch failed");
-            await new Promise((resolve) => setTimeout(resolve, 350 * attempt));
-          }
-        }
-
-        setBranchOptions(branches);
-        setCityOptions(cities);
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({
-            branches,
-            cities,
-          })
-        );
-      } catch {
-        // Keep cache-backed values if network fails.
-      }
-    };
-    load();
-  }, []);
+  const branchOptions = STATIC_CUTOFF_BRANCHES;
+  const cityOptions = STATIC_CUTOFF_CITIES;
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
