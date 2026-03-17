@@ -9,6 +9,7 @@ export async function getGuides(
 ) {
   try {
     const guides = await guidesService.getActiveGuides();
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({
       success: true,
       data: guides,

@@ -16,6 +16,9 @@ interface Guide {
   created_at: string;
 }
 
+const GUIDES_CACHE_KEY = "guides:v1";
+const GUIDES_CACHE_TTL_MS = 10 * 60 * 1000;
+
 export default function GuidesPage() {
   const [guides, setGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,18 +36,46 @@ export default function GuidesPage() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    fetchGuides();
+    try {
+      const cached = localStorage.getItem(GUIDES_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as {
+          data: Guide[];
+          timestamp: number;
+        };
+        if (
+          Array.isArray(parsed.data) &&
+          Date.now() - parsed.timestamp < GUIDES_CACHE_TTL_MS
+        ) {
+          setGuides(parsed.data);
+          setLoading(false);
+        }
+      }
+    } catch {
+      // Ignore cache read errors and continue with network fetch.
+    }
+
+    fetchGuides(guides.length === 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchGuides = async () => {
+  const fetchGuides = async (showLoader = false) => {
     try {
-      setLoading(true);
+      if (showLoader) setLoading(true);
       setError("");
       const response = await fetch(`${API_BASE_URL}/api/guides`);
       const data = await response.json();
 
       if (data.success) {
         setGuides(data.data);
+        try {
+          localStorage.setItem(
+            GUIDES_CACHE_KEY,
+            JSON.stringify({ data: data.data, timestamp: Date.now() })
+          );
+        } catch {
+          // Ignore cache write errors.
+        }
       } else {
         setError("Failed to fetch guides");
       }
@@ -98,23 +129,20 @@ export default function GuidesPage() {
     setDownloadError("");
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/guides/download`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            guide_id: selectedGuide.id,
-            name: downloadForm.name,
-            email: downloadForm.email,
-            percentile: downloadForm.percentile
-              ? parseFloat(downloadForm.percentile)
-              : undefined,
-          }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/guides/download`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          guide_id: selectedGuide.id,
+          name: downloadForm.name,
+          email: downloadForm.email,
+          percentile: downloadForm.percentile
+            ? parseFloat(downloadForm.percentile)
+            : undefined,
+        }),
+      });
 
       const data = await response.json();
 
