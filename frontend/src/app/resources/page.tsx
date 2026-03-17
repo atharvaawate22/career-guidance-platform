@@ -17,6 +17,9 @@ interface Resource {
   created_at: string;
 }
 
+const RESOURCES_CACHE_KEY = "resources:v1";
+const RESOURCES_CACHE_TTL_MS = 10 * 60 * 1000;
+
 const CATEGORIES = [
   "All",
   "Seat Matrix",
@@ -31,7 +34,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Previous Year Cutoffs": "bg-purple-100 text-purple-700 border-purple-200",
   "Government Circulars": "bg-amber-100 text-amber-700 border-amber-200",
   "Exam Guidelines": "bg-green-100 text-green-700 border-green-200",
-  "Others": "bg-gray-100 text-gray-700 border-gray-200",
+  Others: "bg-gray-100 text-gray-700 border-gray-200",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -39,7 +42,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   "Previous Year Cutoffs": "📊",
   "Government Circulars": "🏛️",
   "Exam Guidelines": "📋",
-  "Others": "📄",
+  Others: "📄",
 };
 
 export default function ResourcesPage() {
@@ -49,17 +52,45 @@ export default function ResourcesPage() {
   const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
-    fetchResources();
+    try {
+      const cached = localStorage.getItem(RESOURCES_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as {
+          data: Resource[];
+          timestamp: number;
+        };
+        if (
+          Array.isArray(parsed.data) &&
+          Date.now() - parsed.timestamp < RESOURCES_CACHE_TTL_MS
+        ) {
+          setResources(parsed.data);
+          setLoading(false);
+        }
+      }
+    } catch {
+      // Ignore cache read errors and continue with network fetch.
+    }
+
+    fetchResources(resources.length === 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchResources = async () => {
+  const fetchResources = async (showLoader = false) => {
     try {
-      setLoading(true);
+      if (showLoader) setLoading(true);
       setError("");
       const response = await fetch(`${API_BASE_URL}/api/resources`);
       const data = await response.json();
       if (data.success) {
         setResources(data.data);
+        try {
+          localStorage.setItem(
+            RESOURCES_CACHE_KEY,
+            JSON.stringify({ data: data.data, timestamp: Date.now() })
+          );
+        } catch {
+          // Ignore cache write errors.
+        }
       } else {
         setError("Failed to fetch resources.");
       }

@@ -6,6 +6,7 @@ export async function getResources(req: Request, res: Response, next: NextFuncti
   try {
     const category = typeof req.query.category === 'string' ? req.query.category : undefined;
     const resources = await resourcesService.getActiveResources(category);
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({ success: true, data: resources });
   } catch (error) {
     next(error);
