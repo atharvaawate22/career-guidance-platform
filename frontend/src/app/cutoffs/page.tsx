@@ -699,83 +699,50 @@ export default function CutoffsPage() {
               </div>
             </div>
 
-            <div className="divide-y divide-gray-100">
-              {sortedCutoffs.map((c) => (
-                <article
-                  key={c.id}
-                  className="px-4 py-4 sm:px-5 sm:py-5 hover:bg-purple-50/40 transition-colors"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
-                          {c.year}
-                        </span>
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${categoryColor(c.category)}`}
-                        >
+            <div className="w-full">
+              <table className="w-full table-fixed text-sm text-gray-700">
+                <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+                  <tr>
+                    <th className="px-2 py-3 w-14 text-left">Year</th>
+                    <th className="px-2 py-3 w-[24%] text-left">College</th>
+                    <th className="px-2 py-3 w-[18%] text-left">Branch</th>
+                    <th className="px-2 py-3 w-20 text-left">Category</th>
+                    <th className="px-2 py-3 w-20 text-left">Seat Type</th>
+                    <th className="px-2 py-3 w-[15%] text-left">Level</th>
+                    <th className="px-2 py-3 w-24 text-left">Round</th>
+                    <th className="px-2 py-3 w-24 text-right">Rank</th>
+                    <th className="px-2 py-3 w-28 text-right">Percentile</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sortedCutoffs.map((c) => (
+                    <tr key={c.id} className="hover:bg-purple-50/40 transition-colors align-top">
+                      <td className="px-2 py-3 font-medium">{c.year}</td>
+                      <td className="px-2 py-3">
+                        <div className="break-words leading-snug">{c.college_name}</div>
+                        {c.college_code && (
+                          <div className="text-[11px] text-gray-400 mt-1">Code: {c.college_code}</div>
+                        )}
+                      </td>
+                      <td className="px-2 py-3 break-words leading-snug">{c.branch}</td>
+                      <td className="px-2 py-3">
+                        <span className={`px-2 py-1 rounded-full text-[11px] font-semibold ${categoryColor(c.category)}`}>
                           {c.category}
                         </span>
-                        <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
-                          {formatRound(c.stage)}
-                        </span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                          {c.gender || "All"}
-                        </span>
-                      </div>
-
-                      <div>
-                        <h3 className="text-base font-semibold leading-snug text-gray-900 wrap-break-word">
-                          {c.college_name}
-                        </h3>
-                        {c.college_code && (
-                          <p className="mt-1 text-xs text-gray-400">
-                            Code: {c.college_code}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-                        <div>
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-                            Branch
-                          </div>
-                          <div className="mt-1 text-sm leading-6 text-gray-700 wrap-break-word">
-                            {c.branch}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-                            Level
-                          </div>
-                          <div className="mt-1 text-sm leading-6 text-gray-700 wrap-break-word">
-                            {formatCompactLevel(c.level)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-                            Rank
-                          </div>
-                          <div className="mt-1 text-sm font-mono text-gray-800">
-                            {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="lg:w-44 lg:flex-none">
-                      <div className="rounded-2xl border border-purple-100 bg-linear-to-br from-purple-50 to-pink-50 px-4 py-3 lg:text-right">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-purple-500">
-                          Percentile
-                        </div>
-                        <div className="mt-1 text-2xl font-bold text-purple-700">
-                          {Number(c.percentile).toFixed(4)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                      </td>
+                      <td className="px-2 py-3">{c.gender || "All"}</td>
+                      <td className="px-2 py-3 break-words">{formatCompactLevel(c.level)}</td>
+                      <td className="px-2 py-3">{formatRound(c.stage)}</td>
+                      <td className="px-2 py-3 text-right font-mono">
+                        {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
+                      </td>
+                      <td className="px-2 py-3 text-right font-semibold text-purple-700">
+                        {Number(c.percentile).toFixed(4)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
