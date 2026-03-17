@@ -85,6 +85,14 @@ function sortByName(a, b) {
   return a.name.localeCompare(b.name);
 }
 
+function sortByRelation(a, b) {
+  return (
+    a.collegeName.localeCompare(b.collegeName) ||
+    a.branch.localeCompare(b.branch) ||
+    a.city.localeCompare(b.city)
+  );
+}
+
 function generate() {
   const root = path.resolve(__dirname, "..");
   const cutoffsCsvPath = path.join(root, "cutoffs_2025_cap1.csv");
@@ -106,6 +114,8 @@ function generate() {
   const collegeByKey = new Map();
   const branchSet = new Set();
   const citySet = new Set();
+  const relationSet = new Set();
+  const relations = [];
 
   for (const row of cutoffRows) {
     const code = (row.college_code || "").trim();
@@ -128,16 +138,31 @@ function generate() {
     if (isValidCity(city)) {
       citySet.add(toTitleCase(city));
     }
+
+    const normalizedCity = isValidCity(city) ? toTitleCase(city) : "";
+    if (name && branch && normalizedCity) {
+      const relationKey = `${code || name}||${branch}||${normalizedCity}`;
+      if (!relationSet.has(relationKey)) {
+        relationSet.add(relationKey);
+        relations.push({
+          collegeCode: code || null,
+          collegeName: name,
+          branch,
+          city: normalizedCity,
+        });
+      }
+    }
   }
 
   const colleges = Array.from(collegeByKey.values()).sort(sortByName);
   const branches = Array.from(branchSet).sort((a, b) => a.localeCompare(b));
   const cities = Array.from(citySet).sort((a, b) => a.localeCompare(b));
+  relations.sort(sortByRelation);
 
-  const output = `export interface StaticCollegeOption {\n  code: string | null;\n  name: string;\n}\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_COLLEGES: StaticCollegeOption[] = ${JSON.stringify(colleges, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv\nexport const STATIC_CUTOFF_BRANCHES: string[] = ${JSON.stringify(branches, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_CITIES: string[] = ${JSON.stringify(cities, null, 2)};\n`;
+  const output = `export interface StaticCollegeOption {\n  code: string | null;\n  name: string;\n}\n\nexport interface StaticCutoffRelation {\n  collegeCode: string | null;\n  collegeName: string;\n  branch: string;\n  city: string;\n}\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_COLLEGES: StaticCollegeOption[] = ${JSON.stringify(colleges, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv\nexport const STATIC_CUTOFF_BRANCHES: string[] = ${JSON.stringify(branches, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_CITIES: string[] = ${JSON.stringify(cities, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv (distinct college-branch-city tuples)\nexport const STATIC_CUTOFF_RELATIONS: StaticCutoffRelation[] = ${JSON.stringify(relations, null, 2)};\n`;
 
   fs.writeFileSync(outPath, output, "utf8");
-  console.log(`Generated ${path.relative(root, outPath)}: colleges=${colleges.length}, branches=${branches.length}, cities=${cities.length}`);
+  console.log(`Generated ${path.relative(root, outPath)}: colleges=${colleges.length}, branches=${branches.length}, cities=${cities.length}, relations=${relations.length}`);
 }
 
 generate();
