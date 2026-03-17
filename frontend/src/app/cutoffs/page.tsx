@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
 import {
-  STATIC_CUTOFF_BRANCHES,
-  STATIC_CUTOFF_CITIES,
   STATIC_CUTOFF_COLLEGES,
+  STATIC_CUTOFF_RELATIONS,
 } from "@/lib/cutoffStaticMeta";
 
 const API_BASE_URL =
@@ -94,16 +93,93 @@ export default function CutoffsPage() {
   const [level, setLevel] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
-  const collegeOptions: CollegeOption[] = STATIC_CUTOFF_COLLEGES;
-  const branchOptions: string[] = STATIC_CUTOFF_BRANCHES;
-  const cityOptions: string[] = STATIC_CUTOFF_CITIES;
+  const collegeMapByName = useMemo(
+    () =>
+      new Map(STATIC_CUTOFF_COLLEGES.map((college) => [college.name, college])),
+    []
+  );
+
+  const collegeOptions: CollegeOption[] = useMemo(() => {
+    const citySet = selectedCities.length ? new Set(selectedCities) : null;
+    const branchSet = selectedBranches.length
+      ? new Set(selectedBranches)
+      : null;
+
+    const names = new Set<string>();
+    for (const relation of STATIC_CUTOFF_RELATIONS) {
+      if (citySet && !citySet.has(relation.city)) continue;
+      if (branchSet && !branchSet.has(relation.branch)) continue;
+      names.add(relation.collegeName);
+    }
+
+    return Array.from(names)
+      .map((name) => collegeMapByName.get(name))
+      .filter((college): college is CollegeOption => Boolean(college))
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [collegeMapByName, selectedBranches, selectedCities]);
+
+  const branchOptions: string[] = useMemo(() => {
+    const citySet = selectedCities.length ? new Set(selectedCities) : null;
+    const branchSet = new Set<string>();
+
+    for (const relation of STATIC_CUTOFF_RELATIONS) {
+      if (collegeName && relation.collegeName !== collegeName) continue;
+      if (citySet && !citySet.has(relation.city)) continue;
+      branchSet.add(relation.branch);
+    }
+
+    return Array.from(branchSet).sort((left, right) =>
+      left.localeCompare(right)
+    );
+  }, [collegeName, selectedCities]);
+
+  const cityOptions: string[] = useMemo(() => {
+    const branchSet = selectedBranches.length
+      ? new Set(selectedBranches)
+      : null;
+    const citySet = new Set<string>();
+
+    for (const relation of STATIC_CUTOFF_RELATIONS) {
+      if (collegeName && relation.collegeName !== collegeName) continue;
+      if (branchSet && !branchSet.has(relation.branch)) continue;
+      citySet.add(relation.city);
+    }
+
+    return Array.from(citySet).sort((left, right) => left.localeCompare(right));
+  }, [collegeName, selectedBranches]);
+
+  useEffect(() => {
+    if (collegeName && !collegeOptions.some((college) => college.name === collegeName)) {
+      setCollegeName("");
+      setCollegeCode(null);
+    }
+  }, [collegeName, collegeOptions]);
+
+  useEffect(() => {
+    if (selectedBranches.length === 0) return;
+    const allowed = new Set(branchOptions);
+    const next = selectedBranches.filter((branch) => allowed.has(branch));
+    if (next.length !== selectedBranches.length) {
+      setSelectedBranches(next);
+    }
+  }, [branchOptions, selectedBranches]);
+
+  useEffect(() => {
+    if (selectedCities.length === 0) return;
+    const allowed = new Set(cityOptions);
+    const next = selectedCities.filter((city) => allowed.has(city));
+    if (next.length !== selectedCities.length) {
+      setSelectedCities(next);
+    }
+  }, [cityOptions, selectedCities]);
+
   // Stable DTE college_code for the currently selected college (null = free-text)
   const [collegeCode, setCollegeCode] = useState<string | null>(null);
 
   // When college changes: narrow branches to only those in that college
   const handleCollegeChange = (value: string) => {
     setCollegeName(value);
-    const match = collegeOptions.find((college) => college.name === value);
+    const match = collegeMapByName.get(value);
     setCollegeCode(match?.code ?? null);
   };
 
@@ -496,7 +572,56 @@ export default function CutoffsPage() {
               </div>
             </div>
 
-            <div className="w-full">
+            <div className="divide-y divide-gray-100 md:hidden">
+              {sortedCutoffs.map((c) => (
+                <article key={c.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-900 wrap-break-word">
+                        {c.college_name}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500 wrap-break-word">
+                        {c.branch}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-purple-500">
+                        %ile
+                      </div>
+                      <div className="text-lg font-bold text-purple-700">
+                        {Number(c.percentile).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-700">
+                      {c.year}
+                    </span>
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${categoryColor(c.category)}`}>
+                      {c.category}
+                    </span>
+                    <span className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] text-indigo-700">
+                      {formatRound(c.stage)}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">
+                      {c.gender || "All"}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-gray-500">Rank</div>
+                    <div className="text-right font-mono text-gray-700">
+                      {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
+                    </div>
+                    <div className="text-gray-500">Level</div>
+                    <div className="text-right text-gray-700 wrap-break-word">
+                      {formatCompactLevel(c.level)}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden w-full md:block">
               <table className="w-full table-fixed text-sm text-gray-700">
                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                   <tr>

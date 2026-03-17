@@ -45,7 +45,7 @@ export default function MainContent({
 
   return (
     <main
-      className={`flex-1 ${marginClass} transition-all duration-300 overflow-x-hidden`}
+      className={`flex-1 ${marginClass} pt-16 sm:pt-20 lg:pt-0 transition-all duration-300 overflow-x-hidden`}
       id="main-content"
     >
       {children}

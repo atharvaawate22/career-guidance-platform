@@ -590,20 +590,20 @@ export default function PredictorPage() {
         {!loading && results && (
           <div>
             {/* Summary Banner */}
-            <div className="flex gap-4 mb-8 flex-wrap">
-              <div className="flex-1 min-w-40 bg-white/80 rounded-2xl p-5 border border-gray-200 shadow text-center">
+            <div className="grid grid-cols-2 gap-3 mb-8 sm:gap-4 lg:grid-cols-4">
+              <div className="bg-white/80 rounded-2xl p-4 sm:p-5 border border-gray-200 shadow text-center">
                 <div className="text-3xl font-bold text-gray-800">
                   {totalResults}
                 </div>
                 <div className="text-sm text-gray-500 mt-1">Total Options</div>
               </div>
-              <div className="flex-1 min-w-40 bg-green-50 rounded-2xl p-5 border border-green-200 shadow text-center">
+              <div className="bg-green-50 rounded-2xl p-4 sm:p-5 border border-green-200 shadow text-center">
                 <div className="text-3xl font-bold text-green-700">
                   {results.safe.length}
                 </div>
                 <div className="text-sm text-green-600 mt-1">Safe Colleges</div>
               </div>
-              <div className="flex-1 min-w-40 bg-amber-50 rounded-2xl p-5 border border-amber-200 shadow text-center">
+              <div className="bg-amber-50 rounded-2xl p-4 sm:p-5 border border-amber-200 shadow text-center">
                 <div className="text-3xl font-bold text-amber-600">
                   {results.target.length}
                 </div>
@@ -611,7 +611,7 @@ export default function PredictorPage() {
                   Target Colleges
                 </div>
               </div>
-              <div className="flex-1 min-w-40 bg-blue-50 rounded-2xl p-5 border border-blue-200 shadow text-center">
+              <div className="bg-blue-50 rounded-2xl p-4 sm:p-5 border border-blue-200 shadow text-center">
                 <div className="text-3xl font-bold text-blue-600">
                   {results.dream.length}
                 </div>
