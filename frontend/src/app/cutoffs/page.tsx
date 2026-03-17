@@ -230,6 +230,25 @@ export default function CutoffsPage() {
     }
   };
 
+  const getActiveMetaConstraints = (overrides?: {
+    college?: string;
+    collegeCode?: string | null;
+    branches?: string[];
+    cities?: string[];
+  }) => {
+    const college = overrides?.college ?? collegeName;
+    const collegeCodeValue = overrides?.collegeCode ?? collegeCode;
+    const branches = overrides?.branches ?? selectedBranches;
+    const cities = overrides?.cities ?? selectedCities;
+
+    return {
+      college: college || undefined,
+      collegeCode: collegeCodeValue || undefined,
+      branches: branches.length ? branches : undefined,
+      cities: cities.length ? cities : undefined,
+    };
+  };
+
   // Fetch full meta on year change (resets both lists)
   useEffect(() => {
     // Load cached base metadata immediately for snappy dropdowns.
@@ -266,36 +285,24 @@ export default function CutoffsPage() {
     setCollegeName(value);
     const match = collegeOptions.find((college) => college.name === value);
     setCollegeCode(match?.code ?? null);
-    if (value) {
-      fetchMeta({ college: value, collegeCode: match?.code ?? undefined });
-    } else {
-      fetchMeta(
-        selectedBranches.length || selectedCities.length
-          ? {
-              branches: selectedBranches.length ? selectedBranches : undefined,
-              cities: selectedCities.length ? selectedCities : undefined,
-            }
-          : undefined
-      );
-    }
+    fetchMeta(
+      getActiveMetaConstraints({
+        college: value,
+        collegeCode: match?.code ?? null,
+      })
+    );
   };
 
   // When branches change: narrow colleges to those that have at least one selected branch
   const handleBranchesChange = (values: string[]) => {
     setSelectedBranches(values);
-    fetchMeta({
-      branches: values.length ? values : undefined,
-      cities: selectedCities.length ? selectedCities : undefined,
-    });
+    fetchMeta(getActiveMetaConstraints({ branches: values }));
   };
 
   // When cities change: narrow colleges to those in selected cities
   const handleCitiesChange = (values: string[]) => {
     setSelectedCities(values);
-    fetchMeta({
-      branches: selectedBranches.length ? selectedBranches : undefined,
-      cities: values.length ? values : undefined,
-    });
+    fetchMeta(getActiveMetaConstraints({ cities: values }));
   };
 
   const handleSearch = async () => {

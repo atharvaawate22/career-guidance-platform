@@ -85,11 +85,20 @@ export class CutoffsController {
             );
             branchVals.push(`%${filterCollege}%`);
           }
+          if (filterCities.length > 0) {
+            const orParts = filterCities.map(
+              (_, i) => `${CITY_NORMALIZED_SQL} = $${branchVals.length + 1 + i}`,
+            );
+            branchConditions.push(`(${orParts.join(' OR ')})`);
+            filterCities.forEach((city) =>
+              branchVals.push(city.trim().toLowerCase()),
+            );
+          }
           const branchWhere = branchConditions.length
             ? `WHERE ${branchConditions.join(' AND ')}`
             : '';
 
-          // Cities: filtered by year only
+          // Cities: filtered by year + selected college + selected branches.
           const cityVals: unknown[] = [];
           const cityConditions: string[] = [
             `${CITY_NORMALIZED_SQL} IS NOT NULL`,
@@ -97,6 +106,20 @@ export class CutoffsController {
           if (year) {
             cityConditions.push(`year = $${cityVals.length + 1}`);
             cityVals.push(year);
+          }
+          if (filterCollegeCode) {
+            cityConditions.push(`college_code = $${cityVals.length + 1}`);
+            cityVals.push(filterCollegeCode);
+          } else if (filterCollege) {
+            cityConditions.push(`college_name ILIKE $${cityVals.length + 1}`);
+            cityVals.push(`%${filterCollege}%`);
+          }
+          if (filterBranches.length > 0) {
+            const orParts = filterBranches.map(
+              (_, i) => `branch ILIKE $${cityVals.length + 1 + i}`,
+            );
+            cityConditions.push(`(${orParts.join(' OR ')})`);
+            filterBranches.forEach((branch) => cityVals.push(`%${branch}%`));
           }
           const cityWhere = `WHERE ${cityConditions.join(' AND ')}`;
 
