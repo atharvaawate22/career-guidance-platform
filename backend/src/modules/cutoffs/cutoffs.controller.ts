@@ -9,6 +9,7 @@ import {
 } from './cutoffsMetaCache';
 
 const cutoffsService = new CutoffsService();
+const ACTIVE_CUTOFF_YEAR = 2025;
 
 export class CutoffsController {
   async getMeta(
@@ -17,7 +18,7 @@ export class CutoffsController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const year = req.query.year ? Number(req.query.year) : undefined;
+      const year = ACTIVE_CUTOFF_YEAR;
       const filterCollege = req.query.college_name as string | undefined;
       const filterCollegeCode = req.query.college_code as string | undefined;
       const filterBranches: string[] = req.query.branch
@@ -227,7 +228,7 @@ export class CutoffsController {
   ): Promise<void> {
     try {
       const filters: CutoffFilters = {
-        year: req.query.year ? Number(req.query.year) : undefined,
+        year: ACTIVE_CUTOFF_YEAR,
         branches: req.query.branch
           ? ((Array.isArray(req.query.branch)
               ? req.query.branch

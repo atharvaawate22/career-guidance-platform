@@ -116,18 +116,6 @@ export default function PredictorPage() {
           }
         }
 
-        // If 2025 metadata is empty, fallback to all-years metadata for dropdown usability.
-        if (branches.length === 0 && cities.length === 0) {
-          const fallbackRes = await fetch(`${API_BASE_URL}/api/cutoffs/meta`);
-          if (fallbackRes.ok) {
-            const fallback = await fallbackRes.json();
-            if (fallback.success) {
-              branches = fallback.data.branches ?? [];
-              cities = fallback.data.cities ?? [];
-            }
-          }
-        }
-
         setBranchOptions(branches);
         setCityOptions(cities);
         localStorage.setItem(
