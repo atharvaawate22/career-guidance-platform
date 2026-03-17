@@ -38,7 +38,6 @@ import guidesRoutes from './modules/guides/guides.routes';
 import resourcesRoutes from './modules/resources/resources.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import { testConnection, query } from './config/database';
-import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger from './utils/logger';
 
 const app = express();
@@ -209,12 +208,9 @@ const initializeDatabase = async (): Promise<boolean> => {
       CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_college_code_name
       ON cutoff_data(year, college_code, college_name)
     `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_city_normalized
-      ON cutoff_data(year, (${CITY_NORMALIZED_SQL}))
-    `).catch((error) => {
-      logger.warn('Skipping cutoff city metadata index creation', error);
-    });
+    // Intentionally skip expression index creation for city normalization.
+    // The expression is large enough to trigger Postgres 54000 errors on some
+    // managed environments (e.g. Render/Supabase) during startup.
 
     // Create guides table if not exists
     await query(`
