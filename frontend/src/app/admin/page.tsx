@@ -177,14 +177,11 @@ export default function AdminPage() {
   const fetchBookings = async () => {
     try {
       setBookingsLoading(true);
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/bookings`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/bookings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.status === 401) {
         handleSessionExpired();
         return;
@@ -205,16 +202,13 @@ export default function AdminPage() {
     setLoginError("");
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
       const data = await response.json();
 
@@ -304,15 +298,12 @@ export default function AdminPage() {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/updates/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/updates/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
@@ -360,15 +351,12 @@ export default function AdminPage() {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/bookings/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/bookings/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
@@ -402,17 +390,14 @@ export default function AdminPage() {
     setResourceSuccess("");
     setResourceSubmitting(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/resources`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(resourceForm),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/resources`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(resourceForm),
+      });
       const data = await response.json();
       if (data.success) {
         setResourceSuccess("Resource created successfully!");
@@ -479,12 +464,9 @@ export default function AdminPage() {
   const fetchGuides = async () => {
     try {
       setGuidesLoading(true);
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/guides`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/guides`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.status === 401) {
         handleSessionExpired();
         return;
@@ -529,17 +511,14 @@ export default function AdminPage() {
     setGuideSuccess("");
     setGuideSubmitting(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/guides`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(guideForm),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/guides`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(guideForm),
+      });
       const data = await response.json();
       if (data.success) {
         setGuideSuccess("Guide created successfully!");
@@ -558,13 +537,10 @@ export default function AdminPage() {
   const handleDeleteGuide = async (id: string) => {
     if (!confirm("Delete this guide?")) return;
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/guides/${id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/admin/guides/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await response.json();
       if (data.success) {
         setGuideSuccess("Guide deleted.");

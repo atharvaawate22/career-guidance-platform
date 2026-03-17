@@ -82,7 +82,7 @@ export default function BookPage() {
   const [meetLink, setMeetLink] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [countryCode, setCountryCode] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
@@ -111,20 +111,17 @@ export default function BookPage() {
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/bookings`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...formData,
-            percentile: Number(formData.percentile),
-          }),
-          signal: controller.signal,
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          percentile: Number(formData.percentile),
+        }),
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
       const data = await response.json();
@@ -220,9 +217,7 @@ export default function BookPage() {
     // Fetch booked slots for this date
     if (date) {
       setSlotsLoading(true);
-      fetch(
-        `${API_BASE_URL}/api/bookings/slots?date=${date}`
-      )
+      fetch(`${API_BASE_URL}/api/bookings/slots?date=${date}`)
         .then((r) => r.json())
         .then((data) => setBookedSlots(data.booked ?? []))
         .catch(() => setBookedSlots([]))
@@ -360,15 +355,12 @@ export default function BookPage() {
                   <CustomSelect
                     value={countryCode}
                     onChange={setCountryCode}
-                    placeholder="Select code"
-                    className="w-28 shrink-0"
-                    options={[
-                      { value: "", label: "Code" },
-                      ...COUNTRY_CODES.map((c) => ({
-                        value: c.code,
-                        label: `${c.flag} ${c.code}`,
-                      })),
-                    ]}
+                    placeholder="Code"
+                    className="w-24 shrink-0"
+                    options={COUNTRY_CODES.map((c) => ({
+                      value: c.code,
+                      label: `${c.flag} ${c.code}`,
+                    }))}
                   />
                   <input
                     type="tel"
@@ -379,7 +371,7 @@ export default function BookPage() {
                     pattern="[0-9]{10}"
                     minLength={10}
                     maxLength={10}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="flex-1 min-w-0 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="9876543210"
                   />
                 </div>

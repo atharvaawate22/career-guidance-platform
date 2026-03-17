@@ -325,7 +325,6 @@ export default function PredictorPage() {
           </div>
 
           <form onSubmit={handlePredict} className="p-6 space-y-0">
-
             {/* ── Step 1: Your Score ──────────────────────────────── */}
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-4">

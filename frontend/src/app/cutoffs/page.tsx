@@ -302,7 +302,18 @@ export default function CutoffsPage() {
   // When cities change: narrow colleges to those in selected cities
   const handleCitiesChange = (values: string[]) => {
     setSelectedCities(values);
-    fetchMeta(getActiveMetaConstraints({ cities: values }));
+    // City acts as a parent scope for college suggestions. Clear any previously
+    // selected college so the dropdown can repopulate with all colleges in the
+    // selected city/cities instead of staying pinned to stale college filters.
+    setCollegeName("");
+    setCollegeCode(null);
+    fetchMeta(
+      getActiveMetaConstraints({
+        cities: values,
+        college: "",
+        collegeCode: null,
+      })
+    );
   };
 
   const handleSearch = async () => {
