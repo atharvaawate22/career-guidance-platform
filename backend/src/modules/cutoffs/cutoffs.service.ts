@@ -2,17 +2,11 @@ import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { CutoffsRepository } from './cutoffs.repository';
 
 const cutoffsRepository = new CutoffsRepository();
+const ACTIVE_CUTOFF_YEAR = 2025;
 
 export class CutoffsService {
   async getCutoffs(filters: CutoffFilters): Promise<{ rows: CutoffData[]; total: number }> {
-    // Validate year if provided
-    if (filters.year !== undefined) {
-      const year = Number(filters.year);
-      if (isNaN(year) || year < 2000 || year > 2100) {
-        throw new Error('Invalid year provided');
-      }
-      filters.year = year;
-    }
+    filters.year = ACTIVE_CUTOFF_YEAR;
     return await cutoffsRepository.getCutoffs(filters);
   }
 

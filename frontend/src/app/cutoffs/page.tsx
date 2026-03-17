@@ -128,7 +128,7 @@ export default function CutoffsPage() {
       !(opts?.branches?.length ?? 0) &&
       !(opts?.cities?.length ?? 0);
 
-    // Avoid expensive all-years metadata by default; use latest year metadata for quick dropdown UX.
+    // The explorer is intentionally locked to the active production dataset.
     const metadataYear = year || DEFAULT_META_YEAR;
     if (metadataYear) params.set("year", metadataYear);
     if (opts?.college) params.set("college_name", opts.college);
@@ -155,7 +155,7 @@ export default function CutoffsPage() {
           let branches = data.data.branches ?? [];
           let cities = data.data.cities ?? [];
 
-          // If a year-specific query returns empty metadata, fallback to all-years list.
+          // If the current year-specific query is empty, retry with the active dataset year.
           if (
             isBaseMetaRequest &&
             metadataYear &&
@@ -276,7 +276,6 @@ export default function CutoffsPage() {
   // Preload key years in background once for faster year switches.
   useEffect(() => {
     prefetchYearMeta("2025");
-    prefetchYearMeta("2022");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -456,14 +455,11 @@ export default function CutoffsPage() {
                     value={year}
                     onChange={setYear}
                     options={[
-                      { value: "", label: "All Years" },
                       { value: "2025", label: "2025 (CAP Round 1)" },
-                      { value: "2022", label: "2022 (CAP Rounds 1, 2, 3)" },
                     ]}
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Leaving this as All Years searches all years, while option
-                    lists are loaded from 2025 for speed.
+                    Cutoff explorer is currently limited to the 2025 CAP Round 1 dataset.
                   </p>
                 </div>
 
@@ -719,19 +715,19 @@ export default function CutoffsPage() {
                     <tr key={c.id} className="hover:bg-purple-50/40 transition-colors align-top">
                       <td className="px-2 py-3 font-medium">{c.year}</td>
                       <td className="px-2 py-3">
-                        <div className="break-words leading-snug">{c.college_name}</div>
+                        <div className="wrap-break-word leading-snug">{c.college_name}</div>
                         {c.college_code && (
                           <div className="text-[11px] text-gray-400 mt-1">Code: {c.college_code}</div>
                         )}
                       </td>
-                      <td className="px-2 py-3 break-words leading-snug">{c.branch}</td>
+                      <td className="px-2 py-3 wrap-break-word leading-snug">{c.branch}</td>
                       <td className="px-2 py-3">
                         <span className={`px-2 py-1 rounded-full text-[11px] font-semibold ${categoryColor(c.category)}`}>
                           {c.category}
                         </span>
                       </td>
                       <td className="px-2 py-3">{c.gender || "All"}</td>
-                      <td className="px-2 py-3 break-words">{formatCompactLevel(c.level)}</td>
+                      <td className="px-2 py-3 wrap-break-word">{formatCompactLevel(c.level)}</td>
                       <td className="px-2 py-3">{formatRound(c.stage)}</td>
                       <td className="px-2 py-3 text-right font-mono">
                         {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
