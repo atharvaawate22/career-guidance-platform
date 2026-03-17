@@ -57,10 +57,13 @@ export class CutoffsController {
           }
           if (filterCities.length > 0) {
             const orParts = filterCities.map(
-              (_, i) => `${CITY_NORMALIZED_SQL} = $${collegeVals.length + 1 + i}`,
+              (_, i) =>
+                `${CITY_NORMALIZED_SQL} = $${collegeVals.length + 1 + i}`,
             );
             collegeConditions.push(`(${orParts.join(' OR ')})`);
-            filterCities.forEach((c) => collegeVals.push(c.trim().toLowerCase()));
+            filterCities.forEach((c) =>
+              collegeVals.push(c.trim().toLowerCase()),
+            );
           }
           const collegeWhere = collegeConditions.length
             ? `WHERE ${collegeConditions.join(' AND ')}`
@@ -77,7 +80,9 @@ export class CutoffsController {
             branchConditions.push(`college_code = $${branchVals.length + 1}`);
             branchVals.push(filterCollegeCode);
           } else if (filterCollege) {
-            branchConditions.push(`college_name ILIKE $${branchVals.length + 1}`);
+            branchConditions.push(
+              `college_name ILIKE $${branchVals.length + 1}`,
+            );
             branchVals.push(`%${filterCollege}%`);
           }
           const branchWhere = branchConditions.length
@@ -86,7 +91,9 @@ export class CutoffsController {
 
           // Cities: filtered by year only
           const cityVals: unknown[] = [];
-          const cityConditions: string[] = [`${CITY_NORMALIZED_SQL} IS NOT NULL`];
+          const cityConditions: string[] = [
+            `${CITY_NORMALIZED_SQL} IS NOT NULL`,
+          ];
           if (year) {
             cityConditions.push(`year = $${cityVals.length + 1}`);
             cityVals.push(year);
@@ -129,6 +136,8 @@ export class CutoffsController {
             /college|inst(itute)?|tech(nolog|nical)|engg|engineer|univer|campus|school|manage|society|group|research|centre|center|iceem|vjti|coep|somaiya|gramin/i;
           const EXCLUDE_TAL_DIST =
             /\btal\b|\btal\.|\bdist\b|\bdist\.|\bdistrict\b/i;
+          const EXCLUDE_ADDRESS_PREFIX =
+            /^(a\.?\s*p\.?|at\/?post|at post|post|near)\b/i;
           const KNOWN_NON_CITY = new Set([
             'nepti',
             'nile',
@@ -166,6 +175,7 @@ export class CutoffsController {
               .filter((city) => {
                 if (!city || city.length < 3 || city.length > 30) return false;
                 if (/\d/.test(city)) return false;
+                if (EXCLUDE_ADDRESS_PREFIX.test(city)) return false;
                 if (EXCLUDE_KEYWORDS.test(city)) return false;
                 if (EXCLUDE_TAL_DIST.test(city)) return false;
                 if (/[()]/.test(city)) return false;

@@ -197,12 +197,6 @@ const initializeDatabase = async (): Promise<boolean> => {
       CREATE INDEX IF NOT EXISTS idx_cutoff_category ON cutoff_data(category)
     `);
     await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_branch ON cutoff_data(branch)
-    `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_percentile ON cutoff_data(percentile)
-    `);
-    await query(`
       CREATE INDEX IF NOT EXISTS idx_cutoff_home_university ON cutoff_data(home_university)
     `);
     await query(`
@@ -248,9 +242,6 @@ const initializeDatabase = async (): Promise<boolean> => {
 
     // Create indexes for guide_downloads
     await query(`
-      CREATE INDEX IF NOT EXISTS idx_guide_downloads_email ON guide_downloads(email)
-    `);
-    await query(`
       CREATE INDEX IF NOT EXISTS idx_guide_downloads_guide_id ON guide_downloads(guide_id)
     `);
 
@@ -267,9 +258,10 @@ const initializeDatabase = async (): Promise<boolean> => {
       )
     `);
 
-    // Create index on resources category for filter queries
+    // Index to support active resources listing with optional category filter.
     await query(`
-      CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category)
+      CREATE INDEX IF NOT EXISTS idx_resources_active_category_created_at
+      ON resources(is_active, category, created_at DESC)
     `);
 
     // Create bookings table if not exists
@@ -294,9 +286,6 @@ const initializeDatabase = async (): Promise<boolean> => {
     await query(`
       CREATE INDEX IF NOT EXISTS idx_bookings_meeting_time ON bookings(meeting_time)
     `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_bookings_email ON bookings(email)
-    `);
 
     // ---------------------------------------------------------------------
     // Supabase Security hardening: enable RLS on public tables.
@@ -320,6 +309,47 @@ const initializeDatabase = async (): Promise<boolean> => {
           WHERE schemaname = 'public' AND tablename = 'updates' AND policyname = 'updates_public_read'
         ) THEN
           CREATE POLICY updates_public_read ON updates FOR SELECT USING (true);
+        END IF;
+      END
+      $$;
+    `);
+
+    // Explicitly deny direct API access to private tables while keeping RLS enabled.
+    // This resolves "RLS enabled but no policy" advisor warnings without exposing data.
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'admin_users' AND policyname = 'admin_users_no_access'
+        ) THEN
+          CREATE POLICY admin_users_no_access ON admin_users FOR ALL USING (false) WITH CHECK (false);
+        END IF;
+      END
+      $$;
+    `);
+
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'bookings' AND policyname = 'bookings_no_access'
+        ) THEN
+          CREATE POLICY bookings_no_access ON bookings FOR ALL USING (false) WITH CHECK (false);
+        END IF;
+      END
+      $$;
+    `);
+
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'guide_downloads' AND policyname = 'guide_downloads_no_access'
+        ) THEN
+          CREATE POLICY guide_downloads_no_access ON guide_downloads FOR ALL USING (false) WITH CHECK (false);
         END IF;
       END
       $$;
