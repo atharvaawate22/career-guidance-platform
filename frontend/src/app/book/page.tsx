@@ -356,7 +356,7 @@ export default function BookPage() {
                     value={countryCode}
                     onChange={setCountryCode}
                     placeholder="Code"
-                    className="w-24 shrink-0"
+                    className="w-28 shrink-0"
                     options={COUNTRY_CODES.map((c) => ({
                       value: c.code,
                       label: `${c.flag} ${c.code}`,
