@@ -1,6 +1,9 @@
 import { query } from '../../config/database';
 import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
-import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
+import {
+  CITY_FILTER_SQL,
+  CITY_NORMALIZED_SQL,
+} from '../../utils/cityNormalization';
 
 export class CutoffsRepository {
   async getCutoffs(
@@ -55,7 +58,7 @@ export class CutoffsRepository {
     }
     if (filters.cities && filters.cities.length > 0) {
       const cityConditions = filters.cities.map(
-        () => `${CITY_NORMALIZED_SQL} = $${p++}`,
+        () => `${CITY_FILTER_SQL} = $${p++}`,
       );
       conditions.push(`(${cityConditions.join(' OR ')})`);
       filters.cities.forEach((c) => values.push(c.trim().toLowerCase()));
@@ -132,6 +135,19 @@ export class CutoffsRepository {
     `;
 
     const result = await query(sql, values);
+
+    const insertedIds = result.rows.map((row) => row.id as string);
+    if (insertedIds.length > 0) {
+      await query(
+        `
+          UPDATE cutoff_data
+          SET city_normalized = LOWER(TRIM(${CITY_NORMALIZED_SQL}))
+          WHERE id = ANY($1::uuid[])
+        `,
+        [insertedIds],
+      );
+    }
+
     return result.rows;
   }
 }

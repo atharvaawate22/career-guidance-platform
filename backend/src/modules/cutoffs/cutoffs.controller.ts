@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CutoffsService } from './cutoffs.service';
 import { CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { query } from '../../config/database';
-import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
+import { CITY_FILTER_SQL } from '../../utils/cityNormalization';
 import {
   getOrLoadCutoffMeta,
   invalidateCutoffMetaCache,
@@ -58,8 +58,7 @@ export class CutoffsController {
           }
           if (filterCities.length > 0) {
             const orParts = filterCities.map(
-              (_, i) =>
-                `${CITY_NORMALIZED_SQL} = $${collegeVals.length + 1 + i}`,
+              (_, i) => `${CITY_FILTER_SQL} = $${collegeVals.length + 1 + i}`,
             );
             collegeConditions.push(`(${orParts.join(' OR ')})`);
             filterCities.forEach((c) =>
@@ -88,7 +87,7 @@ export class CutoffsController {
           }
           if (filterCities.length > 0) {
             const orParts = filterCities.map(
-              (_, i) => `${CITY_NORMALIZED_SQL} = $${branchVals.length + 1 + i}`,
+              (_, i) => `${CITY_FILTER_SQL} = $${branchVals.length + 1 + i}`,
             );
             branchConditions.push(`(${orParts.join(' OR ')})`);
             filterCities.forEach((city) =>
@@ -101,9 +100,7 @@ export class CutoffsController {
 
           // Cities: filtered by year + selected college + selected branches.
           const cityVals: unknown[] = [];
-          const cityConditions: string[] = [
-            `${CITY_NORMALIZED_SQL} IS NOT NULL`,
-          ];
+          const cityConditions: string[] = [`${CITY_FILTER_SQL} IS NOT NULL`];
           if (year) {
             cityConditions.push(`year = $${cityVals.length + 1}`);
             cityVals.push(year);
@@ -148,7 +145,7 @@ export class CutoffsController {
             ),
             query(
               `SELECT DISTINCT
-                 INITCAP(${CITY_NORMALIZED_SQL}) AS city
+                 INITCAP(${CITY_FILTER_SQL}) AS city
                FROM cutoff_data
                ${cityWhere}
                ORDER BY city LIMIT 300`,
