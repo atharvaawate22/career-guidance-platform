@@ -1,6 +1,6 @@
 import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
-import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
+import { CITY_FILTER_SQL } from '../../utils/cityNormalization';
 
 export class PredictorRepository {
   async estimateRankFromPercentile(
@@ -83,7 +83,7 @@ export class PredictorRepository {
     // Optional cities filter (OR across selected cities)
     if (filters.cities && filters.cities.length > 0) {
       const cityConditions = filters.cities.map(
-        () => `${CITY_NORMALIZED_SQL} = $${p++}`,
+        () => `${CITY_FILTER_SQL} = $${p++}`,
       );
       conditions.push(`(${cityConditions.join(' OR ')})`);
       filters.cities.forEach((c) => values.push(c.trim().toLowerCase()));

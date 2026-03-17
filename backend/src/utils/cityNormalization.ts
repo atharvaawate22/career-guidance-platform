@@ -227,3 +227,9 @@ export const CITY_NORMALIZED_SQL = `
       ELSE ${CITY_RAW_SQL}
     END
 `;
+
+export const CITY_NORMALIZED_COLUMN_SQL = `NULLIF(TRIM(city_normalized), '')`;
+
+// Prefer persisted city_normalized values when available, and fallback to
+// expression-based normalization for backward compatibility.
+export const CITY_FILTER_SQL = `COALESCE(${CITY_NORMALIZED_COLUMN_SQL}, ${CITY_NORMALIZED_SQL})`;

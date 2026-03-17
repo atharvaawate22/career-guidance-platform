@@ -38,6 +38,7 @@ import guidesRoutes from './modules/guides/guides.routes';
 import resourcesRoutes from './modules/resources/resources.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import { testConnection, query } from './config/database';
+import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger from './utils/logger';
 
 const app = express();
@@ -162,6 +163,7 @@ const initializeDatabase = async (): Promise<boolean> => {
         college_status TEXT,
         stage TEXT,
         level TEXT,
+        city_normalized TEXT,
         percentile DECIMAL(6,4) NOT NULL,
         cutoff_rank INTEGER,
         created_at TIMESTAMPTZ DEFAULT NOW()
@@ -180,6 +182,9 @@ const initializeDatabase = async (): Promise<boolean> => {
     );
     await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS stage TEXT`);
     await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS level TEXT`);
+    await query(
+      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS city_normalized TEXT`,
+    );
     await query(
       `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS cutoff_rank INTEGER`,
     );
@@ -208,9 +213,20 @@ const initializeDatabase = async (): Promise<boolean> => {
       CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_college_code_name
       ON cutoff_data(year, college_code, college_name)
     `);
-    // Intentionally skip expression index creation for city normalization.
-    // The expression is large enough to trigger Postgres 54000 errors on some
-    // managed environments (e.g. Render/Supabase) during startup.
+
+    // Backfill persisted city normalization data in small batches.
+    // This avoids costly expression indexes and makes city filters indexable.
+    await query(`
+      UPDATE cutoff_data
+      SET city_normalized = LOWER(TRIM(${CITY_NORMALIZED_SQL}))
+      WHERE city_normalized IS NULL
+         OR TRIM(city_normalized) = ''
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_city_normalized_col
+      ON cutoff_data(year, city_normalized)
+    `);
 
     // Create guides table if not exists
     await query(`
