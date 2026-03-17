@@ -1,26 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
+import {
+  STATIC_CUTOFF_BRANCHES,
+  STATIC_CUTOFF_CITIES,
+  STATIC_CUTOFF_COLLEGES,
+} from "@/lib/cutoffStaticMeta";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000";
 const DEFAULT_META_YEAR = "2025";
-
-const fetchWithTimeout = async (url: string, timeoutMs = 12000) => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-};
 
 interface CutoffData {
   id: string;
@@ -41,12 +36,6 @@ interface CutoffData {
 interface CollegeOption {
   code: string | null;
   name: string;
-}
-
-interface CutoffMetaResponse {
-  colleges?: CollegeOption[];
-  branches?: string[];
-  cities?: string[];
 }
 
 type SortOption =
@@ -105,214 +94,27 @@ export default function CutoffsPage() {
   const [level, setLevel] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
-  // Autocomplete state
-  const [collegeOptions, setCollegeOptions] = useState<CollegeOption[]>([]);
-  const [branchOptions, setBranchOptions] = useState<string[]>([]);
-  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const collegeOptions: CollegeOption[] = STATIC_CUTOFF_COLLEGES;
+  const branchOptions: string[] = STATIC_CUTOFF_BRANCHES;
+  const cityOptions: string[] = STATIC_CUTOFF_CITIES;
   // Stable DTE college_code for the currently selected college (null = free-text)
   const [collegeCode, setCollegeCode] = useState<string | null>(null);
-
-  // v2 cache key — stores CollegeOption[] (code+name) instead of plain string[]
-  const metaCacheKey = (yearValue: string) =>
-    `cutoffs:meta:v2:${yearValue || "all"}`;
-
-  const fetchMeta = async (opts?: {
-    college?: string;
-    collegeCode?: string;
-    branches?: string[];
-    cities?: string[];
-  }) => {
-    const params = new URLSearchParams();
-    const isBaseMetaRequest =
-      !opts?.college &&
-      !(opts?.branches?.length ?? 0) &&
-      !(opts?.cities?.length ?? 0);
-
-    // The explorer is intentionally locked to the active production dataset.
-    const metadataYear = year || DEFAULT_META_YEAR;
-    if (metadataYear) params.set("year", metadataYear);
-    if (opts?.college) params.set("college_name", opts.college);
-    if (opts?.collegeCode) params.set("college_code", opts.collegeCode);
-    opts?.branches?.forEach((b) => params.append("branch", b));
-    opts?.cities?.forEach((c) => params.append("city", c));
-
-    try {
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          const res = await fetchWithTimeout(
-            `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
-          );
-          if (!res.ok) {
-            throw new Error(`Meta fetch failed with status ${res.status}`);
-          }
-
-          const data = await res.json();
-          if (!data.success) {
-            throw new Error("Meta endpoint returned unsuccessful response");
-          }
-
-          let colleges: CollegeOption[] = data.data.colleges ?? [];
-          let branches = data.data.branches ?? [];
-          let cities = data.data.cities ?? [];
-
-          // If the current year-specific query is empty, retry with the active dataset year.
-          if (
-            isBaseMetaRequest &&
-            metadataYear &&
-            colleges.length === 0 &&
-            branches.length === 0 &&
-            cities.length === 0
-          ) {
-            const fallbackRes = await fetchWithTimeout(
-              `${API_BASE_URL}/api/cutoffs/meta?year=${DEFAULT_META_YEAR}`
-            );
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json();
-              if (fallbackData.success) {
-                colleges =
-                  (fallbackData.data.colleges as CollegeOption[]) ?? [];
-                branches = fallbackData.data.branches ?? [];
-                cities = fallbackData.data.cities ?? [];
-              }
-            }
-          }
-
-          if (!opts?.college) setCollegeOptions(colleges);
-          if (!opts?.branches?.length) setBranchOptions(branches);
-          if (!opts?.college && !opts?.branches?.length) {
-            setCityOptions(cities);
-          }
-
-          // Cache only base metadata (no narrowing filters) for instant next load.
-          if (!opts) {
-            localStorage.setItem(
-              metaCacheKey(year),
-              JSON.stringify({
-                colleges,
-                branches,
-                cities,
-              })
-            );
-          }
-
-          return;
-        } catch {
-          if (attempt === 3)
-            throw new Error("Failed to load dropdown metadata");
-          await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
-        }
-      }
-    } catch {
-      // Keep existing cached values; this avoids blank dropdowns on transient failures.
-    }
-  };
-
-  const prefetchYearMeta = async (yearValue: string) => {
-    try {
-      const params = new URLSearchParams();
-      if (yearValue) params.set("year", yearValue);
-      const res = await fetchWithTimeout(
-        `${API_BASE_URL}/api/cutoffs/meta?${params.toString()}`
-      );
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.success) return;
-      localStorage.setItem(
-        metaCacheKey(yearValue),
-        JSON.stringify({
-          colleges: data.data.colleges ?? [],
-          branches: data.data.branches ?? [],
-          cities: data.data.cities ?? [],
-        })
-      );
-    } catch {
-      // Ignore prefetch failures.
-    }
-  };
-
-  const getActiveMetaConstraints = (overrides?: {
-    college?: string;
-    collegeCode?: string | null;
-    branches?: string[];
-    cities?: string[];
-  }) => {
-    const college = overrides?.college ?? collegeName;
-    const collegeCodeValue = overrides?.collegeCode ?? collegeCode;
-    const branches = overrides?.branches ?? selectedBranches;
-    const cities = overrides?.cities ?? selectedCities;
-
-    return {
-      college: college || undefined,
-      collegeCode: collegeCodeValue || undefined,
-      branches: branches.length ? branches : undefined,
-      cities: cities.length ? cities : undefined,
-    };
-  };
-
-  // Fetch full meta on year change (resets both lists)
-  useEffect(() => {
-    // Load cached base metadata immediately for snappy dropdowns.
-    try {
-      const cached = localStorage.getItem(metaCacheKey(year));
-      if (cached) {
-        const parsed = JSON.parse(cached) as CutoffMetaResponse;
-        setCollegeOptions(parsed.colleges ?? []);
-        setBranchOptions(parsed.branches ?? []);
-        setCityOptions(parsed.cities ?? []);
-      }
-    } catch {
-      // Ignore cache parse errors and continue with network fetch.
-    }
-
-    // Refresh from network in background.
-    fetchMeta();
-    setCollegeName("");
-    setCollegeCode(null);
-    setSelectedBranches([]);
-    setSelectedCities([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year]);
-
-  // Preload key years in background once for faster year switches.
-  useEffect(() => {
-    prefetchYearMeta("2025");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // When college changes: narrow branches to only those in that college
   const handleCollegeChange = (value: string) => {
     setCollegeName(value);
     const match = collegeOptions.find((college) => college.name === value);
     setCollegeCode(match?.code ?? null);
-    fetchMeta(
-      getActiveMetaConstraints({
-        college: value,
-        collegeCode: match?.code ?? null,
-      })
-    );
   };
 
-  // When branches change: narrow colleges to those that have at least one selected branch
+  // Static dropdowns: selected values filter server query only.
   const handleBranchesChange = (values: string[]) => {
     setSelectedBranches(values);
-    fetchMeta(getActiveMetaConstraints({ branches: values }));
   };
 
-  // When cities change: narrow colleges to those in selected cities
+  // Static dropdowns: selected values filter server query only.
   const handleCitiesChange = (values: string[]) => {
     setSelectedCities(values);
-    // City acts as a parent scope for college suggestions. Clear any previously
-    // selected college so the dropdown can repopulate with all colleges in the
-    // selected city/cities instead of staying pinned to stale college filters.
-    setCollegeName("");
-    setCollegeCode(null);
-    fetchMeta(
-      getActiveMetaConstraints({
-        cities: values,
-        college: "",
-        collegeCode: null,
-      })
-    );
   };
 
   const handleSearch = async () => {
@@ -363,7 +165,6 @@ export default function CutoffsPage() {
     setTotal(null);
     setError("");
     setHasSearched(false);
-    fetchMeta();
   };
 
   const categoryColor = (cat: string) => {
@@ -459,7 +260,7 @@ export default function CutoffsPage() {
                     ]}
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Cutoff explorer is currently limited to the 2025 CAP Round 1 dataset.
+                    Dropdown values are preloaded from the 2025 CAP Round 1 dataset for instant loading.
                   </p>
                 </div>
 
