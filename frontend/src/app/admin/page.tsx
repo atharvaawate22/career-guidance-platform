@@ -86,6 +86,22 @@ export default function AdminPage() {
     display_order: "0",
   });
 
+  const readApiError = async (
+    response: Response,
+    fallbackMessage: string
+  ): Promise<string> => {
+    try {
+      const data = await response.json();
+      return (
+        data?.error?.message ||
+        data?.message ||
+        `${fallbackMessage} (HTTP ${response.status})`
+      );
+    } catch {
+      return `${fallbackMessage} (HTTP ${response.status})`;
+    }
+  };
+
   // Resources state
   interface Resource {
     id: string;
@@ -403,11 +419,22 @@ export default function AdminPage() {
   const fetchFaqs = async () => {
     try {
       setFaqsLoading(true);
+      setFaqError("");
       const response = await fetch(`${API_BASE_URL}/api/admin/faqs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401) {
         handleSessionExpired();
+        return;
+      }
+      if (!response.ok) {
+        setFaqError(
+          await readApiError(
+            response,
+            "We couldn't load FAQs from the server"
+          )
+        );
+        setFaqs([]);
         return;
       }
       const data = await response.json();
@@ -447,6 +474,18 @@ export default function AdminPage() {
           display_order: Number(faqForm.display_order || 0),
         }),
       });
+
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        setFaqError(
+          await readApiError(response, "We couldn't save this FAQ")
+        );
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -504,6 +543,17 @@ export default function AdminPage() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        setFaqError(await readApiError(response, "We couldn't delete this FAQ"));
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         setFaqSuccess("FAQ deleted.");
@@ -529,6 +579,19 @@ export default function AdminPage() {
           body: JSON.stringify({ is_active: !current }),
         }
       );
+
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        setFaqError(
+          await readApiError(response, "We couldn't update this FAQ")
+        );
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         fetchFaqs();
@@ -1398,7 +1461,17 @@ export default function AdminPage() {
 
               {faqError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-                  {faqError}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span>{faqError}</span>
+                    <button
+                      type="button"
+                      onClick={fetchFaqs}
+                      disabled={faqsLoading}
+                      className="self-start text-sm font-semibold text-red-700 underline underline-offset-2 disabled:opacity-50"
+                    >
+                      {faqsLoading ? "Retrying..." : "Retry"}
+                    </button>
+                  </div>
                 </div>
               )}
               {faqSuccess && (
@@ -1496,8 +1569,11 @@ export default function AdminPage() {
               {faqsLoading ? (
                 <div className="p-8 text-center text-gray-500">Loading...</div>
               ) : faqs.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  No FAQs added yet.
+                <div className="p-8 text-center text-gray-400 space-y-2">
+                  <p>No FAQs added yet.</p>
+                  <p className="text-sm text-gray-500">
+                    Add your first FAQ above and it will appear here.
+                  </p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
