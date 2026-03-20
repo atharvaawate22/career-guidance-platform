@@ -38,4 +38,4 @@ export const CUTOFF_LEVELS = [
   'Other Than Home University Level',
 ] as const;
 
-export const CUTOFF_STAGES = ['I', 'II'] as const;
+export const CUTOFF_STAGES = ['I', 'II', 'III', 'IV'] as const;
