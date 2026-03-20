@@ -35,3 +35,4 @@ const CATEGORY_COLOR_MAP: Record<string, string> = {
 export function getCutoffCategoryColor(category: string | null | undefined) {
   if (!category) return "bg-gray-100 text-gray-700";
   return CATEGORY_COLOR_MAP[category.trim().toUpperCase()] ?? "bg-gray-100 text-gray-700";
+}
