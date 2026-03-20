@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import FaqSection from "@/components/FaqSection";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -333,6 +334,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <FaqSection />
 
       {/* CTA Section */}
       <section className="relative py-24 overflow-hidden">

@@ -6,6 +6,7 @@ import { CutoffsController } from '../cutoffs/cutoffs.controller';
 import { invalidateCutoffMetaCache } from '../cutoffs/cutoffsMetaCache';
 import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
+import * as faqsController from '../faqs/faqs.controller';
 import * as bookingRepository from '../booking/booking.repository';
 
 const router = Router();
@@ -86,6 +87,13 @@ router.patch(
   authMiddleware,
   resourcesController.toggleResource,
 );
+
+// Protected routes for FAQ management
+router.post('/faqs', authMiddleware, faqsController.createFaq);
+router.get('/faqs', authMiddleware, faqsController.getAllFaqs);
+router.put('/faqs/:id', authMiddleware, faqsController.updateFaq);
+router.delete('/faqs/:id', authMiddleware, faqsController.deleteFaq);
+router.patch('/faqs/:id/toggle', authMiddleware, faqsController.toggleFaq);
 
 // Protected routes for bookings management
 router.get(
