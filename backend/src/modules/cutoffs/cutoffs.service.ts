@@ -5,7 +5,9 @@ const cutoffsRepository = new CutoffsRepository();
 const ACTIVE_CUTOFF_YEAR = 2025;
 
 export class CutoffsService {
-  async getCutoffs(filters: CutoffFilters): Promise<{ rows: CutoffData[]; total: number }> {
+  async getCutoffs(
+    filters: CutoffFilters,
+  ): Promise<{ rows: CutoffData[]; total: number }> {
     filters.year = ACTIVE_CUTOFF_YEAR;
     return await cutoffsRepository.getCutoffs(filters);
   }

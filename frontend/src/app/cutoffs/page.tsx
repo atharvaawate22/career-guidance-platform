@@ -149,7 +149,10 @@ export default function CutoffsPage() {
   }, [collegeName, selectedBranches]);
 
   useEffect(() => {
-    if (collegeName && !collegeOptions.some((college) => college.name === collegeName)) {
+    if (
+      collegeName &&
+      !collegeOptions.some((college) => college.name === collegeName)
+    ) {
       setCollegeName("");
       setCollegeCode(null);
     }
@@ -331,12 +334,11 @@ export default function CutoffsPage() {
                     id="year"
                     value={year}
                     onChange={setYear}
-                    options={[
-                      { value: "2025", label: "2025 (CAP Round 1)" },
-                    ]}
+                    options={[{ value: "2025", label: "2025 (CAP Round 1)" }]}
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Dropdown values are preloaded from the 2025 CAP Round 1 dataset for instant loading.
+                    Dropdown values are preloaded from the 2025 CAP Round 1
+                    dataset for instant loading.
                   </p>
                 </div>
 
@@ -597,7 +599,9 @@ export default function CutoffsPage() {
                     <span className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-700">
                       {c.year}
                     </span>
-                    <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${categoryColor(c.category)}`}>
+                    <span
+                      className={`rounded-full px-2 py-1 text-[11px] font-medium ${categoryColor(c.category)}`}
+                    >
                       {c.category}
                     </span>
                     <span className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] text-indigo-700">
@@ -638,22 +642,35 @@ export default function CutoffsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {sortedCutoffs.map((c) => (
-                    <tr key={c.id} className="hover:bg-purple-50/40 transition-colors align-top">
+                    <tr
+                      key={c.id}
+                      className="hover:bg-purple-50/40 transition-colors align-top"
+                    >
                       <td className="px-2 py-3 font-medium">{c.year}</td>
                       <td className="px-2 py-3">
-                        <div className="wrap-break-word leading-snug">{c.college_name}</div>
+                        <div className="wrap-break-word leading-snug">
+                          {c.college_name}
+                        </div>
                         {c.college_code && (
-                          <div className="text-[11px] text-gray-400 mt-1">Code: {c.college_code}</div>
+                          <div className="text-[11px] text-gray-400 mt-1">
+                            Code: {c.college_code}
+                          </div>
                         )}
                       </td>
-                      <td className="px-2 py-3 wrap-break-word leading-snug">{c.branch}</td>
+                      <td className="px-2 py-3 wrap-break-word leading-snug">
+                        {c.branch}
+                      </td>
                       <td className="px-2 py-3">
-                        <span className={`px-2 py-1 rounded-full text-[11px] font-semibold ${categoryColor(c.category)}`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-[11px] font-semibold ${categoryColor(c.category)}`}
+                        >
                           {c.category}
                         </span>
                       </td>
                       <td className="px-2 py-3">{c.gender || "All"}</td>
-                      <td className="px-2 py-3 wrap-break-word">{formatCompactLevel(c.level)}</td>
+                      <td className="px-2 py-3 wrap-break-word">
+                        {formatCompactLevel(c.level)}
+                      </td>
                       <td className="px-2 py-3">{formatRound(c.stage)}</td>
                       <td className="px-2 py-3 text-right font-mono">
                         {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}

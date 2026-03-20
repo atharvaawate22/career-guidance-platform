@@ -33,7 +33,10 @@ function parseCsvLine(line) {
 }
 
 function parseCsv(content) {
-  const lines = content.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
+  const lines = content
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter(Boolean);
   if (lines.length === 0) return [];
 
   const headers = parseCsvLine(lines[0]).map((h) => h.trim());
@@ -74,8 +77,13 @@ function isValidCity(city) {
   if (/[()\-]/.test(city)) return false;
   if (city.trim().split(/\s+/).length > 4) return false;
   if (/^(a\.?\s*p\.?|at\/?post|at post|post|near)\b/.test(lc)) return false;
-  if (/\btal\b|\btal\.\b|\bdist\b|\bdist\.\b|\bdistrict\b/.test(lc)) return false;
-  if (/college|inst(itute)?|tech(nolog|nical)|engg|engineer|univer|campus|school|manage|society|group|research|centre|center/.test(lc)) {
+  if (/\btal\b|\btal\.\b|\bdist\b|\bdist\.\b|\bdistrict\b/.test(lc))
+    return false;
+  if (
+    /college|inst(itute)?|tech(nolog|nical)|engg|engineer|univer|campus|school|manage|society|group|research|centre|center/.test(
+      lc
+    )
+  ) {
     return false;
   }
   return true;
@@ -95,9 +103,15 @@ function sortByRelation(a, b) {
 
 function generate() {
   const root = path.resolve(__dirname, "..");
-  const cutoffsCsvPath = path.join(root, "cutoffs_2025_cap1.csv");
+  const cutoffsCsvPath = path.join(root, "cutoffs_2025_cap1_final_verified.csv");
   const aliasesCsvPath = path.join(root, "city_aliases_2025.csv");
-  const outPath = path.join(root, "frontend", "src", "lib", "cutoffStaticMeta.ts");
+  const outPath = path.join(
+    root,
+    "frontend",
+    "src",
+    "lib",
+    "cutoffStaticMeta.ts"
+  );
 
   const cutoffRows = parseCsv(fs.readFileSync(cutoffsCsvPath, "utf8"));
   const aliasRows = parseCsv(fs.readFileSync(aliasesCsvPath, "utf8"));
@@ -159,10 +173,12 @@ function generate() {
   const cities = Array.from(citySet).sort((a, b) => a.localeCompare(b));
   relations.sort(sortByRelation);
 
-  const output = `export interface StaticCollegeOption {\n  code: string | null;\n  name: string;\n}\n\nexport interface StaticCutoffRelation {\n  collegeCode: string | null;\n  collegeName: string;\n  branch: string;\n  city: string;\n}\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_COLLEGES: StaticCollegeOption[] = ${JSON.stringify(colleges, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv\nexport const STATIC_CUTOFF_BRANCHES: string[] = ${JSON.stringify(branches, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_CITIES: string[] = ${JSON.stringify(cities, null, 2)};\n\n// Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv (distinct college-branch-city tuples)\nexport const STATIC_CUTOFF_RELATIONS: StaticCutoffRelation[] = ${JSON.stringify(relations, null, 2)};\n`;
+  const output = `export interface StaticCollegeOption {\n  code: string | null;\n  name: string;\n}\n\nexport interface StaticCutoffRelation {\n  collegeCode: string | null;\n  collegeName: string;\n  branch: string;\n  city: string;\n}\n\n// Generated from cutoffs_2025_cap1_final_verified.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_COLLEGES: StaticCollegeOption[] = ${JSON.stringify(colleges, null, 2)};\n\n// Generated from cutoffs_2025_cap1_final_verified.csv\nexport const STATIC_CUTOFF_BRANCHES: string[] = ${JSON.stringify(branches, null, 2)};\n\n// Generated from cutoffs_2025_cap1_final_verified.csv and city_aliases_2025.csv\nexport const STATIC_CUTOFF_CITIES: string[] = ${JSON.stringify(cities, null, 2)};\n\n// Generated from cutoffs_2025_cap1_final_verified.csv and city_aliases_2025.csv (distinct college-branch-city tuples)\nexport const STATIC_CUTOFF_RELATIONS: StaticCutoffRelation[] = ${JSON.stringify(relations, null, 2)};\n`;
 
   fs.writeFileSync(outPath, output, "utf8");
-  console.log(`Generated ${path.relative(root, outPath)}: colleges=${colleges.length}, branches=${branches.length}, cities=${cities.length}, relations=${relations.length}`);
+  console.log(
+    `Generated ${path.relative(root, outPath)}: colleges=${colleges.length}, branches=${branches.length}, cities=${cities.length}, relations=${relations.length}`
+  );
 }
 
 generate();
