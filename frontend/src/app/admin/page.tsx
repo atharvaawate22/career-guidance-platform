@@ -31,7 +31,22 @@ interface Booking {
   created_at: string;
 }
 
-type TabType = "dashboard" | "updates" | "bookings" | "resources" | "guides";
+interface Faq {
+  id: string;
+  question: string;
+  answer: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+type TabType =
+  | "dashboard"
+  | "updates"
+  | "bookings"
+  | "faqs"
+  | "resources"
+  | "guides";
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -57,6 +72,19 @@ export default function AdminPage() {
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [bookingSuccess, setBookingSuccess] = useState("");
+
+  // FAQs state
+  const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [faqsLoading, setFaqsLoading] = useState(false);
+  const [faqError, setFaqError] = useState("");
+  const [faqSuccess, setFaqSuccess] = useState("");
+  const [faqSubmitting, setFaqSubmitting] = useState(false);
+  const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
+  const [faqForm, setFaqForm] = useState({
+    question: "",
+    answer: "",
+    display_order: "0",
+  });
 
   // Resources state
   interface Resource {
@@ -142,6 +170,7 @@ export default function AdminPage() {
     if (isLoggedIn && token) {
       fetchUpdates();
       fetchBookings();
+      fetchFaqs();
       fetchResources();
       fetchGuides();
       fetchDownloads();
@@ -368,6 +397,146 @@ export default function AdminPage() {
       }
     } catch {
       setBookingError("Failed to connect to server");
+    }
+  };
+
+  const fetchFaqs = async () => {
+    try {
+      setFaqsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/admin/faqs`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+      const data = await response.json();
+      if (data.success) {
+        setFaqs(data.data);
+      } else {
+        setFaqError(data.error?.message || "Failed to load FAQs");
+      }
+    } catch (error) {
+      console.error("Failed to fetch FAQs:", error);
+      setFaqError("Failed to connect to server");
+    } finally {
+      setFaqsLoading(false);
+    }
+  };
+
+  const handleCreateFaq = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFaqError("");
+    setFaqSuccess("");
+    setFaqSubmitting(true);
+
+    try {
+      const url = editingFaqId
+        ? `${API_BASE_URL}/api/admin/faqs/${editingFaqId}`
+        : `${API_BASE_URL}/api/admin/faqs`;
+
+      const response = await fetch(url, {
+        method: editingFaqId ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          question: faqForm.question,
+          answer: faqForm.answer,
+          display_order: Number(faqForm.display_order || 0),
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFaqSuccess(
+          editingFaqId
+            ? "FAQ updated successfully!"
+            : "FAQ created successfully!"
+        );
+        setFaqForm({
+          question: "",
+          answer: "",
+          display_order: "0",
+        });
+        setEditingFaqId(null);
+        fetchFaqs();
+      } else {
+        setFaqError(data.error?.message || "Failed to save FAQ");
+      }
+    } catch {
+      setFaqError("Failed to connect to server");
+    } finally {
+      setFaqSubmitting(false);
+    }
+  };
+
+  const handleEditFaq = (faq: Faq) => {
+    setFaqForm({
+      question: faq.question,
+      answer: faq.answer,
+      display_order: String(faq.display_order),
+    });
+    setEditingFaqId(faq.id);
+    setFaqError("");
+    setFaqSuccess("");
+    setActiveTab("faqs");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelFaqEdit = () => {
+    setFaqForm({
+      question: "",
+      answer: "",
+      display_order: "0",
+    });
+    setEditingFaqId(null);
+    setFaqError("");
+    setFaqSuccess("");
+  };
+
+  const handleDeleteFaq = async (id: string) => {
+    if (!confirm("Delete this FAQ?")) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/faqs/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFaqSuccess("FAQ deleted.");
+        fetchFaqs();
+      } else {
+        setFaqError(data.error?.message || "Failed to delete FAQ");
+      }
+    } catch {
+      setFaqError("Failed to connect to server");
+    }
+  };
+
+  const handleToggleFaq = async (id: string, current: boolean) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/faqs/${id}/toggle`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ is_active: !current }),
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        fetchFaqs();
+      } else {
+        setFaqError(data.error?.message || "Failed to update FAQ");
+      }
+    } catch {
+      setFaqError("Failed to connect to server");
     }
   };
 
@@ -775,6 +944,16 @@ export default function AdminPage() {
               📅 Bookings
             </button>
             <button
+              onClick={() => setActiveTab("faqs")}
+              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+                activeTab === "faqs"
+                  ? "border-purple-500 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+              }`}
+            >
+              FAQ
+            </button>
+            <button
               onClick={() => setActiveTab("resources")}
               className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
                 activeTab === "resources"
@@ -808,7 +987,7 @@ export default function AdminPage() {
             </h2>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
@@ -856,6 +1035,22 @@ export default function AdminPage() {
                   </div>
                   <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center text-2xl">
                     ⏳
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">
+                      Total FAQs
+                    </p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                      {faqs.length}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center text-sm font-bold text-cyan-700">
+                    FAQ
                   </div>
                 </div>
               </div>
@@ -1185,6 +1380,181 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* FAQs Tab */}
+        {activeTab === "faqs" && (
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-gray-900">Manage FAQs</h2>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-xl font-semibold text-gray-800 mb-5">
+                {editingFaqId ? "Edit FAQ" : "Add New FAQ"}
+              </h3>
+
+              {faqError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  {faqError}
+                </div>
+              )}
+              {faqSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+                  {faqSuccess}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateFaq} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Question <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={faqForm.question}
+                    onChange={(e) =>
+                      setFaqForm({ ...faqForm, question: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g. How does the college predictor work?"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Answer <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={faqForm.answer}
+                    onChange={(e) =>
+                      setFaqForm({ ...faqForm, answer: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                    placeholder="Add a clear, student-friendly answer."
+                  />
+                </div>
+
+                <div className="max-w-xs">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Display Order
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={faqForm.display_order}
+                    onChange={(e) =>
+                      setFaqForm({
+                        ...faqForm,
+                        display_order: e.target.value,
+                      })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={faqSubmitting}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {faqSubmitting
+                      ? editingFaqId
+                        ? "Saving..."
+                        : "Adding..."
+                      : editingFaqId
+                        ? "Save FAQ"
+                        : "Add FAQ"}
+                  </button>
+                  {editingFaqId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelFaqEdit}
+                      className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  All FAQs ({faqs.length})
+                </h3>
+              </div>
+
+              {faqsLoading ? (
+                <div className="p-8 text-center text-gray-500">Loading...</div>
+              ) : faqs.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">
+                  No FAQs added yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {faqs.map((faq) => (
+                    <div
+                      key={faq.id}
+                      className="p-5 flex items-start justify-between gap-4 hover:bg-gray-50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="font-semibold text-gray-800">
+                            {faq.question}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-100">
+                            Order {faq.display_order}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                              faq.is_active
+                                ? "bg-green-100 text-green-700 border-green-200"
+                                : "bg-gray-100 text-gray-500 border-gray-200"
+                            }`}
+                          >
+                            {faq.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                          {faq.answer}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleEditFaq(faq)}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleToggleFaq(faq.id, faq.is_active)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                            faq.is_active
+                              ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                              : "bg-green-100 text-green-700 hover:bg-green-200"
+                          }`}
+                        >
+                          {faq.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFaq(faq.id)}
+                          className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

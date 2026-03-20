@@ -36,6 +36,7 @@ import cutoffsRoutes from './modules/cutoffs/cutoffs.routes';
 import predictorRoutes from './modules/predictor/predictor.routes';
 import guidesRoutes from './modules/guides/guides.routes';
 import resourcesRoutes from './modules/resources/resources.routes';
+import faqsRoutes from './modules/faqs/faqs.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import { testConnection, query } from './config/database';
 import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
@@ -81,6 +82,7 @@ app.get('/', (_req, res) => {
       cutoffs: '/api/cutoffs',
       predict: '/api/predict',
       guides: '/api/guides',
+      faqs: '/api/faqs',
       bookings: '/api/bookings',
       adminLogin: '/api/admin/login',
     },
@@ -97,6 +99,7 @@ app.use('/api/cutoffs', cutoffsRoutes);
 app.use('/api/predict', predictorRoutes);
 app.use('/api/guides', guidesRoutes);
 app.use('/api/resources', resourcesRoutes);
+app.use('/api/faqs', faqsRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -276,6 +279,23 @@ const initializeDatabase = async (): Promise<boolean> => {
       ON resources(is_active, category, created_at DESC)
     `);
 
+    // Create FAQs table if not exists
+    await query(`
+      CREATE TABLE IF NOT EXISTS faqs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_faqs_active_display_order
+      ON faqs(is_active, display_order, created_at)
+    `);
+
     // Create bookings table if not exists
     await query(`
       CREATE TABLE IF NOT EXISTS bookings (
@@ -306,6 +326,7 @@ const initializeDatabase = async (): Promise<boolean> => {
     // ---------------------------------------------------------------------
     await query(`ALTER TABLE updates ENABLE ROW LEVEL SECURITY`);
     await query(`ALTER TABLE resources ENABLE ROW LEVEL SECURITY`);
+    await query(`ALTER TABLE faqs ENABLE ROW LEVEL SECURITY`);
     await query(`ALTER TABLE guides ENABLE ROW LEVEL SECURITY`);
     await query(`ALTER TABLE cutoff_data ENABLE ROW LEVEL SECURITY`);
     await query(`ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY`);
@@ -321,6 +342,19 @@ const initializeDatabase = async (): Promise<boolean> => {
           WHERE schemaname = 'public' AND tablename = 'updates' AND policyname = 'updates_public_read'
         ) THEN
           CREATE POLICY updates_public_read ON updates FOR SELECT USING (true);
+        END IF;
+      END
+      $$;
+    `);
+
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = 'faqs' AND policyname = 'faqs_public_read_active'
+        ) THEN
+          CREATE POLICY faqs_public_read_active ON faqs FOR SELECT USING (is_active = true);
         END IF;
       END
       $$;
@@ -432,6 +466,43 @@ const initializeDatabase = async (): Promise<boolean> => {
         ],
       );
       logger.info('Sample updates data inserted successfully');
+    }
+
+    const { rows: faqRows } = await query('SELECT COUNT(*) FROM faqs');
+    const faqCount = parseInt(faqRows[0].count, 10);
+
+    if (faqCount === 0) {
+      logger.info('Inserting sample FAQ data');
+      await query(
+        `INSERT INTO faqs (question, answer, display_order) VALUES
+        ($1, $2, $3),
+        ($4, $5, $6),
+        ($7, $8, $9),
+        ($10, $11, $12),
+        ($13, $14, $15),
+        ($16, $17, $18)`,
+        [
+          'How does the college predictor work?',
+          'The predictor compares your rank or percentile with real 2025 CAP Round 1 cutoff data and groups colleges into Safe, Target, and Dream options. It is a data-driven shortlist, not a guaranteed allotment.',
+          1,
+          'Are the predictor results guaranteed?',
+          'No. Final allotment depends on the official CAP process, seat availability, category rules, choice filling order, and the number of students applying in that round.',
+          2,
+          'What is the difference between Safe, Target, and Dream colleges?',
+          'Safe colleges have cutoffs that are more accessible than your profile, Target colleges are close to your profile, and Dream colleges are more competitive but still worth exploring.',
+          3,
+          'How should I use the cutoff explorer?',
+          'Start broad with category and gender, then narrow by branch, city, college, and CAP round. This helps you understand how cutoffs move across rounds before you finalise your preference list.',
+          4,
+          'Why does category or gender change the results?',
+          'MHT-CET admissions use different reservation and seat rules. The platform applies these filters so the results match the seat pools you are actually eligible for.',
+          5,
+          'When should I book a guidance session?',
+          'Book a session if you want help building your option form, comparing branches, balancing dream versus safe colleges, or planning for multiple CAP rounds.',
+          6,
+        ],
+      );
+      logger.info('Sample FAQ data inserted successfully');
     }
 
     // Insert admin user if environment variables are set
