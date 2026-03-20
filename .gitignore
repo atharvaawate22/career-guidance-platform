@@ -37,3 +37,10 @@ yarn-error.log*
 coverage/
 __pycache__/
 *.pyc
+
+# Local data artifacts
+*.db
+
+# Script-generated reports/outputs
+scripts/*_output.txt
+scripts/*_output_utf8.txt
