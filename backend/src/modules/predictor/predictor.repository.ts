@@ -1,6 +1,7 @@
 import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
 import { CITY_FILTER_SQL } from '../../utils/cityNormalization';
+import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
 
 export class PredictorRepository {
   async estimateRankFromPercentile(
@@ -51,15 +52,14 @@ export class PredictorRepository {
     }
 
     // Candidate gender handling:
+    // - Male candidates can compete for gender-neutral ('All') seats only.
     // - Female candidates can compete for both gender-neutral ('All') and ladies seats.
-    // - All means gender-neutral seats only.
     // - Unspecified means no gender filter (all seat types).
-    if (filters.gender === 'Female') {
-      conditions.push(`(gender = $${p++} OR gender = $${p++})`);
-      values.push('All', 'Female');
-    } else if (filters.gender === 'All') {
-      conditions.push(`gender = $${p++}`);
-      values.push('All');
+    const genderFilter = buildCandidateGenderFilter(filters.gender, p);
+    if (genderFilter.condition) {
+      conditions.push(genderFilter.condition);
+      values.push(...genderFilter.values);
+      p = genderFilter.nextIndex;
     }
 
     // Optional seat level (State Level / Home University Level)

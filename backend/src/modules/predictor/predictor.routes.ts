@@ -15,7 +15,7 @@ router.get('/', (_req, res) => {
       category: 'string (Open, OBC, SC, ST, etc.)',
       branchPreference: 'string',
       homeUniversity: 'string (Mumbai, Pune, Aurangabad, etc.)',
-      gender: 'string (optional)',
+      gender: 'string (optional: Male or Female candidate)',
     },
   });
 });

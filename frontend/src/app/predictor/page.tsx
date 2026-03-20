@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
+import {
+  CANDIDATE_GENDER_OPTIONS,
+} from "@/lib/candidateGender";
 import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
-import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
+import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
 import {
   STATIC_CUTOFF_BRANCHES,
   STATIC_CUTOFF_CITIES,
@@ -27,11 +30,6 @@ function getThresholds(rank: number) {
   return { targetAbove, targetBelow, floorGap, ceilGap };
 }
 
-const LEVELS = CUTOFF_LEVELS.map((value) => ({
-  value,
-  label: value === "State Level" ? "State Level (All India Seats)" : value,
-}));
-
 interface CollegeOption {
   id: string;
   college_code: string;
@@ -39,7 +37,6 @@ interface CollegeOption {
   branch: string;
   category: string;
   gender: string | null;
-  level: string;
   stage: string;
   cutoff_rank: number | null;
   cutoff_percentile: number;
@@ -71,7 +68,6 @@ export default function PredictorPage() {
   const [category, setCategory] = useState("");
   const [includeTfws, setIncludeTfws] = useState(false);
   const [gender, setGender] = useState("");
-  const [level, setLevel] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
@@ -89,6 +85,10 @@ export default function PredictorPage() {
       setError("Rank is required");
       return;
     }
+    if (!gender) {
+      setError("Please select gender to apply the correct seat rule.");
+      return;
+    }
     setLoading(true);
     setError("");
     setResults(null);
@@ -100,7 +100,6 @@ export default function PredictorPage() {
         year: PREDICTOR_YEAR,
         category,
         gender,
-        level,
         include_tfws: includeTfws,
       };
       if (inputMode === "percentile") body.percentile = Number(percentile);
@@ -165,9 +164,6 @@ export default function PredictorPage() {
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">
                       Category
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                      Level
-                    </th>
                     <th className="px-4 py-3 text-right font-semibold text-gray-700">
                       Cutoff Rank
                     </th>
@@ -198,9 +194,6 @@ export default function PredictorPage() {
                           {c.category}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">
-                        {c.level}
-                      </td>
                       <td className="px-4 py-3 text-right font-bold text-purple-700">
                         {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
                       </td>
@@ -212,7 +205,7 @@ export default function PredictorPage() {
                   {colleges.length > 100 && (
                     <tr className="border-t border-gray-100 bg-gray-50">
                       <td
-                        colSpan={6}
+                        colSpan={5}
                         className="px-4 py-3 text-center text-sm text-gray-500"
                       >
                         Showing top 100 of {colleges.length} results — add more
@@ -374,7 +367,7 @@ export default function PredictorPage() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {/* Category */}
                 <div>
                   <label
@@ -399,50 +392,27 @@ export default function PredictorPage() {
                   />
                 </div>
 
-                {/* Candidate Eligibility */}
+                {/* Gender */}
                 <div>
                   <label
                     htmlFor="gender"
                     className="block mb-2 text-sm font-medium text-gray-700"
                   >
-                    Candidate Eligibility
+                    Gender
                   </label>
                   <CustomSelect
                     id="gender"
                     value={gender}
                     onChange={setGender}
-                    options={[
-                      { value: "", label: "All Seat Types" },
-                      { value: "All", label: "Gender-Neutral Seats Only" },
-                      {
-                        value: "Female",
-                        label: "Female (Gender-Neutral + Ladies)",
-                      },
-                    ]}
+                    options={[...CANDIDATE_GENDER_OPTIONS]}
+                    placeholder="Select Gender"
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Male sees gender-neutral seats only. Female sees
+                    gender-neutral and ladies seats.
+                  </p>
                 </div>
 
-                {/* Seat Level */}
-                <div>
-                  <label
-                    htmlFor="level"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Seat Level
-                  </label>
-                  <CustomSelect
-                    id="level"
-                    value={level}
-                    onChange={setLevel}
-                    options={[
-                      { value: "", label: "All Levels" },
-                      ...LEVELS.map((l) => ({
-                        value: l.value,
-                        label: l.label,
-                      })),
-                    ]}
-                  />
-                </div>
               </div>
 
               {/* TFWS toggle — styled card row */}
@@ -565,7 +535,6 @@ export default function PredictorPage() {
                   setCategory("");
                   setIncludeTfws(false);
                   setGender("");
-                  setLevel("");
                   setSelectedBranches([]);
                   setSelectedCities([]);
                   setResults(null);
@@ -705,8 +674,7 @@ export default function PredictorPage() {
             {totalResults === 0 && (
               <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl">
                 <div className="text-xl text-gray-600">
-                  No colleges found. Try adjusting category, level, or branch
-                  filters.
+                  No colleges found. Try adjusting category or branch filters.
                 </div>
               </div>
             )}
