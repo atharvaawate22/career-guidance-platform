@@ -8,7 +8,10 @@ import {
   CANDIDATE_GENDER_OPTIONS,
 } from "@/lib/candidateGender";
 import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
-import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
+import {
+  CUTOFF_CATEGORIES,
+  CUTOFF_STAGES,
+} from "@/lib/cutoffOptions";
 import {
   STATIC_CUTOFF_COLLEGES,
   STATIC_CUTOFF_RELATIONS,
@@ -85,6 +88,7 @@ export default function CutoffsPage() {
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
+  const [stage, setStage] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   const collegeMapByName = useMemo(
@@ -206,6 +210,7 @@ export default function CutoffsPage() {
       selectedBranches.forEach((b) => params.append("branch", b));
       if (category) params.append("category", category);
       if (gender) params.append("gender", gender);
+      if (stage) params.append("stage", stage);
       // Prefer college_code (stable across years) over name-based ILIKE matching
       if (collegeCode) params.append("college_code", collegeCode);
       else if (collegeName) params.append("college_name", collegeName);
@@ -234,6 +239,7 @@ export default function CutoffsPage() {
     setSelectedBranches([]);
     setCategory("");
     setGender("");
+    setStage("");
     setCollegeName("");
     setCollegeCode(null);
     setSelectedCities([]);
@@ -319,11 +325,35 @@ export default function CutoffsPage() {
                     id="year"
                     value={year}
                     onChange={setYear}
-                    options={[{ value: "2025", label: "2025 (CAP Round 1)" }]}
+                    options={[{ value: "2025", label: "2025" }]}
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Dropdown values are preloaded from the 2025 CAP Round 1
-                    dataset for instant loading.
+                    Explore the 2025 cutoff dataset across CAP Rounds 1 to 4.
+                  </p>
+                </div>
+
+                {/* CAP Round */}
+                <div>
+                  <label
+                    htmlFor="stage"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    CAP Round
+                  </label>
+                  <CustomSelect
+                    id="stage"
+                    value={stage}
+                    onChange={setStage}
+                    options={[
+                      { value: "", label: "All CAP Rounds" },
+                      ...CUTOFF_STAGES.map((s) => ({
+                        value: s,
+                        label: formatRound(s),
+                      })),
+                    ]}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Leave unselected to search across all 2025 rounds.
                   </p>
                 </div>
 
@@ -483,7 +513,7 @@ export default function CutoffsPage() {
               Set your filters and click Search
             </div>
             <div className="text-gray-500 mt-2 text-sm">
-              33,497 cutoff records available for 2025 CAP Round 1
+              Search the 2025 cutoff dataset across CAP Rounds 1 to 4
             </div>
           </div>
         ) : cutoffs.length === 0 ? (
