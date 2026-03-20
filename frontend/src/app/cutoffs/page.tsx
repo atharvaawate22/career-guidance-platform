@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
+import {
+  CANDIDATE_GENDER_OPTIONS,
+} from "@/lib/candidateGender";
 import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
-import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
+import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
 import {
   STATIC_CUTOFF_COLLEGES,
   STATIC_CUTOFF_RELATIONS,
@@ -28,7 +31,6 @@ interface CutoffData {
   gender: string | null;
   college_status: string | null;
   stage: string | null;
-  level: string | null;
   percentile: number;
   cutoff_rank: number | null;
 }
@@ -69,14 +71,6 @@ function formatRound(stage: string | null) {
   return `Round ${stage}`;
 }
 
-function formatCompactLevel(level: string | null) {
-  if (!level) return "—";
-
-  return level
-    .replace("Home University Level", "Home Univ.")
-    .replace("Other Than Home University Level", "Other Than Home")
-    .replace("State Level", "State");
-}
 export default function CutoffsPage() {
   const [cutoffs, setCutoffs] = useState<CutoffData[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -91,7 +85,6 @@ export default function CutoffsPage() {
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
-  const [level, setLevel] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   const collegeMapByName = useMemo(
@@ -198,6 +191,11 @@ export default function CutoffsPage() {
   };
 
   const handleSearch = async () => {
+    if (!gender) {
+      setError("Please select gender to apply the correct seat rule.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setHasSearched(true);
@@ -211,7 +209,6 @@ export default function CutoffsPage() {
       // Prefer college_code (stable across years) over name-based ILIKE matching
       if (collegeCode) params.append("college_code", collegeCode);
       else if (collegeName) params.append("college_name", collegeName);
-      if (level) params.append("level", level);
       selectedCities.forEach((c) => params.append("city", c));
 
       const response = await fetch(
@@ -239,7 +236,6 @@ export default function CutoffsPage() {
     setGender("");
     setCollegeName("");
     setCollegeCode(null);
-    setLevel("");
     setSelectedCities([]);
     setCutoffs([]);
     setTotal(null);
@@ -418,50 +414,27 @@ export default function CutoffsPage() {
                   />
                 </div>
 
-                {/* Seat Type */}
+                {/* Gender */}
                 <div>
                   <label
                     htmlFor="gender"
                     className="block mb-2 text-sm font-medium text-gray-700"
                   >
-                    Seat Type
+                    Gender
                   </label>
                   <CustomSelect
                     id="gender"
                     value={gender}
                     onChange={setGender}
-                    options={[
-                      { value: "", label: "All Seat Types" },
-                      {
-                        value: "All",
-                        label: "Gender-Neutral Seats Only",
-                      },
-                      {
-                        value: "Female",
-                        label: "Ladies Seats Only",
-                      },
-                    ]}
+                    options={[...CANDIDATE_GENDER_OPTIONS]}
+                    placeholder="Select Gender"
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Male sees gender-neutral seats only. Female sees
+                    gender-neutral and ladies seats.
+                  </p>
                 </div>
 
-                {/* Level */}
-                <div className="md:col-start-2 lg:col-start-auto">
-                  <label
-                    htmlFor="level"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Seat Level
-                  </label>
-                  <CustomSelect
-                    id="level"
-                    value={level}
-                    onChange={setLevel}
-                    options={[
-                      { value: "", label: "All Levels" },
-                      ...CUTOFF_LEVELS.map((l) => ({ value: l, label: l })),
-                    ]}
-                  />
-                </div>
               </div>
             </div>
 
@@ -596,18 +569,15 @@ export default function CutoffsPage() {
                     <span className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] text-indigo-700">
                       {formatRound(c.stage)}
                     </span>
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">
-                      {c.gender || "All"}
-                    </span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div className="text-gray-500">Rank</div>
                     <div className="text-right font-mono text-gray-700">
                       {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
                     </div>
-                    <div className="text-gray-500">Level</div>
-                    <div className="text-right text-gray-700 wrap-break-word">
-                      {formatCompactLevel(c.level)}
+                    <div className="text-gray-500">Round</div>
+                    <div className="text-right text-gray-700">
+                      {formatRound(c.stage)}
                     </div>
                   </div>
                 </article>
@@ -622,8 +592,6 @@ export default function CutoffsPage() {
                     <th className="px-2 py-3 w-[24%] text-left">College</th>
                     <th className="px-2 py-3 w-[18%] text-left">Branch</th>
                     <th className="px-2 py-3 w-20 text-left">Category</th>
-                    <th className="px-2 py-3 w-20 text-left">Seat Type</th>
-                    <th className="px-2 py-3 w-[15%] text-left">Level</th>
                     <th className="px-2 py-3 w-24 text-left">Round</th>
                     <th className="px-2 py-3 w-24 text-right">Rank</th>
                     <th className="px-2 py-3 w-28 text-right">Percentile</th>
@@ -655,10 +623,6 @@ export default function CutoffsPage() {
                         >
                           {c.category}
                         </span>
-                      </td>
-                      <td className="px-2 py-3">{c.gender || "All"}</td>
-                      <td className="px-2 py-3 wrap-break-word">
-                        {formatCompactLevel(c.level)}
                       </td>
                       <td className="px-2 py-3">{formatRound(c.stage)}</td>
                       <td className="px-2 py-3 text-right font-mono">

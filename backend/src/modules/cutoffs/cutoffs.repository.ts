@@ -4,6 +4,7 @@ import {
   CITY_FILTER_SQL,
   CITY_NORMALIZED_SQL,
 } from '../../utils/cityNormalization';
+import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
 
 export class CutoffsRepository {
   async getCutoffs(
@@ -28,9 +29,11 @@ export class CutoffsRepository {
       conditions.push(`category = $${p++}`);
       values.push(filters.category);
     }
-    if (filters.gender) {
-      conditions.push(`gender = $${p++}`);
-      values.push(filters.gender);
+    const genderFilter = buildCandidateGenderFilter(filters.gender, p);
+    if (genderFilter.condition) {
+      conditions.push(genderFilter.condition);
+      values.push(...genderFilter.values);
+      p = genderFilter.nextIndex;
     }
     if (filters.home_university) {
       conditions.push(`home_university = $${p++}`);
@@ -67,9 +70,33 @@ export class CutoffsRepository {
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    const dedupedRowsCte = `
+      WITH ranked_cutoffs AS (
+        SELECT
+          id, year, college_code, college_name, branch_code, branch,
+          category, gender, home_university, college_status,
+          stage, level, percentile, cutoff_rank, created_at,
+          ROW_NUMBER() OVER (
+            PARTITION BY
+              year,
+              COALESCE(college_code, college_name),
+              COALESCE(branch_code, branch),
+              category,
+              COALESCE(stage, '')
+            ORDER BY
+              cutoff_rank DESC NULLS LAST,
+              percentile ASC NULLS LAST,
+              created_at DESC
+          ) AS row_rank
+        FROM cutoff_data
+        ${whereClause}
+      )
+    `;
+
     // Count total matching rows
     const countResult = await query(
-      `SELECT COUNT(*) FROM cutoff_data ${whereClause}`,
+      `${dedupedRowsCte}
+       SELECT COUNT(*) FROM ranked_cutoffs WHERE row_rank = 1`,
       values,
     );
     const total = parseInt(countResult.rows[0].count, 10);
@@ -77,12 +104,13 @@ export class CutoffsRepository {
     // Fetch rows with limit
     const LIMIT = 500;
     const sql = `
+      ${dedupedRowsCte}
       SELECT
         id, year, college_code, college_name, branch_code, branch,
         category, gender, home_university, college_status,
         stage, level, percentile, cutoff_rank, created_at
-      FROM cutoff_data
-      ${whereClause}
+      FROM ranked_cutoffs
+      WHERE row_rank = 1
       ORDER BY year DESC, college_name ASC, branch ASC, percentile DESC
       LIMIT ${LIMIT}
     `;

@@ -90,15 +90,19 @@ export class PredictorService {
       include_tfws: request.include_tfws,
     });
 
-    // Deduplicate: when multiple level rows exist for the same college+branch+category+gender,
-    // keep only the one with the highest cutoff_rank (most accessible = easiest to get into)
+    // Collapse hidden seat variants (gender / level) into one visible option per
+    // college+branch+category, keeping the most accessible cutoff.
     const seen = new Map<string, CollegeOption>();
     for (const college of colleges) {
-      const key = `${college.college_name}||${college.branch}||${college.category}||${college.gender}`;
+      const key = `${college.college_name}||${college.branch}||${college.category}`;
       const existing = seen.get(key);
       if (
         !existing ||
-        Number(college.cutoff_rank ?? 0) > Number(existing.cutoff_rank ?? 0)
+        Number(college.cutoff_rank ?? 0) > Number(existing.cutoff_rank ?? 0) ||
+        (Number(college.cutoff_rank ?? 0) ===
+          Number(existing.cutoff_rank ?? 0) &&
+          Number(college.cutoff_percentile ?? 100) <
+            Number(existing.cutoff_percentile ?? 100))
       ) {
         seen.set(key, college);
       }
