@@ -9,7 +9,7 @@ export async function getFaqs(
 ) {
   try {
     const faqs = await faqService.getActiveFaqs();
-    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.set('Cache-Control', 'no-store');
     res.json({ success: true, data: faqs });
   } catch (error) {
     next(error);
