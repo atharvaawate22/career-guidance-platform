@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
+import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
 import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
 import {
   STATIC_CUTOFF_COLLEGES,
@@ -244,18 +245,6 @@ export default function CutoffsPage() {
     setTotal(null);
     setError("");
     setHasSearched(false);
-  };
-
-  const categoryColor = (cat: string) => {
-    const map: Record<string, string> = {
-      OPEN: "bg-blue-100 text-blue-700",
-      SC: "bg-green-100 text-green-700",
-      ST: "bg-orange-100 text-orange-700",
-      OBC: "bg-yellow-100 text-yellow-700",
-      EWS: "bg-teal-100 text-teal-700",
-      TFWS: "bg-purple-100 text-purple-700",
-    };
-    return map[cat] ?? "bg-gray-100 text-gray-700";
   };
 
   const sortedCutoffs = [...cutoffs].sort((left, right) => {
@@ -600,7 +589,7 @@ export default function CutoffsPage() {
                       {c.year}
                     </span>
                     <span
-                      className={`rounded-full px-2 py-1 text-[11px] font-medium ${categoryColor(c.category)}`}
+                      className={`rounded-full px-2 py-1 text-[11px] font-medium ${getCutoffCategoryColor(c.category)}`}
                     >
                       {c.category}
                     </span>
@@ -662,7 +651,7 @@ export default function CutoffsPage() {
                       </td>
                       <td className="px-2 py-3">
                         <span
-                          className={`px-2 py-1 rounded-full text-[11px] font-semibold ${categoryColor(c.category)}`}
+                          className={`px-2 py-1 rounded-full text-[11px] font-semibold ${getCutoffCategoryColor(c.category)}`}
                         >
                           {c.category}
                         </span>

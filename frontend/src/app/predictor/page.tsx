@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
+import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
 import { CUTOFF_CATEGORIES, CUTOFF_LEVELS } from "@/lib/cutoffOptions";
 import {
   STATIC_CUTOFF_BRANCHES,
@@ -191,7 +192,9 @@ export default function PredictorPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-700">{c.branch}</td>
                       <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${getCutoffCategoryColor(c.category)}`}
+                        >
                           {c.category}
                         </span>
                       </td>

@@ -1,0 +1,37 @@
+const CATEGORY_COLOR_MAP: Record<string, string> = {
+  OPEN: "bg-blue-100 text-blue-700",
+  SC: "bg-emerald-100 text-emerald-700",
+  ST: "bg-orange-100 text-orange-700",
+  VJ: "bg-rose-100 text-rose-700",
+  NT1: "bg-sky-100 text-sky-700",
+  NT2: "bg-cyan-100 text-cyan-700",
+  NT3: "bg-indigo-100 text-indigo-700",
+  OBC: "bg-amber-100 text-amber-700",
+  SEBC: "bg-lime-100 text-lime-700",
+  EWS: "bg-teal-100 text-teal-700",
+  TFWS: "bg-violet-100 text-violet-700",
+  MI: "bg-pink-100 text-pink-700",
+  ORPHAN: "bg-slate-100 text-slate-700",
+  DEF_OPEN: "bg-blue-200 text-blue-800",
+  DEF_OBC: "bg-amber-200 text-amber-800",
+  DEF_SC: "bg-emerald-200 text-emerald-800",
+  DEF_ST: "bg-orange-200 text-orange-800",
+  DEF_SEBC: "bg-lime-200 text-lime-800",
+  DEF_VJ: "bg-rose-200 text-rose-800",
+  DEF_NT1: "bg-sky-200 text-sky-800",
+  DEF_NT2: "bg-cyan-200 text-cyan-800",
+  DEF_NT3: "bg-indigo-200 text-indigo-800",
+  PWD_OPEN: "bg-blue-50 text-blue-800",
+  PWD_OBC: "bg-amber-50 text-amber-800",
+  PWD_SC: "bg-emerald-50 text-emerald-800",
+  PWD_ST: "bg-orange-50 text-orange-800",
+  PWD_SEBC: "bg-lime-50 text-lime-800",
+  PWD_VJ: "bg-rose-50 text-rose-800",
+  PWD_NT1: "bg-sky-50 text-sky-800",
+  PWD_NT2: "bg-cyan-50 text-cyan-800",
+  PWD_NT3: "bg-indigo-50 text-indigo-800",
+};
+
+export function getCutoffCategoryColor(category: string | null | undefined) {
+  if (!category) return "bg-gray-100 text-gray-700";
+  return CATEGORY_COLOR_MAP[category.trim().toUpperCase()] ?? "bg-gray-100 text-gray-700";
