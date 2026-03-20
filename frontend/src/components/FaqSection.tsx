@@ -14,66 +14,37 @@ interface Faq {
   display_order: number;
 }
 
-const FALLBACK_FAQS: Faq[] = [
-  {
-    id: "faq-1",
-    question: "How does the college predictor work?",
-    answer:
-      "The predictor compares your rank or percentile with real 2025 CAP Round 1 cutoff data and groups colleges into Safe, Target, and Dream options. It is a data-driven shortlist, not a guaranteed allotment.",
-    display_order: 1,
-  },
-  {
-    id: "faq-2",
-    question: "Are the predictor results guaranteed?",
-    answer:
-      "No. Final allotment depends on the official CAP process, seat availability, category rules, choice filling order, and the number of students applying in that round.",
-    display_order: 2,
-  },
-  {
-    id: "faq-3",
-    question: "What is the difference between Safe, Target, and Dream colleges?",
-    answer:
-      "Safe colleges have cutoffs that are more accessible than your profile, Target colleges are close to your profile, and Dream colleges are more competitive but still worth exploring.",
-    display_order: 3,
-  },
-  {
-    id: "faq-4",
-    question: "How should I use the cutoff explorer?",
-    answer:
-      "Start broad with category and gender, then narrow by branch, city, college, and CAP round. This helps you understand how cutoffs move across rounds before you finalise your preference list.",
-    display_order: 4,
-  },
-  {
-    id: "faq-5",
-    question: "Why does category or gender change the results?",
-    answer:
-      "MHT-CET admissions use different reservation and seat rules. The platform applies these filters so the results match the seat pools you are actually eligible for.",
-    display_order: 5,
-  },
-  {
-    id: "faq-6",
-    question: "When should I book a guidance session?",
-    answer:
-      "Book a session if you want help building your option form, comparing branches, balancing dream versus safe colleges, or planning for multiple CAP rounds.",
-    display_order: 6,
-  },
-];
-
 export default function FaqSection() {
-  const [faqs, setFaqs] = useState<Faq[]>(FALLBACK_FAQS);
-  const [openId, setOpenId] = useState<string>(FALLBACK_FAQS[0].id);
+  const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [openId, setOpenId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     const fetchFaqs = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/faqs`);
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          setFaqs(data.data);
-          setOpenId(data.data[0].id);
+        setIsLoading(true);
+        setLoadError("");
+        const response = await fetch(`${API_BASE_URL}/api/faqs`, {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error(`FAQ request failed with HTTP ${response.status}`);
         }
-      } catch {
-        // Keep the fallback list visible if the API is unavailable.
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
+          setFaqs(data.data);
+          setOpenId(data.data[0]?.id ?? "");
+        } else {
+          throw new Error("Invalid FAQ response");
+        }
+      } catch (error) {
+        console.error("Failed to load FAQs:", error);
+        setFaqs([]);
+        setOpenId("");
+        setLoadError("FAQs are temporarily unavailable.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -100,7 +71,20 @@ export default function FaqSection() {
           </p>
         </div>
 
-        <div className="space-y-4">
+        {isLoading ? (
+          <div className="rounded-2xl border border-gray-200 bg-white/80 px-6 py-10 text-center text-gray-500 shadow-sm">
+            Loading FAQs...
+          </div>
+        ) : loadError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-10 text-center text-red-700 shadow-sm">
+            {loadError}
+          </div>
+        ) : faqs.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white/80 px-6 py-10 text-center text-gray-500 shadow-sm">
+            No FAQs are available right now.
+          </div>
+        ) : (
+          <div className="space-y-4">
           {faqs.map((faq, index) => {
             const isOpen = openId === faq.id;
 
@@ -147,7 +131,8 @@ export default function FaqSection() {
               </article>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
