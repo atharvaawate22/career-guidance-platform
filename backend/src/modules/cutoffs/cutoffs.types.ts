@@ -21,6 +21,8 @@ export interface CutoffFilters {
   branches?: string[];
   category?: string;
   gender?: string;
+  minority_types?: string[];
+  minority_groups?: string[];
   home_university?: string;
   college_name?: string;
   college_code?: string;

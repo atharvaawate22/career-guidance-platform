@@ -16,6 +16,8 @@ router.get('/', (_req, res) => {
       branchPreference: 'string',
       homeUniversity: 'string (Mumbai, Pune, Aurangabad, etc.)',
       gender: 'string (optional: Male or Female candidate)',
+      minority_type: 'string (optional: linguistic or religious)',
+      minority_group: 'string (optional: hindi, muslim, jain, etc.)',
     },
   });
 });

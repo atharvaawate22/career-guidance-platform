@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 
+type MultiSelectOption = string | { value: string; label: string };
+
 interface MultiSelectProps {
   id?: string;
   value: string[];
   onChange: (value: string[]) => void;
-  options: string[];
+  options: MultiSelectOption[];
   placeholder?: string;
 }
 
@@ -22,12 +24,23 @@ export default function MultiSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const normalizedOptions = options.map((option) =>
+    typeof option === "string"
+      ? { value: option, label: option }
+      : option
+  );
+
+  const labelByValue = new Map(
+    normalizedOptions.map((option) => [option.value, option.label])
+  );
+
   const filtered = search
-    ? options.filter(
-        (o) =>
-          o.toLowerCase().includes(search.toLowerCase()) && !value.includes(o)
+    ? normalizedOptions.filter(
+        (option) =>
+          option.label.toLowerCase().includes(search.toLowerCase()) &&
+          !value.includes(option.value)
       )
-    : options.filter((o) => !value.includes(o));
+    : normalizedOptions.filter((option) => !value.includes(option.value));
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -77,7 +90,7 @@ export default function MultiSelect({
             key={v}
             className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md text-sm font-medium"
           >
-            {v}
+            {labelByValue.get(v) ?? v}
             <button
               type="button"
               onMouseDown={(e) => {
@@ -113,15 +126,15 @@ export default function MultiSelect({
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-y-auto max-h-63">
           {filtered.map((opt) => (
             <div
-              key={opt}
+              key={opt.value}
               onMouseDown={(e) => {
                 e.preventDefault();
-                toggle(opt);
+                toggle(opt.value);
                 setSearch("");
               }}
               className="px-4 py-2.5 cursor-pointer text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
             >
-              {opt}
+              {opt.label}
             </div>
           ))}
         </div>

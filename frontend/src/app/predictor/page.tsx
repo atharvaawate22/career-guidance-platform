@@ -4,11 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
+import PredictorResultCard from "@/components/PredictorResultCard";
 import {
   CANDIDATE_GENDER_OPTIONS,
 } from "@/lib/candidateGender";
-import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
 import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
+import {
+  getMinorityGroupOptions,
+  MINORITY_TYPE_OPTIONS,
+  getMinorityTypesForGroups,
+} from "@/lib/minorityStatus";
 import {
   STATIC_CUTOFF_BRANCHES,
   STATIC_CUTOFF_CITIES,
@@ -37,6 +42,7 @@ interface CollegeOption {
   branch: string;
   category: string;
   gender: string | null;
+  college_status: string | null;
   stage: string;
   cutoff_rank: number | null;
   cutoff_percentile: number;
@@ -68,6 +74,12 @@ export default function PredictorPage() {
   const [category, setCategory] = useState("");
   const [includeTfws, setIncludeTfws] = useState(false);
   const [gender, setGender] = useState("");
+  const [selectedMinorityTypes, setSelectedMinorityTypes] = useState<string[]>(
+    []
+  );
+  const [selectedMinorityGroups, setSelectedMinorityGroups] = useState<
+    string[]
+  >([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
@@ -102,6 +114,12 @@ export default function PredictorPage() {
         gender,
         include_tfws: includeTfws,
       };
+      if (selectedMinorityTypes.length > 0) {
+        body.minority_types = selectedMinorityTypes;
+      }
+      if (selectedMinorityGroups.length > 0) {
+        body.minority_groups = selectedMinorityGroups;
+      }
       if (inputMode === "percentile") body.percentile = Number(percentile);
       if (inputMode === "rank") body.rank = Number(rank);
       if (preferred_branches.length > 0)
@@ -127,8 +145,7 @@ export default function PredictorPage() {
   const renderSection = (
     colleges: CollegeOption[],
     tier: "safe" | "target" | "dream",
-    title: string,
-    accent: string
+    title: string
   ) => {
     const headingColors = {
       safe: "text-green-600",
@@ -150,72 +167,22 @@ export default function PredictorPage() {
             No {title.toLowerCase()} found with these filters
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className={`bg-linear-to-r ${accent}`}>
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                      College
-                    </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                      Branch
-                    </th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                      Category
-                    </th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">
-                      Cutoff Rank
-                    </th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">
-                      %ile
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {colleges.slice(0, 100).map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-t border-gray-100 hover:bg-purple-50/40 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-800">
-                          {c.college_name}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-0.5">
-                          Code: {c.college_code}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">{c.branch}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${getCutoffCategoryColor(c.category)}`}
-                        >
-                          {c.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold text-purple-700">
-                        {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-600">
-                        {Number(c.cutoff_percentile).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                  {colleges.length > 100 && (
-                    <tr className="border-t border-gray-100 bg-gray-50">
-                      <td
-                        colSpan={5}
-                        className="px-4 py-3 text-center text-sm text-gray-500"
-                      >
-                        Showing top 100 of {colleges.length} results — add more
-                        filters to narrow down
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {colleges.slice(0, 100).map((college) => (
+                <PredictorResultCard
+                  key={college.id}
+                  college={college}
+                  tier={tier}
+                />
+              ))}
             </div>
+            {colleges.length > 100 && (
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center text-sm text-gray-500">
+                Showing top 100 of {colleges.length} results - add more filters
+                to narrow down
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -367,7 +334,7 @@ export default function PredictorPage() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 {/* Category */}
                 <div>
                   <label
@@ -410,6 +377,51 @@ export default function PredictorPage() {
                   <p className="text-xs text-gray-400 mt-1">
                     Male sees gender-neutral seats only. Female sees
                     gender-neutral and ladies seats.
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="minorityType"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Minority Type
+                  </label>
+                  <MultiSelect
+                    id="minorityType"
+                    value={selectedMinorityTypes}
+                    onChange={setSelectedMinorityTypes}
+                    options={MINORITY_TYPE_OPTIONS}
+                    placeholder="All Minority Types"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Select one or more minority types you may be eligible for.
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="minorityGroup"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Minority Group
+                  </label>
+                  <MultiSelect
+                    id="minorityGroup"
+                    value={selectedMinorityGroups}
+                    onChange={(values) => {
+                      setSelectedMinorityGroups(values);
+                      const impliedTypes = getMinorityTypesForGroups(values);
+                      setSelectedMinorityTypes((current) =>
+                        Array.from(new Set([...current, ...impliedTypes]))
+                      );
+                    }}
+                    options={getMinorityGroupOptions(selectedMinorityTypes)}
+                    placeholder="All Minority Groups"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    You can combine multiple groups, like Gujarati and Jain,
+                    when both apply to you.
                   </p>
                 </div>
 
@@ -535,6 +547,8 @@ export default function PredictorPage() {
                   setCategory("");
                   setIncludeTfws(false);
                   setGender("");
+                  setSelectedMinorityTypes([]);
+                  setSelectedMinorityGroups([]);
                   setSelectedBranches([]);
                   setSelectedCities([]);
                   setResults(null);
@@ -598,15 +612,14 @@ export default function PredictorPage() {
                 (inputMode === "rank" ? Number(rank) : Number.NaN);
               const r = resolvedRank;
               if (!Number.isFinite(r) || r <= 0) return null;
-              const { targetAbove, targetBelow, floorGap, ceilGap } =
-                getThresholds(r);
+              const { floorGap, ceilGap } = getThresholds(r);
               const floorVal = Math.max(1, r - ceilGap).toLocaleString();
               const ceilVal = (r + floorGap).toLocaleString();
               return (
                 <div className="bg-white/70 rounded-xl p-4 border border-gray-200 mb-8 flex flex-col gap-3 text-sm">
                   {results?.meta?.inputMode === "percentile" && (
                     <div className="text-purple-700 font-medium">
-                      Your predicted/expected rank is{" "}
+                      Your rank is likely to be around or slightly above{" "}
                       <span className="font-bold">
                         {results.meta.effectiveRank.toLocaleString()}
                       </span>
@@ -622,20 +635,19 @@ export default function PredictorPage() {
                   <div className="flex gap-6 flex-wrap">
                     <div>
                       <span className="font-semibold text-green-600">Safe</span>{" "}
-                      — Your rank is {targetBelow.toLocaleString()}+ ranks above
-                      the cutoff rank
+                      - colleges where your profile looks comfortably
+                      competitive
                     </div>
                     <div>
                       <span className="font-semibold text-amber-600">
                         Target
                       </span>{" "}
-                      — Cutoff rank is within {targetAbove.toLocaleString()}{" "}
-                      above or {targetBelow.toLocaleString()} below your rank
+                      - colleges that look realistic and worth strongly
+                      considering
                     </div>
                     <div>
                       <span className="font-semibold text-blue-600">Dream</span>{" "}
-                      — Cutoff rank is {targetAbove.toLocaleString()}+ above
-                      yours
+                      - more competitive colleges that are still worth a try
                     </div>
                   </div>
                   <div className="text-gray-400 text-xs border-t border-gray-100 pt-2">
@@ -655,20 +667,17 @@ export default function PredictorPage() {
             {renderSection(
               results.safe,
               "safe",
-              "🟢 Safe Colleges",
-              "from-green-50 to-emerald-50"
+              "Safe Colleges"
             )}
             {renderSection(
               results.target,
               "target",
-              "🎯 Target Colleges",
-              "from-amber-50 to-yellow-50"
+              "Target Colleges"
             )}
             {renderSection(
               results.dream,
               "dream",
-              "⭐ Dream Colleges",
-              "from-blue-50 to-indigo-50"
+              "Dream Colleges"
             )}
 
             {totalResults === 0 && (

@@ -2,6 +2,7 @@ import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
 import { CITY_FILTER_SQL } from '../../utils/cityNormalization';
 import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
+import { buildMinorityStatusFilter } from '../../utils/minorityStatus';
 
 export class PredictorRepository {
   async estimateRankFromPercentile(
@@ -49,6 +50,17 @@ export class PredictorRepository {
         conditions.push(`category = $${p++}`);
         values.push(filters.category);
       }
+    }
+
+    const minorityFilter = buildMinorityStatusFilter(
+      filters.minority_types,
+      filters.minority_groups,
+      p,
+    );
+    if (minorityFilter.condition) {
+      conditions.push(minorityFilter.condition);
+      values.push(...minorityFilter.values);
+      p = minorityFilter.nextIndex;
     }
 
     // Candidate gender handling:
@@ -99,6 +111,7 @@ export class PredictorRepository {
         branch,
         category,
         gender,
+        college_status,
         level,
         stage,
         cutoff_rank,
