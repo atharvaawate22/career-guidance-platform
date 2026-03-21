@@ -119,6 +119,22 @@ CREATE INDEX IF NOT EXISTS idx_guide_downloads_guide_id
 ON guide_downloads(guide_id);
 
 -- ============================================================================
+-- TABLE: faqs
+-- Purpose: Public FAQ content managed from the admin panel
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS faqs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  question TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_faqs_active_display_order
+ON faqs(is_active, display_order, created_at);
+
+-- ============================================================================
 -- TABLE: bookings
 -- Purpose: Store consultation booking records
 -- ============================================================================
@@ -153,6 +169,7 @@ ON bookings(booking_status);
 -- ============================================================================
 ALTER TABLE updates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cutoff_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
@@ -167,6 +184,17 @@ BEGIN
     WHERE schemaname = 'public' AND tablename = 'updates' AND policyname = 'updates_public_read'
   ) THEN
     CREATE POLICY updates_public_read ON updates FOR SELECT USING (true);
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'faqs' AND policyname = 'faqs_public_read_active'
+  ) THEN
+    CREATE POLICY faqs_public_read_active ON faqs FOR SELECT USING (is_active = true);
   END IF;
 END
 $$;

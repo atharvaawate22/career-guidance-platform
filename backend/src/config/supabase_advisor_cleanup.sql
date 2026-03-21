@@ -4,6 +4,22 @@
 
 BEGIN;
 
+ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'faqs' AND policyname = 'faqs_public_read_active'
+  ) THEN
+    CREATE POLICY faqs_public_read_active
+      ON public.faqs
+      FOR SELECT
+      USING (is_active = true);
+  END IF;
+END
+$$;
+
 -- Drop indexes that are typically high-write and low-read for this app pattern.
 DROP INDEX IF EXISTS public.idx_updates_edited_at;
 DROP INDEX IF EXISTS public.idx_cutoff_branch;
