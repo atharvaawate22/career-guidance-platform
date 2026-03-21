@@ -19,6 +19,7 @@ import helmet from 'helmet';
 
 const normalizeOrigin = (value: string) => value.trim().replace(/\/+$/, '');
 const VERCEL_HOST_SUFFIX = '.vercel.app';
+const DEFAULT_VERCEL_PROJECT_SLUG = 'career-guidance-platform';
 const frontendOrigins = (
   process.env.FRONTEND_URL || 'https://career-guidance-platform-gilt.vercel.app'
 )
@@ -28,24 +29,34 @@ const frontendOrigins = (
 const allowedOrigins = Array.from(
   new Set(['http://localhost:3000', 'http://127.0.0.1:3000', ...frontendOrigins]),
 );
-const vercelPreviewPrefixes = Array.from(
+const vercelProjectSlugs = Array.from(
   new Set(
-    frontendOrigins
+    [
+      DEFAULT_VERCEL_PROJECT_SLUG,
+      ...(process.env.VERCEL_PROJECT_SLUGS || '')
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean),
+      ...frontendOrigins
       .map((origin) => {
         try {
           const hostname = new URL(origin).hostname.toLowerCase();
           if (!hostname.endsWith(VERCEL_HOST_SUFFIX)) {
-            return null;
+            return [];
           }
 
           const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
           const segments = subdomain.split('-').filter(Boolean);
-          return segments.length > 0 ? segments[0] : null;
+          return segments
+            .slice(0, Math.max(segments.length - 1, 1))
+            .map((_, index) => segments.slice(0, index + 1).join('-'))
+            .filter((slug) => slug.includes('-'));
         } catch {
-          return null;
+          return [];
         }
       })
-      .filter((value): value is string => Boolean(value)),
+      .flat(),
+    ].filter(Boolean),
   ),
 );
 
@@ -61,9 +72,9 @@ const isAllowedOrigin = (origin: string): boolean => {
     }
 
     const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
-    return vercelPreviewPrefixes.some(
-      (prefix) =>
-        subdomain === prefix || subdomain.startsWith(`${prefix}-`),
+    return vercelProjectSlugs.some(
+      (slug) =>
+        subdomain === slug || subdomain.startsWith(`${slug}-`),
     );
   } catch {
     return false;
