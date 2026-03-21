@@ -43,6 +43,7 @@ import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger from './utils/logger';
 
 const app = express();
+const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
 
 app.use(express.json({ limit: '50kb' }));
 app.use(
@@ -215,20 +216,6 @@ const initializeDatabase = async (): Promise<boolean> => {
     await query(`
       CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_college_code_name
       ON cutoff_data(year, college_code, college_name)
-    `);
-
-    // Backfill persisted city normalization data in small batches.
-    // This avoids costly expression indexes and makes city filters indexable.
-    await query(`
-      UPDATE cutoff_data
-      SET city_normalized = LOWER(TRIM(${CITY_NORMALIZED_SQL}))
-      WHERE city_normalized IS NULL
-         OR TRIM(city_normalized) = ''
-    `);
-
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_city_normalized_col
-      ON cutoff_data(year, city_normalized)
     `);
 
     // Create guides table if not exists
@@ -440,6 +427,11 @@ const initializeDatabase = async (): Promise<boolean> => {
       $$;
     `);
 
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_city_normalized_col
+      ON cutoff_data(year, city_normalized)
+    `);
+
     logger.info('Database tables initialized successfully');
 
     // Insert sample data if table is empty (for testing)
@@ -531,6 +523,34 @@ const initializeDatabase = async (): Promise<boolean> => {
         'Skipping admin user creation (ADMIN_EMAIL and ADMIN_PASSWORD not set)',
       );
     }
+
+    try {
+      const cityBackfillResult = await query(`
+        WITH city_backfill_batch AS (
+          SELECT ctid
+          FROM cutoff_data
+          WHERE city_normalized IS NULL
+             OR TRIM(city_normalized) = ''
+          LIMIT ${CITY_NORMALIZATION_BACKFILL_BATCH_SIZE}
+        )
+        UPDATE cutoff_data AS cutoff
+        SET city_normalized = LOWER(TRIM(${CITY_NORMALIZED_SQL}))
+        FROM city_backfill_batch
+        WHERE cutoff.ctid = city_backfill_batch.ctid
+      `);
+
+      if ((cityBackfillResult.rowCount ?? 0) > 0) {
+        logger.info(
+          `Backfilled city_normalized for ${cityBackfillResult.rowCount} cutoff rows during startup`,
+        );
+      }
+    } catch (backfillError) {
+      logger.warn(
+        'Skipping cutoff city_normalized backfill for this boot; startup can continue without it',
+        backfillError,
+      );
+    }
+
     return true;
   } catch (error) {
     logger.error('Database initialization failed', error);
