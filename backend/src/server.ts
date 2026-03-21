@@ -45,6 +45,54 @@ import logger from './utils/logger';
 const app = express();
 const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
 
+async function getExistingColumns(tableName: string): Promise<Set<string>> {
+  const result = await query(
+    `
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = $1
+    `,
+    [tableName],
+  );
+  return new Set(result.rows.map((row) => String(row.column_name)));
+}
+
+async function getExistingIndexes(tableName: string): Promise<Set<string>> {
+  const result = await query(
+    `
+      SELECT indexname
+      FROM pg_indexes
+      WHERE schemaname = 'public' AND tablename = $1
+    `,
+    [tableName],
+  );
+  return new Set(result.rows.map((row) => String(row.indexname)));
+}
+
+async function getExistingPolicies(tableName: string): Promise<Set<string>> {
+  const result = await query(
+    `
+      SELECT policyname
+      FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = $1
+    `,
+    [tableName],
+  );
+  return new Set(result.rows.map((row) => String(row.policyname)));
+}
+
+async function isRowLevelSecurityEnabled(tableName: string): Promise<boolean> {
+  const result = await query(
+    `
+      SELECT relrowsecurity
+      FROM pg_class
+      WHERE oid = $1::regclass
+    `,
+    [`public.${tableName}`],
+  );
+  return Boolean(result.rows[0]?.relrowsecurity);
+}
+
 app.use(express.json({ limit: '50kb' }));
 app.use(
   cors({
@@ -174,49 +222,65 @@ const initializeDatabase = async (): Promise<boolean> => {
       )
     `);
 
-    // Migrate existing tables — add new columns if missing
-    await query(
-      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_code TEXT`,
-    );
-    await query(
-      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS branch_code TEXT`,
-    );
-    await query(
-      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS college_status TEXT`,
-    );
-    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS stage TEXT`);
-    await query(`ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS level TEXT`);
-    await query(
-      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS city_normalized TEXT`,
-    );
-    await query(
-      `ALTER TABLE cutoff_data ADD COLUMN IF NOT EXISTS cutoff_rank INTEGER`,
-    );
+    // Migrate existing tables ? add new columns only when actually missing.
+    const cutoffColumns = await getExistingColumns('cutoff_data');
+
+    if (!cutoffColumns.has('college_code')) {
+      await query(`ALTER TABLE cutoff_data ADD COLUMN college_code TEXT`);
+    }
+    if (!cutoffColumns.has('branch_code')) {
+      await query(`ALTER TABLE cutoff_data ADD COLUMN branch_code TEXT`);
+    }
+    if (!cutoffColumns.has('college_status')) {
+      await query(`ALTER TABLE cutoff_data ADD COLUMN college_status TEXT`);
+    }
+    if (!cutoffColumns.has('stage')) {
+      await query(`ALTER TABLE cutoff_data ADD COLUMN stage TEXT`);
+    }
+    if (!cutoffColumns.has('level')) {
+      await query(`ALTER TABLE cutoff_data ADD COLUMN level TEXT`);
+    }
+    if (!cutoffColumns.has('city_normalized')) {
+      await query(`ALTER TABLE cutoff_data ADD COLUMN city_normalized TEXT`);
+    }
+    if (!cutoffColumns.has('cutoff_rank')) {
+      await query(`ALTER TABLE cutoff_data ADD COLUMN cutoff_rank INTEGER`);
+    }
     // Make home_university nullable for rows where data is unknown
     await query(
       `ALTER TABLE cutoff_data ALTER COLUMN home_university SET DEFAULT 'All'`,
     ).catch(() => {});
 
-    // Create indexes for cutoff_data
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_year ON cutoff_data(year)
-    `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_category ON cutoff_data(category)
-    `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_home_university ON cutoff_data(home_university)
-    `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_college_code ON cutoff_data(college_code)
-    `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_branch ON cutoff_data(year, branch)
-    `);
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_college_code_name
-      ON cutoff_data(year, college_code, college_name)
-    `);
+    const cutoffIndexes = await getExistingIndexes('cutoff_data');
+
+    // Create indexes for cutoff_data only when missing.
+    if (!cutoffIndexes.has('idx_cutoff_year')) {
+      await query(`CREATE INDEX idx_cutoff_year ON cutoff_data(year)`);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_category')) {
+      await query(`CREATE INDEX idx_cutoff_category ON cutoff_data(category)`);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_home_university')) {
+      await query(
+        `CREATE INDEX idx_cutoff_home_university ON cutoff_data(home_university)`,
+      );
+    }
+    if (!cutoffIndexes.has('idx_cutoff_college_code')) {
+      await query(
+        `CREATE INDEX idx_cutoff_college_code ON cutoff_data(college_code)`,
+      );
+    }
+    if (!cutoffIndexes.has('idx_cutoff_meta_year_branch')) {
+      await query(
+        `CREATE INDEX idx_cutoff_meta_year_branch ON cutoff_data(year, branch)`,
+      );
+    }
+    if (!cutoffIndexes.has('idx_cutoff_meta_year_college_code_name')) {
+      await query(`
+        CREATE INDEX idx_cutoff_meta_year_college_code_name
+        ON cutoff_data(year, college_code, college_name)
+      `);
+    }
 
     // Create guides table if not exists
     await query(`
@@ -311,126 +375,87 @@ const initializeDatabase = async (): Promise<boolean> => {
     // Public read is allowed only where the app intentionally exposes data.
     // Sensitive tables keep RLS enabled with no public policies.
     // ---------------------------------------------------------------------
-    await query(`ALTER TABLE updates ENABLE ROW LEVEL SECURITY`);
-    await query(`ALTER TABLE resources ENABLE ROW LEVEL SECURITY`);
-    await query(`ALTER TABLE faqs ENABLE ROW LEVEL SECURITY`);
-    await query(`ALTER TABLE guides ENABLE ROW LEVEL SECURITY`);
-    await query(`ALTER TABLE cutoff_data ENABLE ROW LEVEL SECURITY`);
-    await query(`ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY`);
-    await query(`ALTER TABLE guide_downloads ENABLE ROW LEVEL SECURITY`);
-    await query(`ALTER TABLE bookings ENABLE ROW LEVEL SECURITY`);
+    const rlsTargets = [
+      'updates',
+      'resources',
+      'faqs',
+      'guides',
+      'cutoff_data',
+      'admin_users',
+      'guide_downloads',
+      'bookings',
+    ] as const;
 
-    // Public read policies for data that is intentionally visible in the app.
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'updates' AND policyname = 'updates_public_read'
-        ) THEN
-          CREATE POLICY updates_public_read ON updates FOR SELECT USING (true);
-        END IF;
-      END
-      $$;
-    `);
+    for (const tableName of rlsTargets) {
+      if (!(await isRowLevelSecurityEnabled(tableName))) {
+        await query(`ALTER TABLE ${tableName} ENABLE ROW LEVEL SECURITY`);
+      }
+    }
 
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'faqs' AND policyname = 'faqs_public_read_active'
-        ) THEN
-          CREATE POLICY faqs_public_read_active ON faqs FOR SELECT USING (is_active = true);
-        END IF;
-      END
-      $$;
-    `);
+    const updatesPolicies = await getExistingPolicies('updates');
+    if (!updatesPolicies.has('updates_public_read')) {
+      await query(
+        `CREATE POLICY updates_public_read ON updates FOR SELECT USING (true)`,
+      );
+    }
+
+    const faqPolicies = await getExistingPolicies('faqs');
+    if (!faqPolicies.has('faqs_public_read_active')) {
+      await query(
+        `CREATE POLICY faqs_public_read_active ON faqs FOR SELECT USING (is_active = true)`,
+      );
+    }
 
     // Explicitly deny direct API access to private tables while keeping RLS enabled.
     // This resolves "RLS enabled but no policy" advisor warnings without exposing data.
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'admin_users' AND policyname = 'admin_users_no_access'
-        ) THEN
-          CREATE POLICY admin_users_no_access ON admin_users FOR ALL USING (false) WITH CHECK (false);
-        END IF;
-      END
-      $$;
-    `);
+    const adminPolicies = await getExistingPolicies('admin_users');
+    if (!adminPolicies.has('admin_users_no_access')) {
+      await query(
+        `CREATE POLICY admin_users_no_access ON admin_users FOR ALL USING (false) WITH CHECK (false)`,
+      );
+    }
 
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'bookings' AND policyname = 'bookings_no_access'
-        ) THEN
-          CREATE POLICY bookings_no_access ON bookings FOR ALL USING (false) WITH CHECK (false);
-        END IF;
-      END
-      $$;
-    `);
+    const bookingPolicies = await getExistingPolicies('bookings');
+    if (!bookingPolicies.has('bookings_no_access')) {
+      await query(
+        `CREATE POLICY bookings_no_access ON bookings FOR ALL USING (false) WITH CHECK (false)`,
+      );
+    }
 
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'guide_downloads' AND policyname = 'guide_downloads_no_access'
-        ) THEN
-          CREATE POLICY guide_downloads_no_access ON guide_downloads FOR ALL USING (false) WITH CHECK (false);
-        END IF;
-      END
-      $$;
-    `);
+    const guideDownloadPolicies = await getExistingPolicies('guide_downloads');
+    if (!guideDownloadPolicies.has('guide_downloads_no_access')) {
+      await query(
+        `CREATE POLICY guide_downloads_no_access ON guide_downloads FOR ALL USING (false) WITH CHECK (false)`,
+      );
+    }
 
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'cutoff_data' AND policyname = 'cutoff_data_public_read'
-        ) THEN
-          CREATE POLICY cutoff_data_public_read ON cutoff_data FOR SELECT USING (true);
-        END IF;
-      END
-      $$;
-    `);
+    const cutoffPolicies = await getExistingPolicies('cutoff_data');
+    if (!cutoffPolicies.has('cutoff_data_public_read')) {
+      await query(
+        `CREATE POLICY cutoff_data_public_read ON cutoff_data FOR SELECT USING (true)`,
+      );
+    }
 
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'guides' AND policyname = 'guides_public_read_active'
-        ) THEN
-          CREATE POLICY guides_public_read_active ON guides FOR SELECT USING (is_active = true);
-        END IF;
-      END
-      $$;
-    `);
+    const guidePolicies = await getExistingPolicies('guides');
+    if (!guidePolicies.has('guides_public_read_active')) {
+      await query(
+        `CREATE POLICY guides_public_read_active ON guides FOR SELECT USING (is_active = true)`,
+      );
+    }
 
-    await query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_policies
-          WHERE schemaname = 'public' AND tablename = 'resources' AND policyname = 'resources_public_read_active'
-        ) THEN
-          CREATE POLICY resources_public_read_active ON resources FOR SELECT USING (is_active = true);
-        END IF;
-      END
-      $$;
-    `);
+    const resourcePolicies = await getExistingPolicies('resources');
+    if (!resourcePolicies.has('resources_public_read_active')) {
+      await query(
+        `CREATE POLICY resources_public_read_active ON resources FOR SELECT USING (is_active = true)`,
+      );
+    }
 
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_city_normalized_col
-      ON cutoff_data(year, city_normalized)
-    `);
+    if (!cutoffIndexes.has('idx_cutoff_meta_year_city_normalized_col')) {
+      await query(`
+        CREATE INDEX idx_cutoff_meta_year_city_normalized_col
+        ON cutoff_data(year, city_normalized)
+      `);
+    }
 
     logger.info('Database tables initialized successfully');
 
