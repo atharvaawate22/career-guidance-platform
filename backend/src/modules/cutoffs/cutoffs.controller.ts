@@ -233,6 +233,16 @@ export class CutoffsController {
           : undefined,
         category: req.query.category as string | undefined,
         gender: req.query.gender as string | undefined,
+        minority_types: req.query.minority_type
+          ? ((Array.isArray(req.query.minority_type)
+              ? req.query.minority_type
+              : [req.query.minority_type]) as string[])
+          : undefined,
+        minority_groups: req.query.minority_group
+          ? ((Array.isArray(req.query.minority_group)
+              ? req.query.minority_group
+              : [req.query.minority_group]) as string[])
+          : undefined,
         home_university: req.query.home_university as string | undefined,
         college_name: req.query.college_name as string | undefined,
         college_code: req.query.college_code as string | undefined,

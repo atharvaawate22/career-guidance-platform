@@ -5,6 +5,7 @@ import {
   CITY_NORMALIZED_SQL,
 } from '../../utils/cityNormalization';
 import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
+import { buildMinorityStatusFilter } from '../../utils/minorityStatus';
 
 export class CutoffsRepository {
   async getCutoffs(
@@ -28,6 +29,16 @@ export class CutoffsRepository {
     if (filters.category) {
       conditions.push(`category = $${p++}`);
       values.push(filters.category);
+    }
+    const minorityFilter = buildMinorityStatusFilter(
+      filters.minority_types,
+      filters.minority_groups,
+      p,
+    );
+    if (minorityFilter.condition) {
+      conditions.push(minorityFilter.condition);
+      values.push(...minorityFilter.values);
+      p = minorityFilter.nextIndex;
     }
     const genderFilter = buildCandidateGenderFilter(filters.gender, p);
     if (genderFilter.condition) {

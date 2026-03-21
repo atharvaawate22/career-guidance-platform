@@ -4,14 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
+import CutoffResultCard from "@/components/CutoffResultCard";
 import {
   CANDIDATE_GENDER_OPTIONS,
 } from "@/lib/candidateGender";
-import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
 import {
   CUTOFF_CATEGORIES,
   CUTOFF_STAGES,
 } from "@/lib/cutoffOptions";
+import {
+  getMinorityGroupOptions,
+  MINORITY_TYPE_OPTIONS,
+  getMinorityTypesForGroups,
+} from "@/lib/minorityStatus";
 import {
   STATIC_CUTOFF_COLLEGES,
   STATIC_CUTOFF_RELATIONS,
@@ -88,6 +93,12 @@ export default function CutoffsPage() {
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
+  const [selectedMinorityTypes, setSelectedMinorityTypes] = useState<string[]>(
+    []
+  );
+  const [selectedMinorityGroups, setSelectedMinorityGroups] = useState<
+    string[]
+  >([]);
   const [stage, setStage] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
@@ -210,6 +221,12 @@ export default function CutoffsPage() {
       selectedBranches.forEach((b) => params.append("branch", b));
       if (category) params.append("category", category);
       if (gender) params.append("gender", gender);
+      selectedMinorityTypes.forEach((type) =>
+        params.append("minority_type", type)
+      );
+      selectedMinorityGroups.forEach((group) =>
+        params.append("minority_group", group)
+      );
       if (stage) params.append("stage", stage);
       // Prefer college_code (stable across years) over name-based ILIKE matching
       if (collegeCode) params.append("college_code", collegeCode);
@@ -239,6 +256,8 @@ export default function CutoffsPage() {
     setSelectedBranches([]);
     setCategory("");
     setGender("");
+    setSelectedMinorityTypes([]);
+    setSelectedMinorityGroups([]);
     setStage("");
     setCollegeName("");
     setCollegeCode(null);
@@ -407,9 +426,9 @@ export default function CutoffsPage() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
                 {/* Branch */}
-                <div className="lg:col-span-2">
+                <div className="xl:col-span-2">
                   <label
                     htmlFor="branch"
                     className="block mb-2 text-sm font-medium text-gray-700"
@@ -465,12 +484,50 @@ export default function CutoffsPage() {
                   </p>
                 </div>
 
+                <div>
+                  <label
+                    htmlFor="minorityType"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Minority Type
+                  </label>
+                  <MultiSelect
+                    id="minorityType"
+                    value={selectedMinorityTypes}
+                    onChange={setSelectedMinorityTypes}
+                    options={MINORITY_TYPE_OPTIONS}
+                    placeholder="All Minority Types"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="minorityGroup"
+                    className="block mb-2 text-sm font-medium text-gray-700"
+                  >
+                    Minority Group
+                  </label>
+                  <MultiSelect
+                    id="minorityGroup"
+                    value={selectedMinorityGroups}
+                    onChange={(values) => {
+                      setSelectedMinorityGroups(values);
+                      const impliedTypes = getMinorityTypesForGroups(values);
+                      setSelectedMinorityTypes((current) =>
+                        Array.from(new Set([...current, ...impliedTypes]))
+                      );
+                    }}
+                    options={getMinorityGroupOptions(selectedMinorityTypes)}
+                    placeholder="All Minority Groups"
+                  />
+                </div>
+
               </div>
             </div>
 
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 mb-5">
-              Tip: Start broad, then add branch and category filters to narrow
-              faster.
+              Tip: Start broad, then add branch, category, or minority filters
+              to narrow faster.
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -566,105 +623,12 @@ export default function CutoffsPage() {
               </div>
             </div>
 
-            <div className="divide-y divide-gray-100 md:hidden">
-              {sortedCutoffs.map((c) => (
-                <article key={c.id} className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-900 wrap-break-word">
-                        {c.college_name}
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500 wrap-break-word">
-                        {c.branch}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-[11px] uppercase tracking-wide text-purple-500">
-                        %ile
-                      </div>
-                      <div className="text-lg font-bold text-purple-700">
-                        {Number(c.percentile).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-700">
-                      {c.year}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[11px] font-medium ${getCutoffCategoryColor(c.category)}`}
-                    >
-                      {c.category}
-                    </span>
-                    <span className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] text-indigo-700">
-                      {formatRound(c.stage)}
-                    </span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-gray-500">Rank</div>
-                    <div className="text-right font-mono text-gray-700">
-                      {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
-                    </div>
-                    <div className="text-gray-500">Round</div>
-                    <div className="text-right text-gray-700">
-                      {formatRound(c.stage)}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="hidden w-full md:block">
-              <table className="w-full table-fixed text-sm text-gray-700">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
-                  <tr>
-                    <th className="px-2 py-3 w-14 text-left">Year</th>
-                    <th className="px-2 py-3 w-[24%] text-left">College</th>
-                    <th className="px-2 py-3 w-[18%] text-left">Branch</th>
-                    <th className="px-2 py-3 w-20 text-left">Category</th>
-                    <th className="px-2 py-3 w-24 text-left">Round</th>
-                    <th className="px-2 py-3 w-24 text-right">Rank</th>
-                    <th className="px-2 py-3 w-28 text-right">Percentile</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sortedCutoffs.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="hover:bg-purple-50/40 transition-colors align-top"
-                    >
-                      <td className="px-2 py-3 font-medium">{c.year}</td>
-                      <td className="px-2 py-3">
-                        <div className="wrap-break-word leading-snug">
-                          {c.college_name}
-                        </div>
-                        {c.college_code && (
-                          <div className="text-[11px] text-gray-400 mt-1">
-                            Code: {c.college_code}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-2 py-3 wrap-break-word leading-snug">
-                        {c.branch}
-                      </td>
-                      <td className="px-2 py-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-[11px] font-semibold ${getCutoffCategoryColor(c.category)}`}
-                        >
-                          {c.category}
-                        </span>
-                      </td>
-                      <td className="px-2 py-3">{formatRound(c.stage)}</td>
-                      <td className="px-2 py-3 text-right font-mono">
-                        {c.cutoff_rank ? c.cutoff_rank.toLocaleString() : "—"}
-                      </td>
-                      <td className="px-2 py-3 text-right font-semibold text-purple-700">
-                        {Number(c.percentile).toFixed(4)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                {sortedCutoffs.map((cutoff) => (
+                  <CutoffResultCard key={cutoff.id} cutoff={cutoff} />
+                ))}
+              </div>
             </div>
           </div>
         )}

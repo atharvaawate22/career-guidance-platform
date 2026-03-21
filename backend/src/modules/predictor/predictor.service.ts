@@ -84,6 +84,8 @@ export class PredictorService {
       year: PREDICTOR_YEAR,
       category: request.category,
       gender: request.gender,
+      minority_types: request.minority_types,
+      minority_groups: request.minority_groups,
       level: request.level,
       preferred_branches: request.preferred_branches,
       cities: request.cities,
