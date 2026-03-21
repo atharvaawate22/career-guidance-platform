@@ -18,6 +18,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 
 const normalizeOrigin = (value: string) => value.trim().replace(/\/+$/, '');
+const VERCEL_HOST_SUFFIX = '.vercel.app';
 const frontendOrigins = (
   process.env.FRONTEND_URL || 'https://career-guidance-platform-gilt.vercel.app'
 )
@@ -25,8 +26,49 @@ const frontendOrigins = (
   .map(normalizeOrigin)
   .filter(Boolean);
 const allowedOrigins = Array.from(
-  new Set(['http://localhost:3000', ...frontendOrigins]),
+  new Set(['http://localhost:3000', 'http://127.0.0.1:3000', ...frontendOrigins]),
 );
+const vercelPreviewPrefixes = Array.from(
+  new Set(
+    frontendOrigins
+      .map((origin) => {
+        try {
+          const hostname = new URL(origin).hostname.toLowerCase();
+          if (!hostname.endsWith(VERCEL_HOST_SUFFIX)) {
+            return null;
+          }
+
+          const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
+          const segments = subdomain.split('-').filter(Boolean);
+          return segments.length > 0 ? segments[0] : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter((value): value is string => Boolean(value)),
+  ),
+);
+
+const isAllowedOrigin = (origin: string): boolean => {
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (protocol !== 'https:' || !hostname.endsWith(VERCEL_HOST_SUFFIX)) {
+      return false;
+    }
+
+    const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
+    return vercelPreviewPrefixes.some(
+      (prefix) =>
+        subdomain === prefix || subdomain.startsWith(`${prefix}-`),
+    );
+  } catch {
+    return false;
+  }
+};
 import bcrypt from 'bcrypt';
 import errorHandler from './middleware/errorHandler';
 import updatesRoutes from './modules/updates/updates.routes';
@@ -106,7 +148,7 @@ app.use(
         return;
       }
       const requestOrigin = normalizeOrigin(origin);
-      if (allowedOrigins.includes(requestOrigin)) {
+      if (isAllowedOrigin(requestOrigin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin '${requestOrigin}' is not allowed`));
