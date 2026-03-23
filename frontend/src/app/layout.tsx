@@ -15,9 +15,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MHT-CET Career Guidance Portal",
+  title: "MHT-CET Career Hub — College Predictor, Cutoffs & Guidance",
   description:
-    "Complete career guidance platform for MHT-CET engineering admissions in Maharashtra",
+    "All-in-one MHT-CET career guidance platform — predict colleges based on your percentile, explore 2025 cutoff data, book expert counseling sessions, and plan your engineering admission in Maharashtra.",
+  keywords: [
+    "MHT-CET",
+    "college predictor",
+    "MHT-CET cutoffs",
+    "engineering admissions Maharashtra",
+    "CAP round guidance",
+    "career counseling",
+    "MHT-CET 2025",
+    "college admission",
+  ],
+  openGraph: {
+    title: "MHT-CET Career Hub — College Predictor & Cutoff Explorer",
+    description:
+      "Predict colleges, explore cutoffs, and get expert guidance for MHT-CET engineering admissions in Maharashtra.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

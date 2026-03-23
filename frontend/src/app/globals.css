@@ -28,6 +28,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Theme-aware selection colour */
+::selection {
+  background: rgba(147, 51, 234, 0.2);
+  color: #4c1d95;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -54,6 +60,21 @@ button {
 
 /* Focus styles for accessibility */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #7c3aed;
   outline-offset: 2px;
+}
+
+/* FAQ Accordion Animation */
+.faq-answer-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.faq-answer-grid[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.faq-answer-inner {
+  overflow: hidden;
 }
