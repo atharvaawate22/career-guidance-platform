@@ -40,6 +40,22 @@ const COUNTRY_CODES = [
   { code: "+81", flag: "🇯🇵", name: "Japan" },
 ];
 
+const MEETING_PURPOSE_OPTIONS = [
+  { value: "", label: "Select purpose" },
+  { value: "College selection strategy", label: "College selection strategy" },
+  { value: "Branch comparison and choice", label: "Branch comparison and choice" },
+  { value: "CAP round counseling", label: "CAP round counseling" },
+  {
+    value: "Admission process and documents",
+    label: "Admission process and documents",
+  },
+  {
+    value: "Percentile to college planning",
+    label: "Percentile to college planning",
+  },
+  { value: "Other", label: "Other" },
+];
+
 function formatTimeLabel(time: string) {
   const [h, m] = time.split(":").map(Number);
   const period = h >= 12 ? "PM" : "AM";
@@ -85,6 +101,7 @@ export default function BookPage() {
   const [countryCode, setCountryCode] = useState("+91");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [meetingPurposeOption, setMeetingPurposeOption] = useState("");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -94,6 +111,7 @@ export default function BookPage() {
     percentile: "",
     category: "",
     branch_preference: "",
+    meeting_purpose: "",
     meeting_time: "",
   });
 
@@ -101,6 +119,14 @@ export default function BookPage() {
     e.preventDefault();
     if (!formData.meeting_time) {
       setError("Please select a meeting date and time slot.");
+      return;
+    }
+    if (!meetingPurposeOption) {
+      setError("Please select the purpose of meeting.");
+      return;
+    }
+    if (meetingPurposeOption === "Other" && !formData.meeting_purpose.trim()) {
+      setError("Please enter your purpose of meeting.");
       return;
     }
     setLoading(true);
@@ -137,8 +163,10 @@ export default function BookPage() {
           percentile: "",
           category: "",
           branch_preference: "",
+          meeting_purpose: "",
           meeting_time: "",
         });
+        setMeetingPurposeOption("");
         setSelectedDate("");
         setSelectedTime("");
       } else {
@@ -445,6 +473,44 @@ export default function BookPage() {
                   placeholder="Computer Engineering"
                 />
               </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Purpose of Meeting <span className="text-red-500">*</span>
+                </label>
+                <CustomSelect
+                  value={meetingPurposeOption}
+                  onChange={(value) => {
+                    setMeetingPurposeOption(value);
+                    setFormData((current) => ({
+                      ...current,
+                      meeting_purpose: value === "Other" ? "" : value,
+                    }));
+                  }}
+                  placeholder="Select purpose"
+                  required
+                  options={MEETING_PURPOSE_OPTIONS}
+                />
+              </div>
+
+              {meetingPurposeOption === "Other" && (
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    Tell us your purpose <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="meeting_purpose"
+                    required
+                    minLength={3}
+                    maxLength={150}
+                    value={formData.meeting_purpose}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Describe what you want help with"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-gray-700 font-medium mb-2">

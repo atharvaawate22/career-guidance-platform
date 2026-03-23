@@ -8,14 +8,15 @@ export async function createBooking(bookingData: {
   percentile: number;
   category: string;
   branch_preference: string;
+  meeting_purpose: string;
   meeting_time: Date;
   meet_link: string;
 }): Promise<Booking> {
   const result = await query(
     `INSERT INTO bookings 
-    (student_name, email, phone, percentile, category, branch_preference, meeting_time, meet_link) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-    RETURNING id, student_name, email, phone, percentile, category, branch_preference, meeting_time, meet_link, booking_status, email_status, created_at`,
+    (student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+    RETURNING id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at`,
     [
       bookingData.student_name,
       bookingData.email,
@@ -23,6 +24,7 @@ export async function createBooking(bookingData: {
       bookingData.percentile,
       bookingData.category,
       bookingData.branch_preference,
+      bookingData.meeting_purpose,
       bookingData.meeting_time,
       bookingData.meet_link,
     ],
@@ -42,7 +44,7 @@ export async function updateEmailStatus(
 
 export async function getAllBookings(): Promise<Booking[]> {
   const result = await query(
-    `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_time, meet_link, booking_status, email_status, created_at 
+    `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at 
     FROM bookings 
     ORDER BY meeting_time DESC`,
   );

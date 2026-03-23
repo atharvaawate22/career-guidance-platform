@@ -1715,6 +1715,14 @@ export const STATIC_CUTOFF_CITIES: string[] = [
   "Yelgaon"
 ];
 
+export function normalizeStaticCityLabel(city: string): string {
+  return city.replace(/\s+/g, " ").trim().replace(/[.,]+$/, "").trim();
+}
+
+export const STATIC_CUTOFF_CITIES_CLEAN: string[] = Array.from(
+  new Set(STATIC_CUTOFF_CITIES.map(normalizeStaticCityLabel))
+).sort((left, right) => left.localeCompare(right));
+
 // Generated from cutoffs_2025_cap1.csv and city_aliases_2025.csv (distinct college-branch-city tuples)
 export const STATIC_CUTOFF_RELATIONS: StaticCutoffRelation[] = [
   {

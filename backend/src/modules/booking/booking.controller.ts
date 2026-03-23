@@ -16,6 +16,7 @@ export async function createBooking(
       percentile: req.body.percentile,
       category: req.body.category,
       branch_preference: req.body.branch_preference,
+      meeting_purpose: req.body.meeting_purpose,
       meeting_time: req.body.meeting_time,
     };
 

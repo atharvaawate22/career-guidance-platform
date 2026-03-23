@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   percentile DECIMAL(5,2) NOT NULL,
   category TEXT NOT NULL,
   branch_preference TEXT NOT NULL,
+  meeting_purpose TEXT NOT NULL DEFAULT 'General admission guidance',
   meeting_time TIMESTAMP NOT NULL,
   meet_link TEXT NOT NULL,
   booking_status TEXT DEFAULT 'scheduled',

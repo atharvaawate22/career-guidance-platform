@@ -6,6 +6,7 @@ export interface Booking {
   percentile: number;
   category: string;
   branch_preference: string;
+  meeting_purpose: string;
   meeting_time: Date;
   meet_link: string;
   booking_status: string;
@@ -20,6 +21,7 @@ export interface CreateBookingRequest {
   percentile: number;
   category: string;
   branch_preference: string;
+  meeting_purpose: string;
   meeting_time: string; // ISO string
 }
 

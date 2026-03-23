@@ -16,7 +16,7 @@ import {
 } from "@/lib/minorityStatus";
 import {
   STATIC_CUTOFF_BRANCHES,
-  STATIC_CUTOFF_CITIES,
+  STATIC_CUTOFF_CITIES_CLEAN,
 } from "@/lib/cutoffStaticMeta";
 
 const API_BASE_URL =
@@ -85,7 +85,7 @@ export default function PredictorPage() {
 
   // Branch autocomplete
   const branchOptions = STATIC_CUTOFF_BRANCHES;
-  const cityOptions = STATIC_CUTOFF_CITIES;
+  const cityOptions = STATIC_CUTOFF_CITIES_CLEAN;
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -334,9 +334,10 @@ export default function PredictorPage() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="rounded-2xl border border-gray-100 bg-linear-to-br from-white via-white to-purple-50/50 p-4 sm:p-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
                 {/* Category */}
-                <div>
+                <div className="xl:col-span-4">
                   <label
                     htmlFor="category"
                     className="block mb-2 text-sm font-medium text-gray-700"
@@ -360,7 +361,7 @@ export default function PredictorPage() {
                 </div>
 
                 {/* Gender */}
-                <div>
+                <div className="xl:col-span-4">
                   <label
                     htmlFor="gender"
                     className="block mb-2 text-sm font-medium text-gray-700"
@@ -374,13 +375,9 @@ export default function PredictorPage() {
                     options={[...CANDIDATE_GENDER_OPTIONS]}
                     placeholder="Select Gender"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Male sees gender-neutral seats only. Female sees
-                    gender-neutral and ladies seats.
-                  </p>
                 </div>
 
-                <div>
+                <div className="xl:col-span-6">
                   <label
                     htmlFor="minorityType"
                     className="block mb-2 text-sm font-medium text-gray-700"
@@ -394,12 +391,9 @@ export default function PredictorPage() {
                     options={MINORITY_TYPE_OPTIONS}
                     placeholder="All Minority Types"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Select one or more minority types you may be eligible for.
-                  </p>
                 </div>
 
-                <div>
+                <div className="xl:col-span-6">
                   <label
                     htmlFor="minorityGroup"
                     className="block mb-2 text-sm font-medium text-gray-700"
@@ -419,18 +413,15 @@ export default function PredictorPage() {
                     options={getMinorityGroupOptions(selectedMinorityTypes)}
                     placeholder="All Minority Groups"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    You can combine multiple groups, like Gujarati and Jain,
-                    when both apply to you.
-                  </p>
                 </div>
 
               </div>
 
               {/* TFWS toggle — styled card row */}
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
               {category !== "TFWS" && (
                 <label
-                  className={`flex items-start gap-3 px-4 py-3 rounded-xl border cursor-pointer select-none transition-all duration-150 ${
+                  className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer select-none transition-all duration-150 md:col-span-2 xl:col-span-4 ${
                     includeTfws
                       ? "border-purple-300 bg-purple-50"
                       : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
@@ -440,7 +431,7 @@ export default function PredictorPage() {
                     type="checkbox"
                     checked={includeTfws}
                     onChange={(e) => setIncludeTfws(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-purple-600 rounded shrink-0"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded accent-purple-600"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-800">
@@ -450,13 +441,30 @@ export default function PredictorPage() {
                       </span>{" "}
                       seats
                     </span>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="mt-0.5 text-xs text-gray-500">
                       Tuition Fee Waiver Scheme — for economically weaker
                       sections (income-based eligibility)
                     </p>
                   </div>
                 </label>
               )}
+              <div className="rounded-xl border border-purple-100 bg-purple-50/70 px-4 py-3 text-sm text-gray-700 md:col-span-2 xl:col-span-4">
+                <span className="font-semibold text-purple-700">
+                  Seat rule:
+                </span>{" "}
+                Male candidates see gender-neutral seats only. Female
+                candidates see gender-neutral and ladies seats.
+              </div>
+
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-gray-700 md:col-span-2 xl:col-span-4">
+                <span className="font-semibold text-indigo-700">
+                  Minority filters:
+                </span>{" "}
+                Add one or more minority types or groups only if they apply to
+                you. Groups can be combined when eligible.
+              </div>
+              </div>
+              </div>
             </div>
 
             <div className="border-t border-dashed border-gray-200 mb-6" />
