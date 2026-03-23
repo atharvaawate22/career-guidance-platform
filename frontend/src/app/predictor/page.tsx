@@ -198,16 +198,16 @@ export default function PredictorPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
             College Predictor
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-base sm:text-lg">
             Based on MHT-CET 2025 CAP Round I cutoffs — enter your percentile or
             rank to see eligible colleges
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Predictions are generated from historical cutoff data (2025 CAP
-            Round 1 dataset).
+            Round 1 dataset). Results are indicative, not guaranteed.
           </p>
         </div>
 

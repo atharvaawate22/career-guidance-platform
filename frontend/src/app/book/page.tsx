@@ -41,17 +41,29 @@ const COUNTRY_CODES = [
 ];
 
 const MEETING_PURPOSE_OPTIONS = [
-  { value: "", label: "Select purpose" },
-  { value: "College selection strategy", label: "College selection strategy" },
-  { value: "Branch comparison and choice", label: "Branch comparison and choice" },
-  { value: "CAP round counseling", label: "CAP round counseling" },
   {
-    value: "Admission process and documents",
-    label: "Admission process and documents",
+    value: "Help me build my college preference list",
+    label: "Help me build my college preference list",
   },
   {
-    value: "Percentile to college planning",
-    label: "Percentile to college planning",
+    value: "Compare branches & choose the right one",
+    label: "Compare branches & choose the right one",
+  },
+  {
+    value: "CAP round strategy & option form guidance",
+    label: "CAP round strategy & option form guidance",
+  },
+  {
+    value: "Admission process, eligibility & documents",
+    label: "Admission process, eligibility & documents",
+  },
+  {
+    value: "Percentile/rank-based college planning",
+    label: "Percentile/rank-based college planning",
+  },
+  {
+    value: "Understanding cutoff trends & seat matrix",
+    label: "Understanding cutoff trends & seat matrix",
   },
   { value: "Other", label: "Other" },
 ];
@@ -324,14 +336,23 @@ export default function BookPage() {
     <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
             Book a Session
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-base sm:text-lg">
             Schedule a one-on-one career guidance session with our expert
             counselors. Get personalized advice on college selection and
             admission strategies.
           </p>
+        </div>
+
+        {/* Info banner */}
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 mb-6 flex items-start gap-3">
+          <span className="text-lg leading-none mt-0.5">🎥</span>
+          <div>
+            <span className="font-semibold">Free session via Google Meet.</span>{" "}
+            You&apos;ll receive a confirmation email with the Meet link after booking. Sessions are 30 minutes long.
+          </div>
         </div>
 
         {error && (
@@ -553,7 +574,7 @@ export default function BookPage() {
                         Unavailable
                       </span>
                     </div>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                       {TIME_SLOTS.map((slot) => {
                         const isBooked = bookedSlots.includes(slot);
                         const isUnavailable =

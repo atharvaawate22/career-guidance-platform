@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useId } from "react";
+import { useState, useRef, useEffect, useId, useCallback } from "react";
 
 export interface SelectOption {
   value: string;
@@ -29,6 +29,7 @@ export default function CustomSelect({
   inputSize = "md",
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
+  const [openAbove, setOpenAbove] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const generatedId = useId();
@@ -37,6 +38,16 @@ export default function CustomSelect({
   const paddingClass = inputSize === "sm" ? "px-3 py-2" : "px-4 py-3";
   // className controls width; default is w-full (callers can override with e.g. w-28)
   const widthClass = className || "w-full";
+
+  // Determine whether to open upward or downward
+  const computeDirection = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    // 260px ≈ max-h-63 (252px) + margin
+    setOpenAbove(spaceBelow < 260 && spaceAbove > spaceBelow);
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -61,15 +72,18 @@ export default function CustomSelect({
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  // Scroll selected option into view when opened
+  // Scroll selected option into view when opened & compute direction
   useEffect(() => {
-    if (open && listRef.current) {
-      const selected = listRef.current.querySelector(
-        "[data-selected='true']"
-      ) as HTMLElement | null;
-      if (selected) selected.scrollIntoView({ block: "nearest" });
+    if (open) {
+      computeDirection();
+      if (listRef.current) {
+        const selected = listRef.current.querySelector(
+          "[data-selected='true']"
+        ) as HTMLElement | null;
+        if (selected) selected.scrollIntoView({ block: "nearest" });
+      }
     }
-  }, [open]);
+  }, [open, computeDirection]);
 
   const selected = options.find((o) => o.value === value);
 
@@ -81,7 +95,7 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg ${paddingClass} text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors hover:border-gray-400 cursor-pointer`}
+        className={`w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg ${paddingClass} text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors hover:border-purple-300 cursor-pointer`}
       >
         <span
           className={`truncate ${selected ? "text-gray-800" : "text-gray-400"}`}
@@ -89,7 +103,7 @@ export default function CustomSelect({
           {selected ? selected.label : placeholder}
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-150 ${
+          className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200 ${
             open ? "rotate-180" : ""
           }`}
           fill="none"
@@ -109,7 +123,9 @@ export default function CustomSelect({
         <div
           role="listbox"
           ref={listRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-y-auto max-h-63"
+          className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl overflow-y-auto max-h-63 ${
+            openAbove ? "bottom-full mb-1" : "top-full mt-1"
+          }`}
         >
           {options.map((opt) => {
             const isSelected = opt.value === value;
