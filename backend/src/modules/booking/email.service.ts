@@ -9,6 +9,7 @@ interface BookingConfirmation {
   meetLink: string;
   category: string;
   branchPreference: string;
+  meetingPurpose: string;
   percentile: number;
 }
 
@@ -90,6 +91,7 @@ Duration: 30 minutes
 
 Category: ${booking.category}
 Branch Preference: ${booking.branchPreference}
+Purpose of Meeting: ${booking.meetingPurpose}
 Your Percentile: ${booking.percentile}
 
 Google Meet Link:
@@ -158,6 +160,7 @@ function formatEmailHTML(booking: BookingConfirmation): string {
         <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
         <div class="detail-row"><span class="label">Category:</span> ${booking.category}</div>
         <div class="detail-row"><span class="label">Branch Preference:</span> ${booking.branchPreference}</div>
+        <div class="detail-row"><span class="label">Purpose of Meeting:</span> ${booking.meetingPurpose}</div>
         <div class="detail-row"><span class="label">Your Percentile:</span> ${booking.percentile}</div>
       </div>
       

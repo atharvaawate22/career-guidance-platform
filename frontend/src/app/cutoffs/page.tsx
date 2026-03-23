@@ -20,6 +20,7 @@ import {
 import {
   STATIC_CUTOFF_COLLEGES,
   STATIC_CUTOFF_RELATIONS,
+  normalizeStaticCityLabel,
 } from "@/lib/cutoffStaticMeta";
 
 const API_BASE_URL =
@@ -87,8 +88,6 @@ export default function CutoffsPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("percentile-desc");
 
-  // Filter state — declared BEFORE the useEffect that depends on 'year'
-  const [year, setYear] = useState(DEFAULT_META_YEAR);
   const [collegeName, setCollegeName] = useState("");
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
@@ -116,7 +115,9 @@ export default function CutoffsPage() {
 
     const names = new Set<string>();
     for (const relation of STATIC_CUTOFF_RELATIONS) {
-      if (citySet && !citySet.has(relation.city)) continue;
+      if (citySet && !citySet.has(normalizeStaticCityLabel(relation.city))) {
+        continue;
+      }
       if (branchSet && !branchSet.has(relation.branch)) continue;
       names.add(relation.collegeName);
     }
@@ -133,7 +134,9 @@ export default function CutoffsPage() {
 
     for (const relation of STATIC_CUTOFF_RELATIONS) {
       if (collegeName && relation.collegeName !== collegeName) continue;
-      if (citySet && !citySet.has(relation.city)) continue;
+      if (citySet && !citySet.has(normalizeStaticCityLabel(relation.city))) {
+        continue;
+      }
       branchSet.add(relation.branch);
     }
 
@@ -151,7 +154,7 @@ export default function CutoffsPage() {
     for (const relation of STATIC_CUTOFF_RELATIONS) {
       if (collegeName && relation.collegeName !== collegeName) continue;
       if (branchSet && !branchSet.has(relation.branch)) continue;
-      citySet.add(relation.city);
+      citySet.add(normalizeStaticCityLabel(relation.city));
     }
 
     return Array.from(citySet).sort((left, right) => left.localeCompare(right));
@@ -217,7 +220,7 @@ export default function CutoffsPage() {
 
     try {
       const params = new URLSearchParams();
-      if (year) params.append("year", year);
+      params.append("year", DEFAULT_META_YEAR);
       selectedBranches.forEach((b) => params.append("branch", b));
       if (category) params.append("category", category);
       if (gender) params.append("gender", gender);
@@ -252,7 +255,6 @@ export default function CutoffsPage() {
   };
 
   const handleReset = () => {
-    setYear(DEFAULT_META_YEAR);
     setSelectedBranches([]);
     setCategory("");
     setGender("");
@@ -332,22 +334,16 @@ export default function CutoffsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Year */}
-                <div>
-                  <label
-                    htmlFor="year"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Year
-                  </label>
-                  <CustomSelect
-                    id="year"
-                    value={year}
-                    onChange={setYear}
-                    options={[{ value: "2025", label: "2025" }]}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Explore the 2025 cutoff dataset across CAP Rounds 1 to 4.
+                <div className="rounded-xl border border-purple-100 bg-linear-to-br from-purple-50 via-white to-pink-50 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-700">
+                    Dataset
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-gray-800">
+                    Showing the 2025 cutoff dataset only.
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    CAP Rounds 1 to 4 are already included, so there is no year
+                    selector on this screen.
                   </p>
                 </div>
 
@@ -426,102 +422,107 @@ export default function CutoffsPage() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-                {/* Branch */}
-                <div className="xl:col-span-2">
-                  <label
-                    htmlFor="branch"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Branch
-                  </label>
-                  <MultiSelect
-                    id="branch"
-                    value={selectedBranches}
-                    onChange={handleBranchesChange}
-                    options={branchOptions}
-                    placeholder="All Branches"
-                  />
-                </div>
+              <div className="rounded-2xl border border-gray-100 bg-linear-to-br from-white via-white to-purple-50/50 p-4 sm:p-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
+                  {/* Branch */}
+                  <div className="xl:col-span-5">
+                    <label
+                      htmlFor="branch"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Branch
+                    </label>
+                    <MultiSelect
+                      id="branch"
+                      value={selectedBranches}
+                      onChange={handleBranchesChange}
+                      options={branchOptions}
+                      placeholder="All Branches"
+                    />
+                  </div>
 
-                {/* Category */}
-                <div>
-                  <label
-                    htmlFor="category"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Category
-                  </label>
-                  <CustomSelect
-                    id="category"
-                    value={category}
-                    onChange={setCategory}
-                    options={[
-                      { value: "", label: "All Categories" },
-                      ...CUTOFF_CATEGORIES.map((c) => ({ value: c, label: c })),
-                    ]}
-                  />
-                </div>
+                  {/* Category */}
+                  <div className="xl:col-span-3">
+                    <label
+                      htmlFor="category"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Category
+                    </label>
+                    <CustomSelect
+                      id="category"
+                      value={category}
+                      onChange={setCategory}
+                      options={[
+                        { value: "", label: "All Categories" },
+                        ...CUTOFF_CATEGORIES.map((c) => ({ value: c, label: c })),
+                      ]}
+                    />
+                  </div>
 
-                {/* Gender */}
-                <div>
-                  <label
-                    htmlFor="gender"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Gender
-                  </label>
-                  <CustomSelect
-                    id="gender"
-                    value={gender}
-                    onChange={setGender}
-                    options={[...CANDIDATE_GENDER_OPTIONS]}
-                    placeholder="Select Gender"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Male sees gender-neutral seats only. Female sees
-                    gender-neutral and ladies seats.
-                  </p>
-                </div>
+                  {/* Gender */}
+                  <div className="xl:col-span-4">
+                    <label
+                      htmlFor="gender"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Gender
+                    </label>
+                    <CustomSelect
+                      id="gender"
+                      value={gender}
+                      onChange={setGender}
+                      options={[...CANDIDATE_GENDER_OPTIONS]}
+                      placeholder="Select Gender"
+                    />
+                  </div>
 
-                <div>
-                  <label
-                    htmlFor="minorityType"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Minority Type
-                  </label>
-                  <MultiSelect
-                    id="minorityType"
-                    value={selectedMinorityTypes}
-                    onChange={setSelectedMinorityTypes}
-                    options={MINORITY_TYPE_OPTIONS}
-                    placeholder="All Minority Types"
-                  />
-                </div>
+                  <div className="rounded-xl border border-purple-100 bg-purple-50/70 px-4 py-3 text-sm text-gray-700 md:col-span-2 xl:col-span-12">
+                    <span className="font-semibold text-purple-700">
+                      Seat rule:
+                    </span>{" "}
+                    Male candidates see gender-neutral seats only. Female
+                    candidates see gender-neutral and ladies seats.
+                  </div>
 
-                <div>
-                  <label
-                    htmlFor="minorityGroup"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Minority Group
-                  </label>
-                  <MultiSelect
-                    id="minorityGroup"
-                    value={selectedMinorityGroups}
-                    onChange={(values) => {
-                      setSelectedMinorityGroups(values);
-                      const impliedTypes = getMinorityTypesForGroups(values);
-                      setSelectedMinorityTypes((current) =>
-                        Array.from(new Set([...current, ...impliedTypes]))
-                      );
-                    }}
-                    options={getMinorityGroupOptions(selectedMinorityTypes)}
-                    placeholder="All Minority Groups"
-                  />
-                </div>
+                  <div className="xl:col-span-6">
+                    <label
+                      htmlFor="minorityType"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Minority Type
+                    </label>
+                    <MultiSelect
+                      id="minorityType"
+                      value={selectedMinorityTypes}
+                      onChange={setSelectedMinorityTypes}
+                      options={MINORITY_TYPE_OPTIONS}
+                      placeholder="All Minority Types"
+                    />
+                  </div>
 
+                  <div className="xl:col-span-6">
+                    <label
+                      htmlFor="minorityGroup"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Minority Group
+                    </label>
+                    <MultiSelect
+                      id="minorityGroup"
+                      value={selectedMinorityGroups}
+                      onChange={(values) => {
+                        setSelectedMinorityGroups(values);
+                        const impliedTypes = getMinorityTypesForGroups(values);
+                        setSelectedMinorityTypes((current) =>
+                          Array.from(new Set([...current, ...impliedTypes]))
+                        );
+                      }}
+                      options={getMinorityGroupOptions(selectedMinorityTypes)}
+                      placeholder="All Minority Groups"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

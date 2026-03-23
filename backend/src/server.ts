@@ -410,6 +410,7 @@ const initializeDatabase = async (): Promise<boolean> => {
         percentile DECIMAL(5,2) NOT NULL,
         category TEXT NOT NULL,
         branch_preference TEXT NOT NULL,
+        meeting_purpose TEXT NOT NULL DEFAULT 'General admission guidance',
         meeting_time TIMESTAMP NOT NULL,
         meet_link TEXT NOT NULL,
         booking_status TEXT DEFAULT 'scheduled',
@@ -417,6 +418,13 @@ const initializeDatabase = async (): Promise<boolean> => {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+
+    const bookingColumns = await getExistingColumns('bookings');
+    if (!bookingColumns.has('meeting_purpose')) {
+      await query(
+        `ALTER TABLE bookings ADD COLUMN meeting_purpose TEXT NOT NULL DEFAULT 'General admission guidance'`,
+      );
+    }
 
     // Create indexes for bookings
     await query(`

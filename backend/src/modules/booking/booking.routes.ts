@@ -15,6 +15,7 @@ router.get('/', (_req, res) => {
       percentile: 'number',
       category: 'string',
       branchPreference: 'string',
+      meetingPurpose: 'string',
       preferredDate: 'string (ISO 8601 date)',
       preferredTime: 'string (HH:MM format)',
     },

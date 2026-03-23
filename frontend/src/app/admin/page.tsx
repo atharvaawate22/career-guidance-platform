@@ -24,6 +24,7 @@ interface Booking {
   percentile: number;
   category: string;
   branch_preference: string;
+  meeting_purpose: string;
   meeting_time: string;
   meet_link: string;
   booking_status: string;
@@ -1391,6 +1392,12 @@ export default function AdminPage() {
                                 Branch:{" "}
                                 <span className="font-semibold">
                                   {booking.branch_preference}
+                                </span>
+                              </div>
+                              <div className="text-gray-600">
+                                Purpose:{" "}
+                                <span className="font-semibold">
+                                  {booking.meeting_purpose}
                                 </span>
                               </div>
                             </div>

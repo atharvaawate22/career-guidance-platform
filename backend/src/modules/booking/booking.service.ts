@@ -29,6 +29,7 @@ export async function createBooking(
       bookingRequest.percentile,
       bookingRequest.category,
       bookingRequest.branch_preference,
+      bookingRequest.meeting_purpose.trim(),
     );
 
     // Step 3: Insert booking record with meet_link
@@ -39,6 +40,7 @@ export async function createBooking(
       percentile: bookingRequest.percentile,
       category: bookingRequest.category,
       branch_preference: bookingRequest.branch_preference,
+      meeting_purpose: bookingRequest.meeting_purpose.trim(),
       meeting_time: meetingTime,
       meet_link: meetLink,
     });
@@ -52,6 +54,7 @@ export async function createBooking(
         meetLink: meetLink,
         category: bookingRequest.category,
         branchPreference: bookingRequest.branch_preference,
+        meetingPurpose: bookingRequest.meeting_purpose.trim(),
         percentile: bookingRequest.percentile,
       })
       .then((emailSent) => {
@@ -132,9 +135,14 @@ function validateBookingRequest(request: CreateBookingRequest): string | null {
     !request.student_name ||
     !request.phone ||
     !request.category ||
-    !request.branch_preference
+    !request.branch_preference ||
+    !request.meeting_purpose?.trim()
   ) {
     return 'All fields are required';
+  }
+
+  if (request.meeting_purpose.trim().length < 3) {
+    return 'Purpose of meeting must be at least 3 characters';
   }
 
   return null;
