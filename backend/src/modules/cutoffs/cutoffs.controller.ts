@@ -232,6 +232,8 @@ export class CutoffsController {
               : [req.query.branch]) as string[])
           : undefined,
         category: req.query.category as string | undefined,
+        include_tfws:
+          req.query.include_tfws === 'true' || req.query.include_tfws === '1',
         gender: req.query.gender as string | undefined,
         minority_types: req.query.minority_type
           ? ((Array.isArray(req.query.minority_type)

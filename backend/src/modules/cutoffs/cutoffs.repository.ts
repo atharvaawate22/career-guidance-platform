@@ -27,8 +27,13 @@ export class CutoffsRepository {
       filters.branches.forEach((b) => values.push(`%${b}%`));
     }
     if (filters.category) {
-      conditions.push(`category = $${p++}`);
-      values.push(filters.category);
+      if (filters.include_tfws && filters.category !== 'TFWS') {
+        conditions.push(`(category = $${p++} OR category = $${p++})`);
+        values.push(filters.category, 'TFWS');
+      } else {
+        conditions.push(`category = $${p++}`);
+        values.push(filters.category);
+      }
     }
     const minorityFilter = buildMinorityStatusFilter(
       filters.minority_types,
