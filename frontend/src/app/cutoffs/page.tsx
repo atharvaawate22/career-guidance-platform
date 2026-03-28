@@ -89,6 +89,8 @@ export default function CutoffsPage() {
   const [sortBy, setSortBy] = useState<SortOption>("percentile-desc");
 
   const [collegeName, setCollegeName] = useState("");
+  // Stable DTE college_code for the currently selected college (null = free-text)
+  const [collegeCode, setCollegeCode] = useState<string | null>(null);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
@@ -197,9 +199,6 @@ export default function CutoffsPage() {
       setSelectedMinorityGroups([]);
     }
   }, [selectedMinorityGroups, selectedMinorityTypes]);
-
-  // Stable DTE college_code for the currently selected college (null = free-text)
-  const [collegeCode, setCollegeCode] = useState<string | null>(null);
 
   // When college changes: narrow branches to only those in that college
   const handleCollegeChange = (value: string) => {
