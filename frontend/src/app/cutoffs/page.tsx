@@ -100,6 +100,7 @@ export default function CutoffsPage() {
   >([]);
   const [stage, setStage] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [includeTfws, setIncludeTfws] = useState(false);
 
   const collegeMapByName = useMemo(
     () =>
@@ -161,14 +162,16 @@ export default function CutoffsPage() {
   }, [collegeName, selectedBranches]);
 
   useEffect(() => {
+    // Keep free-text search intact; reset only stale exact-selection code.
     if (
+      collegeCode &&
       collegeName &&
       !collegeOptions.some((college) => college.name === collegeName)
     ) {
       setCollegeName("");
       setCollegeCode(null);
     }
-  }, [collegeName, collegeOptions]);
+  }, [collegeCode, collegeName, collegeOptions]);
 
   useEffect(() => {
     if (selectedBranches.length === 0) return;
@@ -187,6 +190,13 @@ export default function CutoffsPage() {
       setSelectedCities(next);
     }
   }, [cityOptions, selectedCities]);
+
+  useEffect(() => {
+    if (selectedMinorityTypes.length > 0) return;
+    if (selectedMinorityGroups.length > 0) {
+      setSelectedMinorityGroups([]);
+    }
+  }, [selectedMinorityGroups, selectedMinorityTypes]);
 
   // Stable DTE college_code for the currently selected college (null = free-text)
   const [collegeCode, setCollegeCode] = useState<string | null>(null);
@@ -223,6 +233,7 @@ export default function CutoffsPage() {
       params.append("year", DEFAULT_META_YEAR);
       selectedBranches.forEach((b) => params.append("branch", b));
       if (category) params.append("category", category);
+      if (includeTfws && category !== "TFWS") params.append("include_tfws", "true");
       if (gender) params.append("gender", gender);
       selectedMinorityTypes.forEach((type) =>
         params.append("minority_type", type)
@@ -257,6 +268,7 @@ export default function CutoffsPage() {
   const handleReset = () => {
     setSelectedBranches([]);
     setCategory("");
+    setIncludeTfws(false);
     setGender("");
     setSelectedMinorityTypes([]);
     setSelectedMinorityGroups([]);
@@ -452,10 +464,16 @@ export default function CutoffsPage() {
                     <CustomSelect
                       id="category"
                       value={category}
-                      onChange={setCategory}
+                      onChange={(value) => {
+                        setCategory(value);
+                        if (value === "TFWS") setIncludeTfws(false);
+                      }}
                       options={[
                         { value: "", label: "All Categories" },
-                        ...CUTOFF_CATEGORIES.map((c) => ({ value: c, label: c })),
+                        ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map((c) => ({
+                          value: c,
+                          label: c,
+                        })),
                       ]}
                     />
                   </div>
@@ -512,16 +530,60 @@ export default function CutoffsPage() {
                       id="minorityGroup"
                       value={selectedMinorityGroups}
                       onChange={(values) => {
+                        if (selectedMinorityTypes.length === 0) return;
                         setSelectedMinorityGroups(values);
                         const impliedTypes = getMinorityTypesForGroups(values);
                         setSelectedMinorityTypes((current) =>
                           Array.from(new Set([...current, ...impliedTypes]))
                         );
                       }}
-                      options={getMinorityGroupOptions(selectedMinorityTypes)}
-                      placeholder="All Minority Groups"
+                      options={
+                        selectedMinorityTypes.length > 0
+                          ? getMinorityGroupOptions(selectedMinorityTypes)
+                          : []
+                      }
+                      placeholder={
+                        selectedMinorityTypes.length > 0
+                          ? "All Minority Groups"
+                          : "Select minority type first"
+                      }
+                      disabled={selectedMinorityTypes.length === 0}
                     />
+                    <p className="mt-1 text-xs text-gray-400">
+                      Minority groups are available after selecting at least one
+                      minority type.
+                    </p>
                   </div>
+
+                  {category !== "TFWS" && (
+                    <label
+                      className={`xl:col-span-12 flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer select-none transition-all duration-150 ${
+                        includeTfws
+                          ? "border-purple-300 bg-purple-50"
+                          : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={includeTfws}
+                        onChange={(e) => setIncludeTfws(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded accent-purple-600"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-800">
+                          Also include{" "}
+                          <span className="text-purple-700 font-semibold">
+                            TFWS
+                          </span>{" "}
+                          seats
+                        </span>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          Tuition Fee Waiver Scheme seats are added with the
+                          selected category.
+                        </p>
+                      </div>
+                    </label>
+                  )}
                 </div>
               </div>
             </div>

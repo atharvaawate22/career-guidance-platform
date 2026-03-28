@@ -9,6 +9,7 @@ interface ComboBoxProps {
   options: string[];
   placeholder?: string;
   maxLength?: number;
+  disabled?: boolean;
 }
 
 export default function ComboBox({
@@ -18,6 +19,7 @@ export default function ComboBox({
   options,
   placeholder = "Type to search...",
   maxLength,
+  disabled = false,
 }: ComboBoxProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,7 +67,8 @@ export default function ComboBox({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+        disabled={disabled}
+        className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
       />
 
       {open && filtered.length > 0 && (

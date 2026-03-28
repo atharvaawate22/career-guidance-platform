@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import PredictorResultCard from "@/components/PredictorResultCard";
@@ -86,6 +86,13 @@ export default function PredictorPage() {
   // Branch autocomplete
   const branchOptions = STATIC_CUTOFF_BRANCHES;
   const cityOptions = STATIC_CUTOFF_CITIES_CLEAN;
+
+  useEffect(() => {
+    if (selectedMinorityTypes.length > 0) return;
+    if (selectedMinorityGroups.length > 0) {
+      setSelectedMinorityGroups([]);
+    }
+  }, [selectedMinorityGroups, selectedMinorityTypes]);
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -404,15 +411,29 @@ export default function PredictorPage() {
                     id="minorityGroup"
                     value={selectedMinorityGroups}
                     onChange={(values) => {
+                      if (selectedMinorityTypes.length === 0) return;
                       setSelectedMinorityGroups(values);
                       const impliedTypes = getMinorityTypesForGroups(values);
                       setSelectedMinorityTypes((current) =>
                         Array.from(new Set([...current, ...impliedTypes]))
                       );
                     }}
-                    options={getMinorityGroupOptions(selectedMinorityTypes)}
-                    placeholder="All Minority Groups"
+                    options={
+                      selectedMinorityTypes.length > 0
+                        ? getMinorityGroupOptions(selectedMinorityTypes)
+                        : []
+                    }
+                    placeholder={
+                      selectedMinorityTypes.length > 0
+                        ? "All Minority Groups"
+                        : "Select minority type first"
+                    }
+                    disabled={selectedMinorityTypes.length === 0}
                   />
+                  <p className="mt-1 text-xs text-gray-400">
+                    Minority groups are available after selecting at least one
+                    minority type.
+                  </p>
                 </div>
 
               </div>
