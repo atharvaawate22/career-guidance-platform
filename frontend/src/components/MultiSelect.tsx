@@ -10,6 +10,7 @@ interface MultiSelectProps {
   onChange: (value: string[]) => void;
   options: MultiSelectOption[];
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export default function MultiSelect({
@@ -18,6 +19,7 @@ export default function MultiSelect({
   onChange,
   options,
   placeholder = "Select options...",
+  disabled = false,
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -79,8 +81,11 @@ export default function MultiSelect({
     <div ref={containerRef} className="relative w-full">
       {/* Tag display + search input */}
       <div
-        className="min-h-11.5 w-full flex flex-wrap gap-1.5 items-center bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-text transition-colors"
+        className={`min-h-11.5 w-full flex flex-wrap gap-1.5 items-center border border-gray-300 rounded-lg px-3 py-2 transition-colors ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white cursor-text"
+        }`}
         onClick={() => {
+          if (disabled) return;
           setOpen(true);
           inputRef.current?.focus();
         }}
@@ -113,16 +118,18 @@ export default function MultiSelect({
           placeholder={value.length === 0 ? placeholder : "Add more..."}
           autoComplete="off"
           onChange={(e) => {
+            if (disabled) return;
             setSearch(e.target.value);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
-          className="flex-1 min-w-30 outline-none bg-transparent text-sm text-gray-700 placeholder-gray-400"
+          onFocus={() => !disabled && setOpen(true)}
+          disabled={disabled}
+          className="flex-1 min-w-30 outline-none bg-transparent text-sm text-gray-700 placeholder-gray-400 disabled:cursor-not-allowed disabled:text-gray-500"
           style={{ outline: "none" }}
         />
       </div>
 
-      {open && filtered.length > 0 && (
+      {open && !disabled && filtered.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-y-auto max-h-63">
           {filtered.map((opt) => (
             <div
