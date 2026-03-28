@@ -20,6 +20,7 @@ export interface CutoffFilters {
   year?: number;
   branches?: string[];
   category?: string;
+  include_tfws?: boolean;
   gender?: string;
   minority_types?: string[];
   minority_groups?: string[];
