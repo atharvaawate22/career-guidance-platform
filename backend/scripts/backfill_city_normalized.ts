@@ -63,9 +63,11 @@ async function run(): Promise<void> {
   );
 }
 
-run().catch((error) => {
-  console.error('[city-backfill] failed', error);
-  process.exitCode = 1;
-}).finally(async () => {
-  await pool.end();
-});
+run()
+  .catch((error) => {
+    console.error('[city-backfill] failed', error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await pool.end();
+  });

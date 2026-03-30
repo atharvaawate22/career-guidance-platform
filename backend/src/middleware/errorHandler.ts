@@ -31,7 +31,8 @@ export default function errorHandler(
     requestId,
     path: req.originalUrl,
     method: req.method,
-    error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+    error:
+      err instanceof Error ? { message: err.message, stack: err.stack } : err,
   });
   res.status(500).json({
     success: false,

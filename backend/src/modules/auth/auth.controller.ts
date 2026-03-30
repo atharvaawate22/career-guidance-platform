@@ -9,6 +9,19 @@ import {
   getSessionCookieMaxAgeMs,
 } from './auth.constants';
 
+type SameSiteMode = 'lax' | 'strict' | 'none';
+
+const resolveSameSiteMode = (): SameSiteMode => {
+  const configured = (process.env.ADMIN_COOKIE_SAMESITE || '').trim().toLowerCase();
+  if (configured === 'lax' || configured === 'strict' || configured === 'none') {
+    return configured;
+  }
+
+  // In production, frontend and backend are commonly hosted on different origins,
+  // so default to None to allow credentialed cross-site requests.
+  return process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+};
+
 export const loginController = async (
   req: Request,
   res: Response,
@@ -31,19 +44,21 @@ export const loginController = async (
     }
 
     const isProduction = process.env.NODE_ENV === 'production';
+    const sameSite = resolveSameSiteMode();
+    const secure = isProduction || sameSite === 'none';
     const maxAge = getSessionCookieMaxAgeMs(process.env.JWT_EXPIRES_IN);
     const csrfToken = crypto.randomBytes(24).toString('hex');
     res.cookie(ADMIN_AUTH_COOKIE, result.token, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
+      secure,
+      sameSite,
       path: '/',
       maxAge,
     });
     res.cookie(ADMIN_CSRF_COOKIE, csrfToken, {
       httpOnly: false,
-      secure: isProduction,
-      sameSite: 'lax',
+      secure,
+      sameSite,
       path: '/',
       maxAge,
     });
@@ -81,11 +96,13 @@ export const csrfController = async (
 
   if (!existing) {
     const isProduction = process.env.NODE_ENV === 'production';
+    const sameSite = resolveSameSiteMode();
+    const secure = isProduction || sameSite === 'none';
     const maxAge = getSessionCookieMaxAgeMs(process.env.JWT_EXPIRES_IN);
     res.cookie(ADMIN_CSRF_COOKIE, csrfToken, {
       httpOnly: false,
-      secure: isProduction,
-      sameSite: 'lax',
+      secure,
+      sameSite,
       path: '/',
       maxAge,
     });
@@ -102,16 +119,18 @@ export const logoutController = async (
   res: Response,
 ): Promise<void> => {
   const isProduction = process.env.NODE_ENV === 'production';
+  const sameSite = resolveSameSiteMode();
+  const secure = isProduction || sameSite === 'none';
   res.clearCookie(ADMIN_AUTH_COOKIE, {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
+    secure,
+    sameSite,
     path: '/',
   });
   res.clearCookie(ADMIN_CSRF_COOKIE, {
     httpOnly: false,
-    secure: isProduction,
-    sameSite: 'lax',
+    secure,
+    sameSite,
     path: '/',
   });
 

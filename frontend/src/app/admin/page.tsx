@@ -313,7 +313,9 @@ export default function AdminPage() {
       if (data.success) {
         const token = await fetchCsrfToken();
         if (!token) {
-          setLoginError("Could not initialize secure session. Please try again.");
+          setLoginError(
+            "Could not initialize secure session. Please try again."
+          );
           return;
         }
 
@@ -396,9 +398,12 @@ export default function AdminPage() {
     }
 
     try {
-      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/updates/${id}`, {
-        method: "DELETE",
-      });
+      const response = await adminWriteFetch(
+        `${API_BASE_URL}/api/admin/updates/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
 
@@ -445,9 +450,12 @@ export default function AdminPage() {
     }
 
     try {
-      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/bookings/${id}`, {
-        method: "DELETE",
-      });
+      const response = await adminWriteFetch(
+        `${API_BASE_URL}/api/admin/bookings/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
 
@@ -473,10 +481,7 @@ export default function AdminPage() {
       }
       if (!response.ok) {
         setFaqError(
-          await readApiError(
-            response,
-            "We couldn't load FAQs from the server"
-          )
+          await readApiError(response, "We couldn't load FAQs from the server")
         );
         setFaqs([]);
         return;
@@ -524,9 +529,7 @@ export default function AdminPage() {
       }
 
       if (!response.ok) {
-        setFaqError(
-          await readApiError(response, "We couldn't save this FAQ")
-        );
+        setFaqError(await readApiError(response, "We couldn't save this FAQ"));
         return;
       }
 
@@ -582,9 +585,12 @@ export default function AdminPage() {
     if (!confirm("Delete this FAQ?")) return;
 
     try {
-      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/faqs/${id}`, {
-        method: "DELETE",
-      });
+      const response = await adminWriteFetch(
+        `${API_BASE_URL}/api/admin/faqs/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (response.status === 401) {
         handleSessionExpired();
@@ -592,7 +598,9 @@ export default function AdminPage() {
       }
 
       if (!response.ok) {
-        setFaqError(await readApiError(response, "We couldn't delete this FAQ"));
+        setFaqError(
+          await readApiError(response, "We couldn't delete this FAQ")
+        );
         return;
       }
 
@@ -663,13 +671,16 @@ export default function AdminPage() {
     setResourceSuccess("");
     setResourceSubmitting(true);
     try {
-      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/resources`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(resourceForm),
-      });
+      const response = await adminWriteFetch(
+        `${API_BASE_URL}/api/admin/resources`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(resourceForm),
+        }
+      );
       const data = await response.json();
       if (data.success) {
         setResourceSuccess("Resource created successfully!");
@@ -779,13 +790,16 @@ export default function AdminPage() {
     setGuideSuccess("");
     setGuideSubmitting(true);
     try {
-      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/guides`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(guideForm),
-      });
+      const response = await adminWriteFetch(
+        `${API_BASE_URL}/api/admin/guides`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(guideForm),
+        }
+      );
       const data = await response.json();
       if (data.success) {
         setGuideSuccess("Guide created successfully!");
@@ -804,9 +818,12 @@ export default function AdminPage() {
   const handleDeleteGuide = async (id: string) => {
     if (!confirm("Delete this guide?")) return;
     try {
-      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/guides/${id}`, {
-        method: "DELETE",
-      });
+      const response = await adminWriteFetch(
+        `${API_BASE_URL}/api/admin/guides/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
       const data = await response.json();
       if (data.success) {
         setGuideSuccess("Guide deleted.");

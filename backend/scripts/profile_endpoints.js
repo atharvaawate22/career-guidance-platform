@@ -117,7 +117,9 @@ async function main() {
     console.log(`  avg: ${r.stats.avg.toFixed(2)} ms`);
     console.log(`  p50: ${r.stats.p50.toFixed(2)} ms`);
     console.log(`  p95: ${r.stats.p95.toFixed(2)} ms`);
-    console.log(`  min/max: ${r.stats.min.toFixed(2)} / ${r.stats.max.toFixed(2)} ms`);
+    console.log(
+      `  min/max: ${r.stats.min.toFixed(2)} / ${r.stats.max.toFixed(2)} ms`,
+    );
   }
 }
 

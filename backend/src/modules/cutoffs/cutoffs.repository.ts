@@ -1,8 +1,6 @@
 import { query } from '../../config/database';
 import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
-import {
-  CITY_NORMALIZED_SQL,
-} from '../../utils/cityNormalization';
+import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
 import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
 import { buildMinorityStatusFilter } from '../../utils/minorityStatus';
 
@@ -131,8 +129,11 @@ export class CutoffsRepository {
     const result = await query(sql, values, {
       name: 'cutoffs.get_cutoffs',
     });
-    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
-    const rows = result.rows.map(({ total_count: _totalCount, ...row }) => row) as CutoffData[];
+    const total =
+      result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    const rows = result.rows.map(
+      ({ total_count: _totalCount, ...row }) => row,
+    ) as CutoffData[];
     return { rows, total };
   }
 

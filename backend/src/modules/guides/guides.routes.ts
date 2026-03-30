@@ -7,6 +7,10 @@ const router = Router();
 
 // Public routes
 router.get('/', guidesController.getGuides);
-router.post('/download', validateBody(guideDownloadSchema), guidesController.downloadGuide);
+router.post(
+  '/download',
+  validateBody(guideDownloadSchema),
+  guidesController.downloadGuide,
+);
 
 export default router;

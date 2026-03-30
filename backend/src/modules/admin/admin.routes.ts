@@ -96,10 +96,32 @@ router.delete(
 );
 
 // Protected routes for guides management
-router.post('/guides', authMiddleware, requireAdminRole, verifyCsrfToken, guidesController.createGuide);
-router.get('/guides', authMiddleware, requireAdminRole, guidesController.getAllGuides);
-router.get('/guides/downloads', authMiddleware, requireAdminRole, guidesController.getDownloads);
-router.delete('/guides/:id', authMiddleware, requireAdminRole, verifyCsrfToken, guidesController.deleteGuide);
+router.post(
+  '/guides',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  guidesController.createGuide,
+);
+router.get(
+  '/guides',
+  authMiddleware,
+  requireAdminRole,
+  guidesController.getAllGuides,
+);
+router.get(
+  '/guides/downloads',
+  authMiddleware,
+  requireAdminRole,
+  guidesController.getDownloads,
+);
+router.delete(
+  '/guides/:id',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  guidesController.deleteGuide,
+);
 router.patch(
   '/guides/:id/toggle',
   authMiddleware,
@@ -109,7 +131,13 @@ router.patch(
 );
 
 // Protected routes for resources management
-router.post('/resources', authMiddleware, requireAdminRole, verifyCsrfToken, resourcesController.createResource);
+router.post(
+  '/resources',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  resourcesController.createResource,
+);
 router.delete(
   '/resources/:id',
   authMiddleware,
@@ -126,11 +154,40 @@ router.patch(
 );
 
 // Protected routes for FAQ management
-router.post('/faqs', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.createFaq);
-router.get('/faqs', authMiddleware, requireAdminRole, faqsController.getAllFaqs);
-router.put('/faqs/:id', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.updateFaq);
-router.delete('/faqs/:id', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.deleteFaq);
-router.patch('/faqs/:id/toggle', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.toggleFaq);
+router.post(
+  '/faqs',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  faqsController.createFaq,
+);
+router.get(
+  '/faqs',
+  authMiddleware,
+  requireAdminRole,
+  faqsController.getAllFaqs,
+);
+router.put(
+  '/faqs/:id',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  faqsController.updateFaq,
+);
+router.delete(
+  '/faqs/:id',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  faqsController.deleteFaq,
+);
+router.patch(
+  '/faqs/:id/toggle',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  faqsController.toggleFaq,
+);
 
 // Protected routes for bookings management
 router.get(

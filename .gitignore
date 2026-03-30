@@ -45,3 +45,9 @@ __pycache__/
 scripts/*_output.txt
 scripts/*_output_utf8.txt
 backend/reports/
+
+# Local security/debug artifacts
+backend/tmp_admin_cookie.txt
+
+# Raw PDF source files kept out of git history
+cutoff_pdfs/*.pdf
