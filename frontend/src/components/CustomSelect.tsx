@@ -109,14 +109,12 @@ export default function CustomSelect({
         id={buttonId}
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() =>
-          setOpen((wasOpen) => {
-            if (!wasOpen) {
-              computeDirection();
-            }
-            return !wasOpen;
-          })
-        }
+        onClick={() => {
+          if (!open) {
+            computeDirection();
+          }
+          setOpen((prevOpen) => !prevOpen);
+        }}
         className={`w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg ${paddingClass} text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors hover:border-purple-300 cursor-pointer`}
       >
         <span

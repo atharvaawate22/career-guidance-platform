@@ -5,11 +5,13 @@ import { CITY_NORMALIZED_SQL } from '../src/utils/cityNormalization';
 dotenv.config();
 
 const BATCH_SIZE = Number(process.env.CITY_BACKFILL_BATCH_SIZE || '5000');
+const sslRejectUnauthorized =
+  process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false';
 
 const pool = process.env.DATABASE_URL
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: sslRejectUnauthorized },
     })
   : new Pool({
       user: 'postgres',
@@ -63,7 +65,7 @@ async function run(): Promise<void> {
 
 run().catch((error) => {
   console.error('[city-backfill] failed', error);
-  process.exit(1);
+  process.exitCode = 1;
 }).finally(async () => {
   await pool.end();
 });
