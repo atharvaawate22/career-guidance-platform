@@ -6,13 +6,8 @@ import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import CutoffResultCard from "@/components/CutoffResultCard";
-import {
-  CANDIDATE_GENDER_OPTIONS,
-} from "@/lib/candidateGender";
-import {
-  CUTOFF_CATEGORIES,
-  CUTOFF_STAGES,
-} from "@/lib/cutoffOptions";
+import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
+import { CUTOFF_CATEGORIES, CUTOFF_STAGES } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
   MINORITY_TYPE_OPTIONS,
@@ -230,7 +225,8 @@ export default function CutoffsPage() {
       params.append("year", DEFAULT_META_YEAR);
       selectedBranches.forEach((b) => params.append("branch", b));
       if (category) params.append("category", category);
-      if (includeTfws && category !== "TFWS") params.append("include_tfws", "true");
+      if (includeTfws && category !== "TFWS")
+        params.append("include_tfws", "true");
       if (gender) params.append("gender", gender);
       selectedMinorityTypes.forEach((type) =>
         params.append("minority_type", type)
@@ -466,10 +462,12 @@ export default function CutoffsPage() {
                       }}
                       options={[
                         { value: "", label: "All Categories" },
-                        ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map((c) => ({
-                          value: c,
-                          label: c,
-                        })),
+                        ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
+                          (c) => ({
+                            value: c,
+                            label: c,
+                          })
+                        ),
                       ]}
                     />
                   </div>
