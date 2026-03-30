@@ -44,3 +44,4 @@ __pycache__/
 # Script-generated reports/outputs
 scripts/*_output.txt
 scripts/*_output_utf8.txt
+backend/reports/

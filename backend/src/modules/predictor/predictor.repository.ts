@@ -1,6 +1,6 @@
 import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
-import { CITY_FILTER_SQL } from '../../utils/cityNormalization';
+import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
 import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
 import { buildMinorityStatusFilter } from '../../utils/minorityStatus';
 
@@ -10,17 +10,41 @@ export class PredictorRepository {
     percentile: number,
   ): Promise<number | null> {
     const sql = `
+      WITH below AS (
+        SELECT percentile, cutoff_rank
+        FROM cutoff_data
+        WHERE year = $1
+          AND stage = 'I'
+          AND cutoff_rank IS NOT NULL
+          AND percentile IS NOT NULL
+          AND percentile <= $2
+        ORDER BY percentile DESC
+        LIMIT 1
+      ),
+      above AS (
+        SELECT percentile, cutoff_rank
+        FROM cutoff_data
+        WHERE year = $1
+          AND stage = 'I'
+          AND cutoff_rank IS NOT NULL
+          AND percentile IS NOT NULL
+          AND percentile >= $2
+        ORDER BY percentile ASC
+        LIMIT 1
+      )
       SELECT cutoff_rank
-      FROM cutoff_data
-      WHERE year = $1
-        AND stage = 'I'
-        AND cutoff_rank IS NOT NULL
-        AND percentile IS NOT NULL
+      FROM (
+        SELECT percentile, cutoff_rank FROM below
+        UNION ALL
+        SELECT percentile, cutoff_rank FROM above
+      ) candidates
       ORDER BY ABS(percentile - $2), cutoff_rank ASC
       LIMIT 1
     `;
 
-    const result = await query(sql, [year, percentile]);
+    const result = await query(sql, [year, percentile], {
+      name: 'predictor.estimate_rank_from_percentile',
+    });
     if (result.rows.length === 0) return null;
 
     return Number(result.rows[0].cutoff_rank);
@@ -80,6 +104,16 @@ export class PredictorRepository {
       values.push(filters.level);
     }
 
+    if (filters.min_cutoff_rank !== undefined) {
+      conditions.push(`cutoff_rank >= $${p++}`);
+      values.push(filters.min_cutoff_rank);
+    }
+
+    if (filters.max_cutoff_rank !== undefined) {
+      conditions.push(`cutoff_rank <= $${p++}`);
+      values.push(filters.max_cutoff_rank);
+    }
+
     // Optional preferred_branches (OR across branches)
     if (filters.preferred_branches && filters.preferred_branches.length > 0) {
       const branchConditions = filters.preferred_branches.map((_, idx) => {
@@ -94,16 +128,61 @@ export class PredictorRepository {
 
     // Optional cities filter (OR across selected cities)
     if (filters.cities && filters.cities.length > 0) {
-      const cityConditions = filters.cities.map(
-        () => `${CITY_FILTER_SQL} = $${p++}`,
-      );
-      conditions.push(`(${cityConditions.join(' OR ')})`);
-      filters.cities.forEach((c) => values.push(c.trim().toLowerCase()));
+      const cityParam = p++;
+      conditions.push(`(
+        LOWER(TRIM(city_normalized)) = ANY($${cityParam}::text[])
+        OR (
+          (city_normalized IS NULL OR TRIM(city_normalized) = '')
+          AND LOWER(TRIM(${CITY_NORMALIZED_SQL})) = ANY($${cityParam}::text[])
+        )
+      )`);
+      values.push(filters.cities.map((c) => c.trim().toLowerCase()));
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const sql = `
+      WITH filtered AS (
+        SELECT
+          id,
+          college_code,
+          college_name,
+          branch,
+          category,
+          gender,
+          college_status,
+          level,
+          stage,
+          cutoff_rank,
+          percentile,
+          year,
+          created_at
+        FROM cutoff_data
+        ${whereClause}
+      ),
+      deduped AS (
+        SELECT DISTINCT ON (college_name, branch, category)
+          id,
+          college_code,
+          college_name,
+          branch,
+          category,
+          gender,
+          college_status,
+          level,
+          stage,
+          cutoff_rank,
+          percentile,
+          year
+        FROM filtered
+        ORDER BY
+          college_name,
+          branch,
+          category,
+          cutoff_rank DESC NULLS LAST,
+          percentile ASC NULLS LAST,
+          created_at DESC
+      )
       SELECT
         id,
         college_code,
@@ -117,13 +196,14 @@ export class PredictorRepository {
         cutoff_rank,
         percentile AS cutoff_percentile,
         year
-      FROM cutoff_data
-      ${whereClause}
-      ORDER BY percentile DESC
-      LIMIT 1000
+      FROM deduped
+      ORDER BY cutoff_rank ASC NULLS LAST
+      LIMIT 800
     `;
 
-    const result = await query(sql, values);
+    const result = await query(sql, values, {
+      name: 'predictor.get_eligible_colleges',
+    });
     return result.rows as CollegeOption[];
   }
 }

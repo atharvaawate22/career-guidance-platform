@@ -79,7 +79,11 @@ export class PredictorService {
       effectiveRank = estimatedRank;
     }
 
-    // Get eligible colleges from repository
+    const { targetAbove, targetBelow, floorGap, ceilGap } =
+      getDynamicThresholds(effectiveRank);
+
+    // Apply relevance window in SQL to avoid scanning and transferring rows
+    // that will be discarded during post-processing.
     const colleges = await predictorRepository.getEligibleColleges({
       year: PREDICTOR_YEAR,
       category: request.category,
@@ -90,34 +94,14 @@ export class PredictorService {
       preferred_branches: request.preferred_branches,
       cities: request.cities,
       include_tfws: request.include_tfws,
+      min_cutoff_rank: Math.max(1, effectiveRank - ceilGap),
+      max_cutoff_rank: effectiveRank + floorGap,
     });
-
-    // Collapse hidden seat variants (gender / level) into one visible option per
-    // college+branch+category, keeping the most accessible cutoff.
-    const seen = new Map<string, CollegeOption>();
-    for (const college of colleges) {
-      const key = `${college.college_name}||${college.branch}||${college.category}`;
-      const existing = seen.get(key);
-      if (
-        !existing ||
-        Number(college.cutoff_rank ?? 0) > Number(existing.cutoff_rank ?? 0) ||
-        (Number(college.cutoff_rank ?? 0) ===
-          Number(existing.cutoff_rank ?? 0) &&
-          Number(college.cutoff_percentile ?? 100) <
-            Number(existing.cutoff_percentile ?? 100))
-      ) {
-        seen.set(key, college);
-      }
-    }
-    const deduped = Array.from(seen.values());
-
-    const { targetAbove, targetBelow, floorGap, ceilGap } =
-      getDynamicThresholds(effectiveRank);
 
     // Relevance window: in rank space, lower rank = better.
     // Include colleges with cutoff_rank in [r - ceilGap, r + floorGap].
     const r = effectiveRank;
-    const relevant = deduped.filter((c) => {
+    const relevant = colleges.filter((c) => {
       const cr = Number(c.cutoff_rank);
       if (!cr) return false; // skip null ranks
       return cr >= r - ceilGap && cr <= r + floorGap;
