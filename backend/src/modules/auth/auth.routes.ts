@@ -25,8 +25,18 @@ router.get('/login', (_req, res) => {
 });
 
 router.post('/login', authController.loginController);
-router.get('/session', authMiddleware, requireAdminRole, authController.sessionController);
-router.get('/csrf', authMiddleware, requireAdminRole, authController.csrfController);
+router.get(
+  '/session',
+  authMiddleware,
+  requireAdminRole,
+  authController.sessionController,
+);
+router.get(
+  '/csrf',
+  authMiddleware,
+  requireAdminRole,
+  authController.csrfController,
+);
 router.post(
   '/logout',
   authMiddleware,

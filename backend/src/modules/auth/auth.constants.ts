@@ -1,7 +1,9 @@
 export const ADMIN_AUTH_COOKIE = 'cgp_admin_session';
 export const ADMIN_CSRF_COOKIE = 'cgp_admin_csrf';
 
-export function getSessionCookieMaxAgeMs(expiresIn: string | undefined): number {
+export function getSessionCookieMaxAgeMs(
+  expiresIn: string | undefined,
+): number {
   if (!expiresIn) return 24 * 60 * 60 * 1000;
 
   const trimmed = expiresIn.trim();

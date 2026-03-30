@@ -14,8 +14,14 @@ export const predictorRequestSchema = z
       .optional(),
     category: z.string().trim().min(1).max(100).optional(),
     gender: z.string().trim().min(1).max(50).optional(),
-    minority_types: z.array(z.string().trim().min(1).max(50)).max(10).optional(),
-    minority_groups: z.array(z.string().trim().min(1).max(50)).max(20).optional(),
+    minority_types: z
+      .array(z.string().trim().min(1).max(50))
+      .max(10)
+      .optional(),
+    minority_groups: z
+      .array(z.string().trim().min(1).max(50))
+      .max(20)
+      .optional(),
     level: z.string().trim().min(1).max(80).optional(),
     preferred_branches: z
       .array(z.string().trim().min(1).max(150))

@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { estimateRankFromPercentileMock, getEligibleCollegesMock } =
-  vi.hoisted(() => ({
+const { estimateRankFromPercentileMock, getEligibleCollegesMock } = vi.hoisted(
+  () => ({
     estimateRankFromPercentileMock: vi.fn(),
     getEligibleCollegesMock: vi.fn(),
-  }));
+  }),
+);
 
 vi.mock('../src/modules/predictor/predictor.repository', () => {
   return {

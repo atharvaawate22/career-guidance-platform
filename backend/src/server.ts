@@ -26,7 +26,11 @@ const frontendOrigins = (
   .map(normalizeOrigin)
   .filter(Boolean);
 const allowedOrigins = Array.from(
-  new Set(['http://localhost:3000', 'http://127.0.0.1:3000', ...frontendOrigins]),
+  new Set([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    ...frontendOrigins,
+  ]),
 );
 const vercelProjectSlugs = Array.from(
   new Set(
@@ -37,24 +41,24 @@ const vercelProjectSlugs = Array.from(
         .map((value) => value.trim().toLowerCase())
         .filter(Boolean),
       ...frontendOrigins
-      .map((origin) => {
-        try {
-          const hostname = new URL(origin).hostname.toLowerCase();
-          if (!hostname.endsWith(VERCEL_HOST_SUFFIX)) {
+        .map((origin) => {
+          try {
+            const hostname = new URL(origin).hostname.toLowerCase();
+            if (!hostname.endsWith(VERCEL_HOST_SUFFIX)) {
+              return [];
+            }
+
+            const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
+            const segments = subdomain.split('-').filter(Boolean);
+            return segments
+              .slice(0, Math.max(segments.length - 1, 1))
+              .map((_, index) => segments.slice(0, index + 1).join('-'))
+              .filter((slug) => slug.includes('-'));
+          } catch {
             return [];
           }
-
-          const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
-          const segments = subdomain.split('-').filter(Boolean);
-          return segments
-            .slice(0, Math.max(segments.length - 1, 1))
-            .map((_, index) => segments.slice(0, index + 1).join('-'))
-            .filter((slug) => slug.includes('-'));
-        } catch {
-          return [];
-        }
-      })
-      .flat(),
+        })
+        .flat(),
     ].filter(Boolean),
   ),
 );
@@ -72,8 +76,7 @@ const isAllowedOrigin = (origin: string): boolean => {
 
     const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
     return vercelProjectSlugs.some(
-      (slug) =>
-        subdomain === slug || subdomain.startsWith(`${slug}-`),
+      (slug) => subdomain === slug || subdomain.startsWith(`${slug}-`),
     );
   } catch {
     return false;

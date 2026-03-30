@@ -120,7 +120,11 @@ async function run(): Promise<void> {
       (recomputableResult.rows[0]?.recomputable ?? 0),
   };
 
-  fs.writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(
+    summaryPath,
+    `${JSON.stringify(summary, null, 2)}\n`,
+    'utf8',
+  );
 
   const hintsCsvLines = [toCsvLine(['hint', 'rows'])];
   for (const row of unresolvedByHintResult.rows) {
