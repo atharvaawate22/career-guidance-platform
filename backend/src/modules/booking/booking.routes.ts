@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import * as bookingController from './booking.controller';
+import { validateBody } from '../../middleware/validateRequest';
+import { createBookingSchema } from './booking.schemas';
 
 const router = Router();
 
@@ -23,7 +25,11 @@ router.get('/', (_req, res) => {
 });
 
 // Public route for creating bookings
-router.post('/', bookingController.createBooking);
+router.post(
+  '/',
+  validateBody(createBookingSchema),
+  bookingController.createBooking,
+);
 
 // Public route for fetching booked slots on a given date
 router.get('/slots', bookingController.getBookedSlots);

@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { PredictorController } from './predictor.controller';
+import { validateBody } from '../../middleware/validateRequest';
+import { predictorRequestSchema } from './predictor.schemas';
 
 const router = Router();
 const predictorController = new PredictorController();
@@ -22,6 +24,10 @@ router.get('/', (_req, res) => {
   });
 });
 
-router.post('/', predictorController.predict.bind(predictorController));
+router.post(
+  '/',
+  validateBody(predictorRequestSchema),
+  predictorController.predict.bind(predictorController),
+);
 
 export default router;

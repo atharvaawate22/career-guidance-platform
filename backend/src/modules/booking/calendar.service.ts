@@ -45,6 +45,10 @@ export async function generateMeetLink(
   branchPreference?: string,
   meetingPurpose?: string,
 ): Promise<string> {
+  const allowMockMeetLinks =
+    process.env.ALLOW_MOCK_MEET_LINKS === 'true' ||
+    process.env.NODE_ENV !== 'production';
+
   try {
     // Check if Google Calendar OAuth2 credentials are configured
     const hasCredentials =
@@ -53,10 +57,12 @@ export async function generateMeetLink(
       process.env.GOOGLE_REFRESH_TOKEN;
 
     if (!hasCredentials) {
-      logger.info('Google Calendar API not configured, using mock meet link');
-      // Generate mock meet link for development
-      const meetingId = generateMockMeetingId();
-      return `https://meet.google.com/${meetingId}`;
+      if (allowMockMeetLinks) {
+        logger.info('Google Calendar API not configured, using mock meet link');
+        const meetingId = generateMockMeetingId();
+        return `https://meet.google.com/${meetingId}`;
+      }
+      throw new Error('Google Calendar integration is not configured');
     }
 
     // Use Google Calendar API to create event with Meet link
@@ -105,11 +111,14 @@ export async function generateMeetLink(
     }
     return meetLink;
   } catch (error) {
-    logger.warn(
-      `Google Calendar API failed, using mock meet link: ${(error as Error)?.message}`,
-    );
-    const meetingId = generateMockMeetingId();
-    return `https://meet.google.com/${meetingId}`;
+    if (allowMockMeetLinks) {
+      logger.warn(
+        `Google Calendar API failed, using mock meet link: ${(error as Error)?.message}`,
+      );
+      const meetingId = generateMockMeetingId();
+      return `https://meet.google.com/${meetingId}`;
+    }
+    throw error;
   }
 }
 

@@ -4,18 +4,17 @@ dotenv.config();
 
 // Global error logging for diagnosis
 process.on('uncaughtException', (err) => {
-  // eslint-disable-next-line no-console
   console.error('Uncaught Exception:', err);
 });
 
 process.on('unhandledRejection', (reason) => {
-  // eslint-disable-next-line no-console
   console.error('Unhandled Rejection:', reason);
 });
 
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 const normalizeOrigin = (value: string) => value.trim().replace(/\/+$/, '');
 const VERCEL_HOST_SUFFIX = '.vercel.app';
@@ -82,6 +81,8 @@ const isAllowedOrigin = (origin: string): boolean => {
 };
 import bcrypt from 'bcrypt';
 import errorHandler from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
+import { createPublicPostLimiter } from './middleware/rateLimit';
 import updatesRoutes from './modules/updates/updates.routes';
 import authRoutes from './modules/auth/auth.routes';
 import adminRoutes from './modules/admin/admin.routes';
@@ -95,8 +96,11 @@ import { testConnection, query } from './config/database';
 import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger from './utils/logger';
 
-const app = express();
+export const app = express();
 const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
+const publicPredictLimiter = createPublicPostLimiter(60, 15 * 60 * 1000);
+const publicBookingLimiter = createPublicPostLimiter(20, 15 * 60 * 1000);
+const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
 
 async function getExistingColumns(tableName: string): Promise<Set<string>> {
   const result = await query(
@@ -169,6 +173,8 @@ app.use(
   }),
 );
 app.use(helmet());
+app.use(cookieParser());
+app.use(requestLogger);
 
 const PORT = process.env.PORT || 5000;
 
@@ -198,11 +204,12 @@ app.get('/api/health', (_req, res) => {
 // Register module routes
 app.use('/api/updates', updatesRoutes);
 app.use('/api/cutoffs', cutoffsRoutes);
-app.use('/api/predict', predictorRoutes);
+app.use('/api/predict', publicPredictLimiter, predictorRoutes);
+app.use('/api/guides/download', publicGuideDownloadLimiter);
 app.use('/api/guides', guidesRoutes);
 app.use('/api/resources', resourcesRoutes);
 app.use('/api/faqs', faqsRoutes);
-app.use('/api/bookings', bookingRoutes);
+app.use('/api/bookings', publicBookingLimiter, bookingRoutes);
 app.use('/api/admin', authRoutes);
 app.use('/api/admin', adminRoutes);
 
@@ -517,6 +524,54 @@ const initializeDatabase = async (): Promise<boolean> => {
         ON cutoff_data(year, city_normalized)
       `);
     }
+    if (!cutoffIndexes.has('idx_cutoff_year_stage_percentile_rank')) {
+      await query(`
+        CREATE INDEX idx_cutoff_year_stage_percentile_rank
+        ON cutoff_data(year, stage, percentile, cutoff_rank)
+        WHERE cutoff_rank IS NOT NULL AND percentile IS NOT NULL
+      `);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_year_stage_rank')) {
+      await query(`
+        CREATE INDEX idx_cutoff_year_stage_rank
+        ON cutoff_data(year, stage, cutoff_rank)
+        WHERE cutoff_rank IS NOT NULL
+      `);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_branch_trgm')) {
+      await query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+      await query(`
+        CREATE INDEX idx_cutoff_branch_trgm
+        ON cutoff_data USING GIN (branch gin_trgm_ops)
+      `);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_college_name_trgm')) {
+      await query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+      await query(`
+        CREATE INDEX idx_cutoff_college_name_trgm
+        ON cutoff_data USING GIN (college_name gin_trgm_ops)
+      `);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_year_stage_category_city_home')) {
+      await query(`
+        CREATE INDEX idx_cutoff_year_stage_category_city_home
+        ON cutoff_data(year, stage, category, city_normalized, home_university)
+      `);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_predictor_filters')) {
+      await query(`
+        CREATE INDEX idx_cutoff_predictor_filters
+        ON cutoff_data(year, stage, category, level, cutoff_rank)
+        WHERE cutoff_rank IS NOT NULL
+      `);
+    }
+    if (!cutoffIndexes.has('idx_cutoff_search_city_norm')) {
+      await query(`
+        CREATE INDEX idx_cutoff_search_city_norm
+        ON cutoff_data(year, stage, category, gender, (LOWER(TRIM(city_normalized))))
+        WHERE city_normalized IS NOT NULL AND TRIM(city_normalized) <> ''
+      `);
+    }
 
     logger.info('Database tables initialized successfully');
 
@@ -663,7 +718,7 @@ const initializeDatabase = async (): Promise<boolean> => {
   }
 };
 
-const startServer = async () => {
+export const startServer = async () => {
   const dbReady = await initializeDatabase();
 
   app.listen(PORT, () => {
@@ -674,4 +729,6 @@ const startServer = async () => {
   });
 };
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  void startServer();
+}

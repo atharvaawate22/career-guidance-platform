@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import CustomSelect from "@/components/CustomSelect";
 
 const API_BASE_URL =
@@ -51,7 +51,7 @@ type TabType =
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [token, setToken] = useState("");
+  const [csrfToken, setCsrfToken] = useState("");
   const [loginError, setLoginError] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
 
@@ -102,6 +102,44 @@ export default function AdminPage() {
       return `${fallbackMessage} (HTTP ${response.status})`;
     }
   };
+
+  const adminFetch = (url: string, init: RequestInit = {}) =>
+    fetch(url, {
+      ...init,
+      credentials: "include",
+    });
+
+  const adminWriteFetch = (url: string, init: RequestInit = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (csrfToken) {
+      headers.set("x-csrf-token", csrfToken);
+    }
+
+    return adminFetch(url, {
+      ...init,
+      headers,
+    });
+  };
+
+  const fetchCsrfToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/csrf`, {
+        credentials: "include",
+      });
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const token = data?.data?.csrfToken as string | undefined;
+      if (token) {
+        setCsrfToken(token);
+        return token;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Resources state
   interface Resource {
@@ -168,23 +206,41 @@ export default function AdminPage() {
 
   // Fetch data when logged in
   useEffect(() => {
-    // Check localStorage for existing admin session
-    const storedToken = localStorage.getItem("adminToken");
-    if (storedToken) {
-      setToken(storedToken);
-      setIsLoggedIn(true);
-    }
-  }, []);
+    const initSession = async () => {
+      try {
+        const response = await adminFetch(`${API_BASE_URL}/api/admin/session`);
+        if (!response.ok) {
+          setIsLoggedIn(false);
+          setCsrfToken("");
+          return;
+        }
+
+        const token = await fetchCsrfToken();
+        if (!token) {
+          setIsLoggedIn(false);
+          setCsrfToken("");
+          return;
+        }
+
+        setIsLoggedIn(true);
+      } catch {
+        setIsLoggedIn(false);
+        setCsrfToken("");
+      }
+    };
+
+    void initSession();
+  }, [fetchCsrfToken]);
 
   const handleSessionExpired = () => {
-    localStorage.removeItem("adminToken");
-    setToken("");
     setIsLoggedIn(false);
+    setCsrfToken("");
     setLoginError("Your session has expired. Please log in again.");
+    window.dispatchEvent(new Event("adminAuthChange"));
   };
 
   useEffect(() => {
-    if (isLoggedIn && token) {
+    if (isLoggedIn) {
       fetchUpdates();
       fetchBookings();
       fetchFaqs();
@@ -193,7 +249,7 @@ export default function AdminPage() {
       fetchDownloads();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, token]);
+  }, [isLoggedIn]);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -223,11 +279,7 @@ export default function AdminPage() {
   const fetchBookings = async () => {
     try {
       setBookingsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/admin/bookings`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/bookings`);
       if (response.status === 401) {
         handleSessionExpired();
         return;
@@ -248,7 +300,7 @@ export default function AdminPage() {
     setLoginError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -259,17 +311,18 @@ export default function AdminPage() {
       const data = await response.json();
 
       if (data.success) {
-        const adminToken = data.data.token;
-        setToken(adminToken);
+        const token = await fetchCsrfToken();
+        if (!token) {
+          setLoginError("Could not initialize secure session. Please try again.");
+          return;
+        }
+
         setIsLoggedIn(true);
         setPassword("");
-        // Store token in localStorage for persistence
-        localStorage.setItem("adminToken", adminToken);
-        // Notify sidebar of auth change (same tab + cross-tab)
-        window.dispatchEvent(new Event("storage"));
+        // Notify sidebar of auth change
         window.dispatchEvent(new Event("adminAuthChange"));
       } else {
-        setLoginError(data.message || "Login failed");
+        setLoginError(data?.error?.message || data.message || "Login failed");
       }
     } catch {
       setLoginError("Failed to connect to server");
@@ -288,11 +341,10 @@ export default function AdminPage() {
 
       const method = editingId ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const response = await adminWriteFetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title,
@@ -344,11 +396,8 @@ export default function AdminPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/updates/${id}`, {
+      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/updates/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const data = await response.json();
@@ -366,13 +415,12 @@ export default function AdminPage() {
 
   const handleUpdateBookingStatus = async (id: string, status: string) => {
     try {
-      const response = await fetch(
+      const response = await adminWriteFetch(
         `${API_BASE_URL}/api/admin/bookings/${id}/status`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ status }),
         }
@@ -397,11 +445,8 @@ export default function AdminPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/bookings/${id}`, {
+      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/bookings/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const data = await response.json();
@@ -421,9 +466,7 @@ export default function AdminPage() {
     try {
       setFaqsLoading(true);
       setFaqError("");
-      const response = await fetch(`${API_BASE_URL}/api/admin/faqs`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/faqs`);
       if (response.status === 401) {
         handleSessionExpired();
         return;
@@ -463,11 +506,10 @@ export default function AdminPage() {
         ? `${API_BASE_URL}/api/admin/faqs/${editingFaqId}`
         : `${API_BASE_URL}/api/admin/faqs`;
 
-      const response = await fetch(url, {
+      const response = await adminWriteFetch(url, {
         method: editingFaqId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           question: faqForm.question,
@@ -540,9 +582,8 @@ export default function AdminPage() {
     if (!confirm("Delete this FAQ?")) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/faqs/${id}`, {
+      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/faqs/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.status === 401) {
@@ -569,13 +610,12 @@ export default function AdminPage() {
 
   const handleToggleFaq = async (id: string, current: boolean) => {
     try {
-      const response = await fetch(
+      const response = await adminWriteFetch(
         `${API_BASE_URL}/api/admin/faqs/${id}/toggle`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ is_active: !current }),
         }
@@ -623,11 +663,10 @@ export default function AdminPage() {
     setResourceSuccess("");
     setResourceSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/resources`, {
+      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/resources`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(resourceForm),
       });
@@ -654,11 +693,10 @@ export default function AdminPage() {
   const handleDeleteResource = async (id: string) => {
     if (!confirm("Delete this resource?")) return;
     try {
-      const response = await fetch(
+      const response = await adminWriteFetch(
         `${API_BASE_URL}/api/admin/resources/${id}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
         }
       );
       const data = await response.json();
@@ -675,13 +713,12 @@ export default function AdminPage() {
 
   const handleToggleResource = async (id: string, current: boolean) => {
     try {
-      const response = await fetch(
+      const response = await adminWriteFetch(
         `${API_BASE_URL}/api/admin/resources/${id}/toggle`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ is_active: !current }),
         }
@@ -697,9 +734,7 @@ export default function AdminPage() {
   const fetchGuides = async () => {
     try {
       setGuidesLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/admin/guides`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/guides`);
       if (response.status === 401) {
         handleSessionExpired();
         return;
@@ -721,9 +756,9 @@ export default function AdminPage() {
   const fetchDownloads = async () => {
     try {
       setDownloadsLoading(true);
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/guides/downloads`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {}
       );
       if (response.status === 401) {
         handleSessionExpired();
@@ -744,11 +779,10 @@ export default function AdminPage() {
     setGuideSuccess("");
     setGuideSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/guides`, {
+      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/guides`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(guideForm),
       });
@@ -770,9 +804,8 @@ export default function AdminPage() {
   const handleDeleteGuide = async (id: string) => {
     if (!confirm("Delete this guide?")) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/guides/${id}`, {
+      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/guides/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       if (data.success) {
@@ -799,12 +832,11 @@ export default function AdminPage() {
     }
 
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const response = await fetch(
+    const response = await adminWriteFetch(
       `${API_BASE_URL}/api/admin/upload?bucket=${encodeURIComponent(bucket)}&filename=${encodeURIComponent(filename)}`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": file.type || "application/octet-stream",
           "x-file-content-type": file.type || "application/octet-stream",
         },
@@ -834,13 +866,12 @@ export default function AdminPage() {
 
   const handleToggleGuide = async (id: string, current: boolean) => {
     try {
-      const response = await fetch(
+      const response = await adminWriteFetch(
         `${API_BASE_URL}/api/admin/guides/${id}/toggle`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ is_active: !current }),
         }
@@ -851,6 +882,21 @@ export default function AdminPage() {
     } catch {
       setGuideError("Failed to connect to server");
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await adminWriteFetch(`${API_BASE_URL}/api/admin/logout`, {
+        method: "POST",
+      });
+    } catch {
+      // no-op
+    }
+
+    setIsLoggedIn(false);
+    setCsrfToken("");
+    setActiveTab("dashboard");
+    window.dispatchEvent(new Event("adminAuthChange"));
   };
 
   if (!isLoggedIn) {
@@ -942,16 +988,7 @@ export default function AdminPage() {
               </div>
             </div>
             <button
-              onClick={() => {
-                setIsLoggedIn(false);
-                setToken("");
-                setActiveTab("dashboard");
-                // Clear localStorage
-                localStorage.removeItem("adminToken");
-                // Notify sidebar of auth change (same tab + cross-tab)
-                window.dispatchEvent(new Event("storage"));
-                window.dispatchEvent(new Event("adminAuthChange"));
-              }}
+              onClick={handleLogout}
               className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
             >
               <span>Logout</span>

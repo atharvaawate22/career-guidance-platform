@@ -29,7 +29,7 @@ export class UpdatesController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { title, content, published_date } = req.body as Omit<Update, 'id'>;
+      const { title, content } = req.body as Omit<Update, 'id'>;
 
       if (!title || !content) {
         res.status(400).json({

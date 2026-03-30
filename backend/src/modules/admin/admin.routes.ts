@@ -1,6 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import express from 'express';
-import { authMiddleware } from '../../middleware/authMiddleware';
+import {
+  authMiddleware,
+  requireAdminRole,
+} from '../../middleware/authMiddleware';
+import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
 import { UpdatesController } from '../updates/updates.controller';
 import { CutoffsController } from '../cutoffs/cutoffs.controller';
 import { invalidateCutoffMetaCache } from '../cutoffs/cutoffsMetaCache';
@@ -17,18 +21,24 @@ const cutoffsController = new CutoffsController();
 router.post(
   '/updates',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   updatesController.createUpdate.bind(updatesController),
 );
 
 router.put(
   '/updates/:id',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   updatesController.updateUpdate.bind(updatesController),
 );
 
 router.delete(
   '/updates/:id',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   updatesController.deleteUpdate.bind(updatesController),
 );
 
@@ -36,6 +46,8 @@ router.delete(
 router.post(
   '/cutoffs',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   cutoffsController.bulkInsertCutoffs.bind(cutoffsController),
 );
 
@@ -43,14 +55,33 @@ router.post(
 router.delete(
   '/cutoffs',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const year = req.query.year ? Number(req.query.year) : null;
+      const rawYear = req.query.year;
+      const hasYearFilter =
+        rawYear !== undefined && String(rawYear).trim().length > 0;
+      const parsedYear = hasYearFilter
+        ? Number.parseInt(String(rawYear), 10)
+        : Number.NaN;
+      if (hasYearFilter && (!Number.isInteger(parsedYear) || parsedYear <= 0)) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'year must be a positive integer when provided',
+          },
+        });
+        return;
+      }
+      const year = hasYearFilter ? parsedYear : null;
       const { query: dbQuery } = await import('../../config/database');
-      const sql = year
-        ? 'DELETE FROM cutoff_data WHERE year = $1'
-        : 'DELETE FROM cutoff_data';
-      const vals = year ? [year] : [];
+      const sql =
+        year === null
+          ? 'DELETE FROM cutoff_data'
+          : 'DELETE FROM cutoff_data WHERE year = $1';
+      const vals: number[] = year === null ? [] : [year];
       const result = await dbQuery(sql, vals);
       invalidateCutoffMetaCache();
       res.json({
@@ -65,40 +96,47 @@ router.delete(
 );
 
 // Protected routes for guides management
-router.post('/guides', authMiddleware, guidesController.createGuide);
-router.get('/guides', authMiddleware, guidesController.getAllGuides);
-router.get('/guides/downloads', authMiddleware, guidesController.getDownloads);
-router.delete('/guides/:id', authMiddleware, guidesController.deleteGuide);
+router.post('/guides', authMiddleware, requireAdminRole, verifyCsrfToken, guidesController.createGuide);
+router.get('/guides', authMiddleware, requireAdminRole, guidesController.getAllGuides);
+router.get('/guides/downloads', authMiddleware, requireAdminRole, guidesController.getDownloads);
+router.delete('/guides/:id', authMiddleware, requireAdminRole, verifyCsrfToken, guidesController.deleteGuide);
 router.patch(
   '/guides/:id/toggle',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   guidesController.toggleGuide,
 );
 
 // Protected routes for resources management
-router.post('/resources', authMiddleware, resourcesController.createResource);
+router.post('/resources', authMiddleware, requireAdminRole, verifyCsrfToken, resourcesController.createResource);
 router.delete(
   '/resources/:id',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   resourcesController.deleteResource,
 );
 router.patch(
   '/resources/:id/toggle',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   resourcesController.toggleResource,
 );
 
 // Protected routes for FAQ management
-router.post('/faqs', authMiddleware, faqsController.createFaq);
-router.get('/faqs', authMiddleware, faqsController.getAllFaqs);
-router.put('/faqs/:id', authMiddleware, faqsController.updateFaq);
-router.delete('/faqs/:id', authMiddleware, faqsController.deleteFaq);
-router.patch('/faqs/:id/toggle', authMiddleware, faqsController.toggleFaq);
+router.post('/faqs', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.createFaq);
+router.get('/faqs', authMiddleware, requireAdminRole, faqsController.getAllFaqs);
+router.put('/faqs/:id', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.updateFaq);
+router.delete('/faqs/:id', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.deleteFaq);
+router.patch('/faqs/:id/toggle', authMiddleware, requireAdminRole, verifyCsrfToken, faqsController.toggleFaq);
 
 // Protected routes for bookings management
 router.get(
   '/bookings',
   authMiddleware,
+  requireAdminRole,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const bookings = await bookingRepository.getAllBookings();
@@ -115,6 +153,8 @@ router.get(
 router.patch(
   '/bookings/:id/status',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
@@ -162,6 +202,8 @@ router.patch(
 router.delete(
   '/bookings/:id',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
@@ -192,6 +234,8 @@ router.delete(
 router.post(
   '/upload',
   authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
   express.raw({ type: '*/*', limit: '50mb' }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

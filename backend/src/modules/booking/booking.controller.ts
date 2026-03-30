@@ -49,7 +49,13 @@ export async function getBookedSlots(
   try {
     const date = req.query.date as string;
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      res.status(400).json({ error: 'date query param required (YYYY-MM-DD)' });
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'date query param required (YYYY-MM-DD)',
+        },
+      });
       return;
     }
     const slots = await bookingRepository.getBookedSlotsForDate(date);

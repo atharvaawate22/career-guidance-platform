@@ -13,6 +13,13 @@ interface BookingConfirmation {
   percentile: number;
 }
 
+interface ErrorDetails {
+  message?: string;
+  code?: string | number;
+  response?: unknown;
+  responseCode?: number;
+}
+
 /**
  * Send booking confirmation email
  *
@@ -246,8 +253,8 @@ async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error(`✗ Gmail API email failed to ${booking.email}:`, {
-      message: (error as any)?.message,
-      code: (error as any)?.code,
+      message: ((error ?? {}) as ErrorDetails).message,
+      code: ((error ?? {}) as ErrorDetails).code,
     });
     return false;
   }
@@ -286,10 +293,10 @@ async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error(`✗ SMTP email failed to ${booking.email}:`, {
-      message: (error as any)?.message,
-      code: (error as any)?.code,
-      response: (error as any)?.response,
-      responseCode: (error as any)?.responseCode,
+      message: ((error ?? {}) as ErrorDetails).message,
+      code: ((error ?? {}) as ErrorDetails).code,
+      response: ((error ?? {}) as ErrorDetails).response,
+      responseCode: ((error ?? {}) as ErrorDetails).responseCode,
     });
     return false;
   }

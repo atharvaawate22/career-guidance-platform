@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
+
 interface NavItem {
   name: string;
   href: string;
@@ -79,24 +84,27 @@ export default function Sidebar() {
 
   // Check if user is logged in as admin
   useEffect(() => {
-    const checkAdminStatus = () => {
-      // Check if localStorage is available (client-side only)
-      if (typeof window !== "undefined") {
-        const adminToken = localStorage.getItem("adminToken");
-        setIsAdmin(!!adminToken);
+    const checkAdminStatus = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/session`, {
+          credentials: "include",
+        });
+        setIsAdmin(response.ok);
+      } catch {
+        setIsAdmin(false);
       }
     };
 
-    checkAdminStatus();
+    void checkAdminStatus();
 
-    // Listen for storage changes (cross-tab login/logout events)
-    window.addEventListener("storage", checkAdminStatus);
-    // Listen for same-tab login/logout events via custom event
-    window.addEventListener("adminAuthChange", checkAdminStatus);
+    const handleAuthChange = () => {
+      void checkAdminStatus();
+    };
+
+    window.addEventListener("adminAuthChange", handleAuthChange);
 
     return () => {
-      window.removeEventListener("storage", checkAdminStatus);
-      window.removeEventListener("adminAuthChange", checkAdminStatus);
+      window.removeEventListener("adminAuthChange", handleAuthChange);
     };
   }, []);
 

@@ -22,7 +22,7 @@ export class UpdatesRepository {
     update: Partial<Omit<Update, 'id'>>,
   ): Promise<Update | null> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramCount = 1;
 
     if (update.title !== undefined) {
