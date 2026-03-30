@@ -1,9 +1,7 @@
 import request from 'supertest';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-beforeAll(() => {
-  process.env.NODE_ENV = 'test';
-});
+process.env.NODE_ENV = 'test';
 
 import { app } from '../src/server';
 
