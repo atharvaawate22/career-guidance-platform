@@ -347,7 +347,8 @@ export default function BookPage() {
           <span className="text-lg leading-none mt-0.5">🎥</span>
           <div>
             <span className="font-semibold">Free session via Google Meet.</span>{" "}
-            You&apos;ll receive a confirmation email with the Meet link after booking. Sessions are 30 minutes long.
+            You&apos;ll receive a confirmation email with the Meet link after
+            booking. Sessions are 30 minutes long.
           </div>
         </div>
 

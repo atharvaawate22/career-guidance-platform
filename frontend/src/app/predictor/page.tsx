@@ -5,9 +5,7 @@ import { useEffect, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import PredictorResultCard from "@/components/PredictorResultCard";
-import {
-  CANDIDATE_GENDER_OPTIONS,
-} from "@/lib/candidateGender";
+import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
 import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
@@ -339,54 +337,138 @@ export default function PredictorPage() {
 
               <div className="rounded-2xl border border-gray-100 bg-linear-to-br from-white via-white to-purple-50/50 p-4 sm:p-5">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
-                {/* Category */}
-                <div className="xl:col-span-4">
-                  <label
-                    htmlFor="category"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Category
-                  </label>
-                  <CustomSelect
-                    id="category"
-                    value={category}
-                    onChange={(val) => {
-                      setCategory(val);
-                      if (val === "TFWS") setIncludeTfws(false);
-                    }}
-                    options={[
-                      { value: "", label: "All Categories" },
-                      ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
-                        (c) => ({ value: c, label: c })
-                      ),
-                    ]}
-                  />
-                </div>
-
-                {/* Gender */}
-                <div className="xl:col-span-4">
-                  <label
-                    htmlFor="gender"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Gender
-                  </label>
-                  <CustomSelect
-                    id="gender"
-                    value={gender}
-                    onChange={setGender}
-                    options={[...CANDIDATE_GENDER_OPTIONS]}
-                    placeholder="Select Gender"
-                  />
-                </div>
-
-                <div className="xl:col-span-4">
-                  <span className="block mb-2 text-sm font-medium text-gray-700">
-                    Seat Options
-                  </span>
-                  {category !== "TFWS" ? (
+                  {/* Category */}
+                  <div className="xl:col-span-4">
                     <label
+                      htmlFor="category"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Category
+                    </label>
+                    <CustomSelect
+                      id="category"
+                      value={category}
+                      onChange={(val) => {
+                        setCategory(val);
+                        if (val === "TFWS") setIncludeTfws(false);
+                      }}
+                      options={[
+                        { value: "", label: "All Categories" },
+                        ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
+                          (c) => ({ value: c, label: c })
+                        ),
+                      ]}
+                    />
+                  </div>
+
+                  {/* Gender */}
+                  <div className="xl:col-span-4">
+                    <label
+                      htmlFor="gender"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Gender
+                    </label>
+                    <CustomSelect
+                      id="gender"
+                      value={gender}
+                      onChange={setGender}
+                      options={[...CANDIDATE_GENDER_OPTIONS]}
+                      placeholder="Select Gender"
+                    />
+                  </div>
+
+                  <div className="xl:col-span-4">
+                    <span className="block mb-2 text-sm font-medium text-gray-700">
+                      Seat Options
+                    </span>
+                    {category !== "TFWS" ? (
+                      <label
                         className={`flex h-13 items-center gap-3 rounded-xl border px-4 cursor-pointer select-none transition-all duration-150 ${
+                          includeTfws
+                            ? "border-purple-300 bg-purple-50"
+                            : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={includeTfws}
+                          onChange={(e) => setIncludeTfws(e.target.checked)}
+                          className="h-4 w-4 shrink-0 rounded accent-purple-600"
+                        />
+                        <span className="text-sm font-medium text-gray-800">
+                          Also include{" "}
+                          <span className="text-purple-700 font-semibold">
+                            TFWS
+                          </span>{" "}
+                          seats
+                        </span>
+                      </label>
+                    ) : (
+                      <div className="flex h-13 items-center rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-500">
+                        TFWS is already selected as the category.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="xl:col-span-6">
+                    <label
+                      htmlFor="minorityType"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Minority Type
+                    </label>
+                    <MultiSelect
+                      id="minorityType"
+                      value={selectedMinorityTypes}
+                      onChange={setSelectedMinorityTypes}
+                      options={MINORITY_TYPE_OPTIONS}
+                      placeholder="All Minority Types"
+                    />
+                  </div>
+
+                  <div className="xl:col-span-6">
+                    <label
+                      htmlFor="minorityGroup"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Minority Group
+                    </label>
+                    <MultiSelect
+                      id="minorityGroup"
+                      value={selectedMinorityGroups}
+                      onChange={(values) => {
+                        if (selectedMinorityTypes.length === 0) return;
+                        setSelectedMinorityGroups(values);
+                        const impliedTypes = getMinorityTypesForGroups(values);
+                        setSelectedMinorityTypes((current) =>
+                          Array.from(new Set([...current, ...impliedTypes]))
+                        );
+                      }}
+                      options={
+                        selectedMinorityTypes.length > 0
+                          ? getMinorityGroupOptions(selectedMinorityTypes)
+                          : []
+                      }
+                      placeholder={
+                        selectedMinorityTypes.length > 0
+                          ? "All Minority Groups"
+                          : "Select minority type first"
+                      }
+                      disabled={selectedMinorityTypes.length === 0}
+                    />
+                    <p className="mt-1 text-xs text-gray-400">
+                      Minority groups are available after selecting at least one
+                      minority type.
+                    </p>
+                  </div>
+                </div>
+
+                {/* TFWS toggle — styled card row */}
+                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {false && category !== "TFWS" && (
+                    <label
+                      className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer select-none transition-all duration-150 md:col-span-2 xl:col-span-4 ${
                         includeTfws
                           ? "border-purple-300 bg-purple-50"
                           : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
@@ -396,124 +478,39 @@ export default function PredictorPage() {
                         type="checkbox"
                         checked={includeTfws}
                         onChange={(e) => setIncludeTfws(e.target.checked)}
-                        className="h-4 w-4 shrink-0 rounded accent-purple-600"
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded accent-purple-600"
                       />
-                      <span className="text-sm font-medium text-gray-800">
-                        Also include{" "}
-                        <span className="text-purple-700 font-semibold">
-                          TFWS
-                        </span>{" "}
-                        seats
-                      </span>
+                      <div>
+                        <span className="text-sm font-medium text-gray-800">
+                          Also include{" "}
+                          <span className="text-purple-700 font-semibold">
+                            TFWS
+                          </span>{" "}
+                          seats
+                        </span>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          Tuition Fee Waiver Scheme — for economically weaker
+                          sections (income-based eligibility)
+                        </p>
+                      </div>
                     </label>
-                  ) : (
-                      <div className="flex h-13 items-center rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-500">
-                      TFWS is already selected as the category.
-                    </div>
                   )}
-                </div>
-
-                <div className="xl:col-span-6">
-                  <label
-                    htmlFor="minorityType"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Minority Type
-                  </label>
-                  <MultiSelect
-                    id="minorityType"
-                    value={selectedMinorityTypes}
-                    onChange={setSelectedMinorityTypes}
-                    options={MINORITY_TYPE_OPTIONS}
-                    placeholder="All Minority Types"
-                  />
-                </div>
-
-                <div className="xl:col-span-6">
-                  <label
-                    htmlFor="minorityGroup"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Minority Group
-                  </label>
-                  <MultiSelect
-                    id="minorityGroup"
-                    value={selectedMinorityGroups}
-                    onChange={(values) => {
-                      if (selectedMinorityTypes.length === 0) return;
-                      setSelectedMinorityGroups(values);
-                      const impliedTypes = getMinorityTypesForGroups(values);
-                      setSelectedMinorityTypes((current) =>
-                        Array.from(new Set([...current, ...impliedTypes]))
-                      );
-                    }}
-                    options={
-                      selectedMinorityTypes.length > 0
-                        ? getMinorityGroupOptions(selectedMinorityTypes)
-                        : []
-                    }
-                    placeholder={
-                      selectedMinorityTypes.length > 0
-                        ? "All Minority Groups"
-                        : "Select minority type first"
-                    }
-                    disabled={selectedMinorityTypes.length === 0}
-                  />
-                  <p className="mt-1 text-xs text-gray-400">
-                    Minority groups are available after selecting at least one
-                    minority type.
-                  </p>
-                </div>
-
-              </div>
-
-              {/* TFWS toggle — styled card row */}
-              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {false && category !== "TFWS" && (
-                <label
-                  className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer select-none transition-all duration-150 md:col-span-2 xl:col-span-4 ${
-                    includeTfws
-                      ? "border-purple-300 bg-purple-50"
-                      : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={includeTfws}
-                    onChange={(e) => setIncludeTfws(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded accent-purple-600"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-800">
-                      Also include{" "}
-                      <span className="text-purple-700 font-semibold">
-                        TFWS
-                      </span>{" "}
-                      seats
-                    </span>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      Tuition Fee Waiver Scheme — for economically weaker
-                      sections (income-based eligibility)
-                    </p>
+                  <div className="rounded-xl border border-purple-100 bg-purple-50/70 px-4 py-3 text-sm text-gray-700">
+                    <span className="font-semibold text-purple-700">
+                      Seat rule:
+                    </span>{" "}
+                    Male candidates see gender-neutral seats only. Female
+                    candidates see gender-neutral and ladies seats.
                   </div>
-                </label>
-              )}
-              <div className="rounded-xl border border-purple-100 bg-purple-50/70 px-4 py-3 text-sm text-gray-700">
-                <span className="font-semibold text-purple-700">
-                  Seat rule:
-                </span>{" "}
-                Male candidates see gender-neutral seats only. Female
-                candidates see gender-neutral and ladies seats.
-              </div>
 
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-gray-700">
-                <span className="font-semibold text-indigo-700">
-                  Minority filters:
-                </span>{" "}
-                Add one or more minority types or groups only if they apply to
-                you. Groups can be combined when eligible.
-              </div>
-              </div>
+                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-gray-700">
+                    <span className="font-semibold text-indigo-700">
+                      Minority filters:
+                    </span>{" "}
+                    Add one or more minority types or groups only if they apply
+                    to you. Groups can be combined when eligible.
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -722,21 +719,9 @@ export default function PredictorPage() {
               );
             })()}
 
-            {renderSection(
-              results.safe,
-              "safe",
-              "Safe Colleges"
-            )}
-            {renderSection(
-              results.target,
-              "target",
-              "Target Colleges"
-            )}
-            {renderSection(
-              results.dream,
-              "dream",
-              "Dream Colleges"
-            )}
+            {renderSection(results.safe, "safe", "Safe Colleges")}
+            {renderSection(results.target, "target", "Target Colleges")}
+            {renderSection(results.dream, "dream", "Dream Colleges")}
 
             {totalResults === 0 && (
               <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl">

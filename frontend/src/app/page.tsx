@@ -255,7 +255,10 @@ export default function Home() {
                   </h4>
                   <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
                     Still have doubts?{" "}
-                    <Link href="/book" className="underline decoration-indigo-200 underline-offset-4 hover:decoration-indigo-400 transition-colors">
+                    <Link
+                      href="/book"
+                      className="underline decoration-indigo-200 underline-offset-4 hover:decoration-indigo-400 transition-colors"
+                    >
                       Book a session
                     </Link>{" "}
                     with our experts to finalize your college preferences.
@@ -377,12 +380,18 @@ export default function Home() {
               <h4 className="font-bold text-gray-900 mb-3 text-sm">Tools</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/predictor" className="text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link
+                    href="/predictor"
+                    className="text-gray-600 hover:text-purple-600 transition-colors"
+                  >
                     College Predictor
                   </Link>
                 </li>
                 <li>
-                  <Link href="/cutoffs" className="text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link
+                    href="/cutoffs"
+                    className="text-gray-600 hover:text-purple-600 transition-colors"
+                  >
                     Cutoff Explorer
                   </Link>
                 </li>
@@ -392,12 +401,18 @@ export default function Home() {
               <h4 className="font-bold text-gray-900 mb-3 text-sm">Learn</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/guides" className="text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link
+                    href="/guides"
+                    className="text-gray-600 hover:text-purple-600 transition-colors"
+                  >
                     Admission Guides
                   </Link>
                 </li>
                 <li>
-                  <Link href="/resources" className="text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link
+                    href="/resources"
+                    className="text-gray-600 hover:text-purple-600 transition-colors"
+                  >
                     Resources
                   </Link>
                 </li>
@@ -407,12 +422,18 @@ export default function Home() {
               <h4 className="font-bold text-gray-900 mb-3 text-sm">Connect</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/book" className="text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link
+                    href="/book"
+                    className="text-gray-600 hover:text-purple-600 transition-colors"
+                  >
                     Book a Session
                   </Link>
                 </li>
                 <li>
-                  <Link href="/updates" className="text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link
+                    href="/updates"
+                    className="text-gray-600 hover:text-purple-600 transition-colors"
+                  >
                     Latest Updates
                   </Link>
                 </li>

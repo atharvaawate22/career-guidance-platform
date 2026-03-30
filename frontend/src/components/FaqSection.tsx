@@ -82,60 +82,57 @@ export default function FaqSection() {
           </div>
         ) : (
           <div className="space-y-3">
-          {faqs.map((faq, index) => {
-            const isOpen = openId === faq.id;
+            {faqs.map((faq, index) => {
+              const isOpen = openId === faq.id;
 
-            return (
-              <article
-                key={faq.id}
-                className={`rounded-2xl border transition-all duration-200 ${
-                  isOpen
-                    ? "border-purple-200 bg-white shadow-lg"
-                    : "border-gray-200 bg-white/80 hover:border-purple-100 hover:bg-white"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenId(isOpen ? "" : faq.id)}
-                  className="w-full px-6 py-5 text-left flex items-start justify-between gap-4"
+              return (
+                <article
+                  key={faq.id}
+                  className={`rounded-2xl border transition-all duration-200 ${
+                    isOpen
+                      ? "border-purple-200 bg-white shadow-lg"
+                      : "border-gray-200 bg-white/80 hover:border-purple-100 hover:bg-white"
+                  }`}
                 >
-                  <div className="flex items-start gap-4">
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-purple-500 to-pink-500 text-sm font-bold text-white shadow-sm">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div>
-                      <h4 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">
-                        {faq.question}
-                      </h4>
-                    </div>
-                  </div>
-                  <span
-                    className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium transition-all duration-200 ${
-                      isOpen
-                        ? "rotate-45 bg-purple-600 text-white border-purple-600"
-                        : "bg-gray-50 text-gray-500 border-gray-200"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(isOpen ? "" : faq.id)}
+                    className="w-full px-6 py-5 text-left flex items-start justify-between gap-4"
                   >
-                    +
-                  </span>
-                </button>
+                    <div className="flex items-start gap-4">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-purple-500 to-pink-500 text-sm font-bold text-white shadow-sm">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <h4 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">
+                          {faq.question}
+                        </h4>
+                      </div>
+                    </div>
+                    <span
+                      className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium transition-all duration-200 ${
+                        isOpen
+                          ? "rotate-45 bg-purple-600 text-white border-purple-600"
+                          : "bg-gray-50 text-gray-500 border-gray-200"
+                      }`}
+                    >
+                      +
+                    </span>
+                  </button>
 
-                {/* Animated accordion body */}
-                <div
-                  className="faq-answer-grid"
-                  data-open={isOpen}
-                >
-                  <div className="faq-answer-inner">
-                    <div className="px-6 pb-6">
-                      <div className="ml-12 border-l-2 border-purple-100 pl-5 text-gray-600 leading-relaxed text-sm sm:text-base">
-                        {faq.answer}
+                  {/* Animated accordion body */}
+                  <div className="faq-answer-grid" data-open={isOpen}>
+                    <div className="faq-answer-inner">
+                      <div className="px-6 pb-6">
+                        <div className="ml-12 border-l-2 border-purple-100 pl-5 text-gray-600 leading-relaxed text-sm sm:text-base">
+                          {faq.answer}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
