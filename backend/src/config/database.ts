@@ -6,6 +6,21 @@ interface QueryOptions {
 }
 
 const SLOW_QUERY_THRESHOLD_MS = Number(process.env.DB_SLOW_QUERY_MS || '250');
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+const resolveSslRejectUnauthorized = (): boolean => {
+  if (IS_PRODUCTION) {
+    return true;
+  }
+
+  const configured =
+    process.env.DB_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
+  if (configured === 'false' || configured === '0' || configured === 'no') {
+    return false;
+  }
+
+  return true;
+};
 
 const compactSql = (text: string): string =>
   text.replace(/\s+/g, ' ').trim().slice(0, 240);
@@ -13,7 +28,7 @@ const compactSql = (text: string): string =>
 const pool = process.env.DATABASE_URL
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: resolveSslRejectUnauthorized() },
     })
   : new Pool({
       user: 'postgres',
