@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MainContent from "@/components/MainContent";
+import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +51,7 @@ export default function RootLayout({
           <Sidebar />
           <MainContent>{children}</MainContent>
         </div>
+        <ErrorTrackingBridge />
       </body>
     </html>
   );
