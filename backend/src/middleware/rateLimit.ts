@@ -30,8 +30,7 @@ export function createAdminLoginLimiter(
       success: false,
       error: {
         code: 'RATE_LIMITED',
-        message:
-          'Too many login attempts. Please wait before trying again.',
+        message: 'Too many login attempts. Please wait before trying again.',
       },
     },
   });
