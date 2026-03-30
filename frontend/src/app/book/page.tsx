@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000";
+import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 const TIME_SLOTS = [
   "10:00",

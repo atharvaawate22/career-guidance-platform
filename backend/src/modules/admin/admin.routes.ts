@@ -17,6 +17,56 @@ const router = Router();
 const updatesController = new UpdatesController();
 const cutoffsController = new CutoffsController();
 
+const ALLOWED_UPLOAD_MIME_BY_EXT: Record<string, string[]> = {
+  pdf: ['application/pdf'],
+  doc: ['application/msword', 'application/doc'],
+  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+};
+
+const OLE_DOC_SIGNATURE = Buffer.from('d0cf11e0a1b11ae1', 'hex');
+const ZIP_SIGNATURES = [
+  Buffer.from('504b0304', 'hex'),
+  Buffer.from('504b0506', 'hex'),
+  Buffer.from('504b0708', 'hex'),
+];
+
+const normalizeMime = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  return value.split(';')[0].trim().toLowerCase();
+};
+
+const readUploadContentType = (req: Request): string => {
+  const explicitHeader = req.headers['x-file-content-type'];
+  if (typeof explicitHeader === 'string' && explicitHeader.trim()) {
+    return normalizeMime(explicitHeader);
+  }
+  if (Array.isArray(explicitHeader) && explicitHeader.length > 0) {
+    return normalizeMime(explicitHeader[0]);
+  }
+  return normalizeMime(req.headers['content-type']);
+};
+
+const hasMatchingFileSignature = (ext: string, payload: Buffer): boolean => {
+  if (!Buffer.isBuffer(payload) || payload.length === 0) {
+    return false;
+  }
+
+  if (ext === 'pdf') {
+    return payload.subarray(0, 5).toString('utf8') === '%PDF-';
+  }
+
+  if (ext === 'doc') {
+    return payload.subarray(0, 8).equals(OLE_DOC_SIGNATURE);
+  }
+
+  if (ext === 'docx') {
+    const header = payload.subarray(0, 4);
+    return ZIP_SIGNATURES.some((sig) => header.equals(sig));
+  }
+
+  return false;
+};
+
 // Protected routes for updates
 router.post(
   '/updates',
@@ -330,6 +380,39 @@ router.post(
         return;
       }
 
+      const payload = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      if (payload.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Uploaded file content is empty',
+          },
+        });
+        return;
+      }
+
+      const contentType = readUploadContentType(req);
+      const allowedMimeTypes = ALLOWED_UPLOAD_MIME_BY_EXT[ext] || [];
+      if (!contentType || !allowedMimeTypes.includes(contentType)) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: `Invalid content type for .${ext}. Allowed: ${allowedMimeTypes.join(', ')}`,
+          },
+        });
+        return;
+      }
+
+      if (!hasMatchingFileSignature(ext, payload)) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Uploaded file signature does not match the file extension',
+          },
+        });
+        return;
+      }
+
       const supabaseUrl = process.env.SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -344,17 +427,15 @@ router.post(
         return;
       }
 
-      const contentType =
-        req.headers['x-file-content-type'] || 'application/octet-stream';
       const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${filename}`;
 
       const uploadRes = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${serviceRoleKey}`,
-          'Content-Type': String(contentType),
+          'Content-Type': contentType,
         },
-        body: req.body as Buffer as unknown as BodyInit,
+        body: payload as unknown as BodyInit,
       });
 
       if (!uploadRes.ok) {

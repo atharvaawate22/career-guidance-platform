@@ -23,11 +23,8 @@ import {
   STATIC_CUTOFF_RELATIONS,
   normalizeStaticCityLabel,
 } from "@/lib/cutoffStaticMeta";
+import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000";
 const DEFAULT_META_YEAR = "2025";
 
 interface CutoffData {
