@@ -18,11 +18,7 @@ import {
   STATIC_CUTOFF_BRANCHES,
   STATIC_CUTOFF_CITIES_CLEAN,
 } from "@/lib/cutoffStaticMeta";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000";
+import { API_BASE_URL } from "@/lib/apiBaseUrl";
 const PREDICTOR_YEAR = 2025;
 
 /** Mirrors backend getDynamicThresholds — keep in sync */
