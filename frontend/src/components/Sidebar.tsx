@@ -73,10 +73,33 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
+    const computeOffset = () => {
+      if (window.innerWidth < 1024) {
+        return "0px";
+      }
+      return isCollapsed ? "5rem" : "18rem";
+    };
+
+    const offset = computeOffset();
+    document.documentElement.style.setProperty("--sidebar-offset", offset);
+
     window.dispatchEvent(
-      new CustomEvent("sidebarToggle", { detail: { collapsed: isCollapsed } })
+      new CustomEvent("sidebarToggle", {
+        detail: { collapsed: isCollapsed, offset },
+      })
     );
   }, [isCollapsed]);
+
+  useEffect(() => {
+    if (pathname === "/admin" && !isAdmin) {
+      document.documentElement.style.setProperty("--sidebar-offset", "0px");
+      window.dispatchEvent(
+        new CustomEvent("sidebarToggle", {
+          detail: { collapsed: true, offset: "0px" },
+        })
+      );
+    }
+  }, [isAdmin, pathname]);
 
   // Check if user is logged in as admin
   useEffect(() => {

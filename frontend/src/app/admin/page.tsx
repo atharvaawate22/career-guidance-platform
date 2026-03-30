@@ -1025,11 +1025,11 @@ export default function AdminPage() {
 
       {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <nav className="flex gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-auto">
+          <nav className="flex gap-2 min-w-max whitespace-nowrap">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-4 font-semibold border-b-2 transition-colors ${
                 activeTab === "dashboard"
                   ? "border-purple-500 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
@@ -1039,7 +1039,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab("updates")}
-              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-4 font-semibold border-b-2 transition-colors ${
                 activeTab === "updates"
                   ? "border-purple-500 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
@@ -1049,7 +1049,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab("bookings")}
-              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-4 font-semibold border-b-2 transition-colors ${
                 activeTab === "bookings"
                   ? "border-purple-500 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
@@ -1059,7 +1059,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab("faqs")}
-              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-4 font-semibold border-b-2 transition-colors ${
                 activeTab === "faqs"
                   ? "border-purple-500 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
@@ -1069,7 +1069,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab("resources")}
-              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-4 font-semibold border-b-2 transition-colors ${
                 activeTab === "resources"
                   ? "border-purple-500 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
@@ -1079,7 +1079,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab("guides")}
-              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-4 font-semibold border-b-2 transition-colors ${
                 activeTab === "guides"
                   ? "border-purple-500 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
@@ -1092,7 +1092,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Dashboard Tab */}
         {activeTab === "dashboard" && (
           <div className="space-y-8">
