@@ -48,11 +48,17 @@ describe('API smoke: critical login and booking flows', () => {
       role: 'admin',
     });
 
-    const cookies = response.headers['set-cookie'] as string[] | undefined;
-    expect(
-      cookies?.some((cookie) => cookie.startsWith('cgp_admin_session=')),
-    ).toBe(true);
-    expect(cookies?.some((cookie) => cookie.startsWith('cgp_admin_csrf='))).toBe(
+    const setCookieHeader = response.headers['set-cookie'];
+    const cookies = Array.isArray(setCookieHeader)
+      ? setCookieHeader
+      : typeof setCookieHeader === 'string'
+        ? [setCookieHeader]
+        : [];
+
+    expect(cookies.some((cookie) => cookie.startsWith('cgp_admin_session='))).toBe(
+      true,
+    );
+    expect(cookies.some((cookie) => cookie.startsWith('cgp_admin_csrf='))).toBe(
       true,
     );
   });

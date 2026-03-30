@@ -168,3 +168,4 @@ If production issues appear:
 - Monitor GET /api/ready for dependency readiness alerts
 - Keep error logs retained for at least 7 days
 - Track deployment timestamps and commit hashes in release notes
+- Review CI profile artifact for backend latency trends (see `docs/PERFORMANCE_BASELINE.md`)
