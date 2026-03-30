@@ -7,30 +7,36 @@ export default function MainContent({
 }: {
   children: React.ReactNode;
 }) {
-  const [marginClass, setMarginClass] = useState("lg:ml-72");
+  const [sidebarOffset, setSidebarOffset] = useState("0px");
 
   useEffect(() => {
-    const updateMargin = (collapsed?: boolean) => {
-      const sidebar = document.querySelector("[data-collapsed]");
-      if (!sidebar || window.innerWidth < 1024) {
-        setMarginClass("lg:ml-0");
+    const applyOffsetFromRoot = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarOffset("0px");
         return;
       }
-      const isCollapsed =
-        typeof collapsed === "boolean"
-          ? collapsed
-          : sidebar.getAttribute("data-collapsed") === "true";
-      setMarginClass(isCollapsed ? "lg:ml-20" : "lg:ml-72");
+
+      const fromRoot = document.documentElement.style
+        .getPropertyValue("--sidebar-offset")
+        .trim();
+      setSidebarOffset(fromRoot || "18rem");
     };
 
     const onSidebarToggle = (event: Event) => {
-      const customEvent = event as CustomEvent<{ collapsed: boolean }>;
-      updateMargin(customEvent.detail?.collapsed);
+      const customEvent = event as CustomEvent<{ offset?: string }>;
+      const offset = customEvent.detail?.offset;
+      if (window.innerWidth < 1024) {
+        setSidebarOffset("0px");
+      } else if (offset) {
+        setSidebarOffset(offset);
+      } else {
+        applyOffsetFromRoot();
+      }
     };
 
-    const onResize = () => updateMargin();
+    const onResize = () => applyOffsetFromRoot();
 
-    updateMargin();
+    applyOffsetFromRoot();
     window.addEventListener("resize", onResize);
     window.addEventListener("sidebarToggle", onSidebarToggle as EventListener);
 
@@ -45,7 +51,8 @@ export default function MainContent({
 
   return (
     <main
-      className={`flex-1 ${marginClass} pt-16 sm:pt-20 lg:pt-0 transition-all duration-300 overflow-x-hidden`}
+      className="flex-1 w-full min-w-0 pt-16 sm:pt-20 lg:pt-0 transition-[margin] duration-300 overflow-x-hidden"
+      style={{ marginLeft: sidebarOffset }}
       id="main-content"
     >
       {children}
