@@ -50,6 +50,10 @@ The goal is reproducibility and safe releases, not platform complexity.
 
 - NEXT_PUBLIC_API_BASE_URL
 
+### Frontend optional diagnostics
+
+- NEXT_PUBLIC_CLIENT_ERROR_WEBHOOK_URL
+
 ## 3. Pre-Deployment Quality Gate
 
 Run these checks before any production release:
@@ -169,3 +173,4 @@ If production issues appear:
 - Keep error logs retained for at least 7 days
 - Track deployment timestamps and commit hashes in release notes
 - Review CI profile artifact for backend latency trends (see `docs/PERFORMANCE_BASELINE.md`)
+- Track service objectives and paging thresholds (see `docs/SLO_ALERTS.md`)
