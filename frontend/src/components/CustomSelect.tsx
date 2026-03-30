@@ -72,10 +72,9 @@ export default function CustomSelect({
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  // Scroll selected option into view when opened & compute direction
+  // Keep the selected option visible whenever the list is opened.
   useEffect(() => {
     if (open) {
-      computeDirection();
       if (listRef.current) {
         const selected = listRef.current.querySelector(
           "[data-selected='true']"
@@ -83,6 +82,22 @@ export default function CustomSelect({
         if (selected) selected.scrollIntoView({ block: "nearest" });
       }
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updateDirection = () => {
+      computeDirection();
+    };
+
+    window.addEventListener("resize", updateDirection);
+    window.addEventListener("scroll", updateDirection, true);
+
+    return () => {
+      window.removeEventListener("resize", updateDirection);
+      window.removeEventListener("scroll", updateDirection, true);
+    };
   }, [open, computeDirection]);
 
   const selected = options.find((o) => o.value === value);
@@ -94,7 +109,14 @@ export default function CustomSelect({
         id={buttonId}
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() =>
+          setOpen((wasOpen) => {
+            if (!wasOpen) {
+              computeDirection();
+            }
+            return !wasOpen;
+          })
+        }
         className={`w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg ${paddingClass} text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors hover:border-purple-300 cursor-pointer`}
       >
         <span
