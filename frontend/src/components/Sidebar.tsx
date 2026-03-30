@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
@@ -72,7 +72,7 @@ export default function Sidebar() {
     return () => window.removeEventListener("resize", syncWithViewport);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const computeOffset = () => {
       if (window.innerWidth < 1024) {
         return "0px";
@@ -90,7 +90,7 @@ export default function Sidebar() {
     );
   }, [isCollapsed]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (pathname === "/admin" && !isAdmin) {
       document.documentElement.style.setProperty("--sidebar-offset", "0px");
       window.dispatchEvent(
