@@ -20,7 +20,9 @@ const cutoffsController = new CutoffsController();
 const ALLOWED_UPLOAD_MIME_BY_EXT: Record<string, string[]> = {
   pdf: ['application/pdf'],
   doc: ['application/msword', 'application/doc'],
-  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  docx: [
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ],
 };
 
 const OLE_DOC_SIGNATURE = Buffer.from('d0cf11e0a1b11ae1', 'hex');
@@ -407,7 +409,8 @@ router.post(
         res.status(400).json({
           success: false,
           error: {
-            message: 'Uploaded file signature does not match the file extension',
+            message:
+              'Uploaded file signature does not match the file extension',
           },
         });
         return;

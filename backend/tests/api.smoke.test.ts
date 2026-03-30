@@ -55,16 +55,18 @@ describe('API smoke: critical login and booking flows', () => {
         ? [setCookieHeader]
         : [];
 
-    expect(cookies.some((cookie) => cookie.startsWith('cgp_admin_session='))).toBe(
-      true,
-    );
+    expect(
+      cookies.some((cookie) => cookie.startsWith('cgp_admin_session=')),
+    ).toBe(true);
     expect(cookies.some((cookie) => cookie.startsWith('cgp_admin_csrf='))).toBe(
       true,
     );
   });
 
   it('creates booking for valid payload', async () => {
-    const meetingTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const meetingTime = new Date(
+      Date.now() + 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     const response = await request(app).post('/api/bookings').send({
       student_name: 'Aarav Kulkarni',

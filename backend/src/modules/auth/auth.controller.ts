@@ -12,8 +12,14 @@ import {
 type SameSiteMode = 'lax' | 'strict' | 'none';
 
 const resolveSameSiteMode = (): SameSiteMode => {
-  const configured = (process.env.ADMIN_COOKIE_SAMESITE || '').trim().toLowerCase();
-  if (configured === 'lax' || configured === 'strict' || configured === 'none') {
+  const configured = (process.env.ADMIN_COOKIE_SAMESITE || '')
+    .trim()
+    .toLowerCase();
+  if (
+    configured === 'lax' ||
+    configured === 'strict' ||
+    configured === 'none'
+  ) {
     return configured;
   }
 

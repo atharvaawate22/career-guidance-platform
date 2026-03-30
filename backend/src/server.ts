@@ -181,7 +181,9 @@ app.use(requestLogger);
 
 const PORT = process.env.PORT || 5000;
 const shouldSeedSampleData = (() => {
-  const configured = (process.env.ENABLE_SAMPLE_SEED || '').trim().toLowerCase();
+  const configured = (process.env.ENABLE_SAMPLE_SEED || '')
+    .trim()
+    .toLowerCase();
   if (configured === 'true') return true;
   if (configured === 'false') return false;
   return process.env.NODE_ENV !== 'production';
