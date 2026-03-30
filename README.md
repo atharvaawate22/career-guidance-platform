@@ -253,3 +253,24 @@ This platform is independent and not affiliated with State CET Cell or DTE Mahar
 - Email notification campaigns for CAP deadlines
 - Performance monitoring and observability integration
 - Optional payment integration module
+
+---
+
+## Release Checklist
+
+Before every production release:
+
+1. Run backend checks:
+   - `npm run lint`
+   - `npm run typecheck`
+   - `npm test`
+   - `npm run build`
+2. Run frontend checks:
+   - `npm run lint`
+   - `npm run typecheck`
+   - `npm run build`
+3. Confirm environment variables are set for target environment.
+4. Deploy backend, then frontend.
+5. Execute smoke tests (`/api/health`, predictor, booking, admin login).
+
+Detailed deployment instructions: `docs/deployment.md`.

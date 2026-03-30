@@ -1,12 +1,12 @@
 import path from "path";
 import type { NextConfig } from "next";
 
-const workspaceRoot = path.resolve(__dirname, "..");
+const frontendRoot = path.resolve(__dirname);
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: workspaceRoot,
+  outputFileTracingRoot: frontendRoot,
   turbopack: {
-    root: workspaceRoot,
+    root: frontendRoot,
   },
 };
 

@@ -384,6 +384,39 @@ export default function PredictorPage() {
                   />
                 </div>
 
+                <div className="xl:col-span-4">
+                  <span className="block mb-2 text-sm font-medium text-gray-700">
+                    Seat Options
+                  </span>
+                  {category !== "TFWS" ? (
+                    <label
+                        className={`flex h-13 items-center gap-3 rounded-xl border px-4 cursor-pointer select-none transition-all duration-150 ${
+                        includeTfws
+                          ? "border-purple-300 bg-purple-50"
+                          : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={includeTfws}
+                        onChange={(e) => setIncludeTfws(e.target.checked)}
+                        className="h-4 w-4 shrink-0 rounded accent-purple-600"
+                      />
+                      <span className="text-sm font-medium text-gray-800">
+                        Also include{" "}
+                        <span className="text-purple-700 font-semibold">
+                          TFWS
+                        </span>{" "}
+                        seats
+                      </span>
+                    </label>
+                  ) : (
+                      <div className="flex h-13 items-center rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-500">
+                      TFWS is already selected as the category.
+                    </div>
+                  )}
+                </div>
+
                 <div className="xl:col-span-6">
                   <label
                     htmlFor="minorityType"
@@ -439,8 +472,8 @@ export default function PredictorPage() {
               </div>
 
               {/* TFWS toggle — styled card row */}
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
-              {category !== "TFWS" && (
+              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {false && category !== "TFWS" && (
                 <label
                   className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer select-none transition-all duration-150 md:col-span-2 xl:col-span-4 ${
                     includeTfws
@@ -469,7 +502,7 @@ export default function PredictorPage() {
                   </div>
                 </label>
               )}
-              <div className="rounded-xl border border-purple-100 bg-purple-50/70 px-4 py-3 text-sm text-gray-700 md:col-span-2 xl:col-span-4">
+              <div className="rounded-xl border border-purple-100 bg-purple-50/70 px-4 py-3 text-sm text-gray-700">
                 <span className="font-semibold text-purple-700">
                   Seat rule:
                 </span>{" "}
@@ -477,7 +510,7 @@ export default function PredictorPage() {
                 candidates see gender-neutral and ladies seats.
               </div>
 
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-gray-700 md:col-span-2 xl:col-span-4">
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-gray-700">
                 <span className="font-semibold text-indigo-700">
                   Minority filters:
                 </span>{" "}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
@@ -344,20 +345,7 @@ export default function CutoffsPage() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-purple-100 bg-linear-to-br from-purple-50 via-white to-pink-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-700">
-                    Dataset
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-gray-800">
-                    Showing the 2025 cutoff dataset only.
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-gray-500">
-                    CAP Rounds 1 to 4 are already included, so there is no year
-                    selector on this screen.
-                  </p>
-                </div>
-
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* CAP Round */}
                 <div>
                   <label
@@ -418,6 +406,18 @@ export default function CutoffsPage() {
                   />
                 </div>
               </div>
+
+              <p className="mt-3 text-sm text-gray-500">
+                Only 2025 cutoff data is shown here. For previous-year cutoff
+                data, check the{" "}
+                <Link
+                  href="/resources"
+                  className="font-medium text-purple-700 hover:text-purple-800 underline underline-offset-2"
+                >
+                  Resources
+                </Link>{" "}
+                section.
+              </p>
             </div>
 
             <div className="border-t border-dashed border-gray-200 mb-6" />
