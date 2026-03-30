@@ -20,17 +20,29 @@ export async function createBooking(
   }
 
   try {
-    // Step 2: Generate Google Meet link
     const meetingTime = new Date(bookingRequest.meeting_time);
-    const meetLink = await calendarService.generateMeetLink(
-      bookingRequest.student_name,
-      bookingRequest.email,
-      meetingTime,
-      bookingRequest.percentile,
-      bookingRequest.category,
-      bookingRequest.branch_preference,
-      bookingRequest.meeting_purpose.trim(),
-    );
+    let meetLink: string;
+
+    try {
+      meetLink = await calendarService.generateMeetLink(
+        bookingRequest.student_name,
+        bookingRequest.email,
+        meetingTime,
+        bookingRequest.percentile,
+        bookingRequest.category,
+        bookingRequest.branch_preference,
+        bookingRequest.meeting_purpose.trim(),
+      );
+    } catch (calendarError) {
+      logger.error('Failed to generate meeting link', calendarError);
+      return {
+        success: false,
+        error: {
+          code: 'CALENDAR_ERROR',
+          message: 'Failed to generate meeting link. Please try again.',
+        },
+      };
+    }
 
     // Step 3: Insert booking record with meet_link
     const booking = await bookingRepository.createBooking({
@@ -83,17 +95,6 @@ export async function createBooking(
     };
   } catch (error) {
     logger.error('Failed to create booking', error);
-
-    // If calendar fails, reject booking
-    if (error instanceof Error && error.message.includes('meet link')) {
-      return {
-        success: false,
-        error: {
-          code: 'CALENDAR_ERROR',
-          message: 'Failed to generate meeting link. Please try again.',
-        },
-      };
-    }
 
     return {
       success: false,

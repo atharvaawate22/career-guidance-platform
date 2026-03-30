@@ -1,15 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWTPayload } from '../modules/auth/auth.types';
-
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
-  }
-}
+import { ADMIN_AUTH_COOKIE } from '../modules/auth/auth.constants';
 
 export const authMiddleware = (
   req: Request,
@@ -17,21 +9,27 @@ export const authMiddleware = (
   next: NextFunction,
 ): void => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
+    // Prefer HttpOnly cookie session token, fallback to Authorization header.
+    const cookieToken = req.cookies?.[ADMIN_AUTH_COOKIE] as string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const authHeader = req.headers.authorization;
+    const headerToken =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : undefined;
+
+    const token = cookieToken || headerToken;
+
+    if (!token) {
       res.status(401).json({
         success: false,
         error: {
           code: 'MISSING_TOKEN',
-          message: 'Authorization token is required',
+          message: 'Authentication token is required',
         },
       });
       return;
     }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // Verify token
     const jwtSecret = process.env.JWT_SECRET;
@@ -76,4 +74,34 @@ export const authMiddleware = (
       },
     });
   }
+};
+
+export const requireAdminRole = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
+  if (!req.user) {
+    res.status(401).json({
+      success: false,
+      error: {
+        code: 'UNAUTHENTICATED',
+        message: 'Authentication is required',
+      },
+    });
+    return;
+  }
+
+  if (req.user.role !== 'admin') {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Admin access is required',
+      },
+    });
+    return;
+  }
+
+  next();
 };
