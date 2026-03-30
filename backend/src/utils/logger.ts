@@ -1,22 +1,24 @@
 const getTimestamp = () => new Date().toISOString();
 
+const formatMeta = (meta?: unknown): string => {
+  if (meta === undefined) return '';
+
+  try {
+    return ` ${JSON.stringify(meta)}`;
+  } catch {
+    return ' [meta_unserializable]';
+  }
+};
+
 const logger = {
-  info(message: string) {
-    console.log(`[${getTimestamp()}] [INFO] ${message}`);
+  info(message: string, meta?: unknown) {
+    console.log(`[${getTimestamp()}] [INFO] ${message}${formatMeta(meta)}`);
   },
   warn(message: string, meta?: unknown) {
-    if (meta) {
-      console.warn(`[${getTimestamp()}] [WARN] ${message}`, meta);
-    } else {
-      console.warn(`[${getTimestamp()}] [WARN] ${message}`);
-    }
+    console.warn(`[${getTimestamp()}] [WARN] ${message}${formatMeta(meta)}`);
   },
   error(message: string, meta?: unknown) {
-    if (meta) {
-      console.error(`[${getTimestamp()}] [ERROR] ${message}`, meta);
-    } else {
-      console.error(`[${getTimestamp()}] [ERROR] ${message}`);
-    }
+    console.error(`[${getTimestamp()}] [ERROR] ${message}${formatMeta(meta)}`);
   },
 };
 

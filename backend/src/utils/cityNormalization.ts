@@ -41,6 +41,7 @@ export const BASE_CITY_ALIAS_BY_COLLEGE_CODE: Record<string, string> = {
   '05164': 'Nandurbar',
   '05169': 'Dhule',
   '05184': 'Sinnar',
+  '05256': 'Nashik',
   '05239': 'Jalgaon',
   '05303': 'Shrigonda',
   '05380': 'Ahmednagar',
@@ -67,12 +68,14 @@ export const BASE_CITY_ALIAS_BY_COLLEGE_CODE: Record<string, string> = {
   '06714': 'Kolhapur',
   '06715': 'Pune',
   '06766': 'Satara',
+  '06732': 'Pune',
   '06811': 'Kolhapur',
   '06938': 'Solapur',
   '16006': 'Pune',
   '16354': 'Pune',
   '16355': 'Pune',
   '16357': 'Pune',
+  '03209': 'Mumbai',
 };
 
 const expandedEntries = Object.entries(BASE_CITY_ALIAS_BY_COLLEGE_CODE).flatMap(
@@ -187,6 +190,10 @@ export const CITY_ALIAS_BY_LOCALITY: Record<string, string> = {
   // Ichalkaranji
   'yadrav(ichalkaranji)': 'Ichalkaranji',
   'ichalkaranji.': 'Ichalkaranji',
+  // Full-name fallbacks for rows with no parsable suffix locality
+  'matoshri aasarabai institute of technology and research centre': 'Nashik',
+  'ajeenkya dy patil school of engineering': 'Pune',
+  'k j somaiya institute of technology': 'Mumbai',
 };
 
 const CITY_RAW_SQL = `

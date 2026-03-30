@@ -48,4 +48,6 @@ export interface PredictorFilters {
   preferred_branches?: string[];
   cities?: string[];
   include_tfws?: boolean;
+  min_cutoff_rank?: number;
+  max_cutoff_rank?: number;
 }

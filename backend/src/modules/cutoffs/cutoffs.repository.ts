@@ -1,7 +1,6 @@
 import { query } from '../../config/database';
 import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import {
-  CITY_FILTER_SQL,
   CITY_NORMALIZED_SQL,
 } from '../../utils/cityNormalization';
 import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
@@ -20,11 +19,8 @@ export class CutoffsRepository {
       values.push(filters.year);
     }
     if (filters.branches && filters.branches.length > 0) {
-      const branchConditions = filters.branches.map(
-        () => `branch ILIKE $${p++}`,
-      );
-      conditions.push(`(${branchConditions.join(' OR ')})`);
-      filters.branches.forEach((b) => values.push(`%${b}%`));
+      conditions.push(`branch ILIKE ANY($${p++}::text[])`);
+      values.push(filters.branches.map((b) => `%${b}%`));
     }
     if (filters.category) {
       if (filters.include_tfws && filters.category !== 'TFWS') {
@@ -76,11 +72,15 @@ export class CutoffsRepository {
       values.push(filters.level);
     }
     if (filters.cities && filters.cities.length > 0) {
-      const cityConditions = filters.cities.map(
-        () => `${CITY_FILTER_SQL} = $${p++}`,
-      );
-      conditions.push(`(${cityConditions.join(' OR ')})`);
-      filters.cities.forEach((c) => values.push(c.trim().toLowerCase()));
+      conditions.push(`(
+        LOWER(TRIM(city_normalized)) = ANY($${p}::text[])
+        OR (
+          (city_normalized IS NULL OR TRIM(city_normalized) = '')
+          AND LOWER(TRIM(${CITY_NORMALIZED_SQL})) = ANY($${p}::text[])
+        )
+      )`);
+      values.push(filters.cities.map((c) => c.trim().toLowerCase()));
+      p++;
     }
 
     const whereClause =
@@ -98,7 +98,11 @@ export class CutoffsRepository {
               COALESCE(college_code, college_name),
               COALESCE(branch_code, branch),
               category,
-              COALESCE(stage, '')
+              COALESCE(stage, ''),
+              COALESCE(gender, ''),
+              COALESCE(home_university, ''),
+              COALESCE(college_status, ''),
+              COALESCE(level, '')
             ORDER BY
               cutoff_rank DESC NULLS LAST,
               percentile ASC NULLS LAST,
@@ -109,14 +113,6 @@ export class CutoffsRepository {
       )
     `;
 
-    // Count total matching rows
-    const countResult = await query(
-      `${dedupedRowsCte}
-       SELECT COUNT(*) FROM ranked_cutoffs WHERE row_rank = 1`,
-      values,
-    );
-    const total = parseInt(countResult.rows[0].count, 10);
-
     // Fetch rows with limit
     const LIMIT = 500;
     const sql = `
@@ -124,15 +120,20 @@ export class CutoffsRepository {
       SELECT
         id, year, college_code, college_name, branch_code, branch,
         category, gender, home_university, college_status,
-        stage, level, percentile, cutoff_rank, created_at
+        stage, level, percentile, cutoff_rank, created_at,
+        COUNT(*) OVER()::int AS total_count
       FROM ranked_cutoffs
       WHERE row_rank = 1
       ORDER BY year DESC, college_name ASC, branch ASC, percentile DESC
       LIMIT ${LIMIT}
     `;
 
-    const result = await query(sql, values);
-    return { rows: result.rows, total };
+    const result = await query(sql, values, {
+      name: 'cutoffs.get_cutoffs',
+    });
+    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    const rows = result.rows.map(({ total_count: _totalCount, ...row }) => row) as CutoffData[];
+    return { rows, total };
   }
 
   async bulkInsertCutoffs(cutoffs: BulkCutoffInsert[]): Promise<CutoffData[]> {
