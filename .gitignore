@@ -51,3 +51,7 @@ backend/tmp_admin_cookie.txt
 
 # Raw PDF source files kept out of git history
 cutoff_pdfs/*.pdf
+
+# Playwright local artifacts
+frontend/test-results/
+frontend/playwright-report/

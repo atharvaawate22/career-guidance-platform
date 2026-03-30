@@ -50,6 +50,37 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Start backend for profiling
+        if: ${{ env.DATABASE_URL != '' }}
+        run: nohup node dist/server.js > profile-server.log 2>&1 &
+
+      - name: Wait for backend health
+        if: ${{ env.DATABASE_URL != '' }}
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://127.0.0.1:5000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not become healthy in time"
+          cat profile-server.log
+          exit 1
+
+      - name: Capture backend profile baseline
+        if: ${{ env.DATABASE_URL != '' }}
+        run: PROFILE_BASE_URL=http://127.0.0.1:5000 PROFILE_RUNS=8 PROFILE_WARMUP_RUNS=1 node scripts/profile_endpoints.js | tee profile-endpoints.txt
+
+      - name: Upload backend profile artifact
+        if: ${{ env.DATABASE_URL != '' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-profile-baseline
+          path: |
+            backend/profile-endpoints.txt
+            backend/profile-server.log
+          if-no-files-found: warn
+
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
@@ -79,3 +110,38 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  frontend-e2e:
+    name: Frontend E2E Smoke
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-playwright-report
+          path: frontend/playwright-report
+          if-no-files-found: warn
