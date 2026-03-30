@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 export default function MainContent({
   children,
@@ -9,7 +9,7 @@ export default function MainContent({
 }) {
   const [sidebarOffset, setSidebarOffset] = useState("0px");
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const applyOffsetFromRoot = () => {
       if (window.innerWidth < 1024) {
         setSidebarOffset("0px");
@@ -19,7 +19,8 @@ export default function MainContent({
       const fromRoot = document.documentElement.style
         .getPropertyValue("--sidebar-offset")
         .trim();
-      setSidebarOffset(fromRoot || "18rem");
+      // Never assume sidebar width when it is not explicitly set.
+      setSidebarOffset(fromRoot || "0px");
     };
 
     const onSidebarToggle = (event: Event) => {
