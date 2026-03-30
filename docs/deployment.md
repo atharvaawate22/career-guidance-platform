@@ -24,6 +24,11 @@ The goal is reproducibility and safe releases, not platform complexity.
 - DATABASE_URL
 - JWT_SECRET
 
+### Backend hardening controls
+
+- DB_SSL_REJECT_UNAUTHORIZED (non-production override only; production enforces TLS cert validation)
+- ENABLE_SAMPLE_SEED (set to false in production)
+
 ### Backend optional (feature integrations)
 
 - ADMIN_EMAIL
@@ -105,7 +110,8 @@ pm2 save
 
 4. Verify health
 
-- Check GET /api/health returns 200
+- Check GET /api/health returns 200 (liveness)
+- Check GET /api/ready returns 200 (readiness with DB check)
 - Check one public endpoint, for example GET /api/updates
 
 ## 5. Frontend Deployment (Vercel)
@@ -159,5 +165,6 @@ If production issues appear:
 ## 10. Minimal Observability Baseline
 
 - Monitor GET /api/health with an external uptime checker
+- Monitor GET /api/ready for dependency readiness alerts
 - Keep error logs retained for at least 7 days
 - Track deployment timestamps and commit hashes in release notes

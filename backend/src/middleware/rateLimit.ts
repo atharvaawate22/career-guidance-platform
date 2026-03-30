@@ -16,3 +16,23 @@ export function createPublicPostLimiter(maxRequests: number, windowMs: number) {
     },
   });
 }
+
+export function createAdminLoginLimiter(
+  maxRequests = 8,
+  windowMs = 15 * 60 * 1000,
+) {
+  return rateLimit({
+    windowMs,
+    max: maxRequests,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: {
+        code: 'RATE_LIMITED',
+        message:
+          'Too many login attempts. Please wait before trying again.',
+      },
+    },
+  });
+}
