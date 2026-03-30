@@ -8,15 +8,18 @@ When `DATABASE_URL` is configured in CI secrets:
 
 1. Backend app is built and started.
 2. Endpoint profiler runs against:
+
 - `GET /api/cutoffs` (filtered)
 - `POST /api/predict`
 - `GET /api/cutoffs/meta`
+
 3. Summary with avg/p50/p95/min/max is captured.
 4. Artifact is uploaded as `backend-profile-baseline`.
 
 ### Where to find results
 
 In GitHub Actions run artifacts:
+
 - `profile-endpoints.txt`
 - `profile-server.log`
 
