@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 export default function MainContent({
   children,
@@ -8,10 +9,13 @@ export default function MainContent({
   children: React.ReactNode;
 }) {
   const [sidebarOffset, setSidebarOffset] = useState("0px");
+  const pathname = usePathname();
 
   useLayoutEffect(() => {
+    const isAdminRoute = pathname === "/admin";
+
     const applyOffsetFromRoot = () => {
-      if (window.innerWidth < 1024) {
+      if (window.innerWidth < 1024 || isAdminRoute) {
         setSidebarOffset("0px");
         return;
       }
@@ -24,10 +28,20 @@ export default function MainContent({
     };
 
     const onSidebarToggle = (event: Event) => {
-      const customEvent = event as CustomEvent<{ offset?: string }>;
+      const customEvent = event as CustomEvent<{
+        offset?: string;
+        visible?: boolean;
+      }>;
+      if (customEvent.detail?.visible === false) {
+        setSidebarOffset("0px");
+        return;
+      }
+
       const offset = customEvent.detail?.offset;
       if (window.innerWidth < 1024) {
         setSidebarOffset("0px");
+      } else if (isAdminRoute) {
+        setSidebarOffset(offset || "0px");
       } else if (offset) {
         setSidebarOffset(offset);
       } else {
@@ -48,7 +62,7 @@ export default function MainContent({
         onSidebarToggle as EventListener
       );
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <main
