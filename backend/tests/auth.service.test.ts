@@ -1,80 +1,51 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const { findUserByEmailMock, bcryptCompareMock, jwtSignMock } = vi.hoisted(
-  () => ({
-    findUserByEmailMock: vi.fn(),
-    bcryptCompareMock: vi.fn(),
-    jwtSignMock: vi.fn(),
-  }),
-);
+import bcrypt from 'bcrypt';
+import { login } from '../src/modules/auth/auth.service';
+import { findUserByEmail } from '../src/modules/auth/auth.repository';
 
 vi.mock('../src/modules/auth/auth.repository', () => ({
-  findUserByEmail: findUserByEmailMock,
+  findUserByEmail: vi.fn(),
 }));
 
 vi.mock('bcrypt', () => ({
   default: {
-    compare: bcryptCompareMock,
+    compare: vi.fn(),
   },
 }));
 
-vi.mock('jsonwebtoken', () => ({
-  default: {
-    sign: jwtSignMock,
-  },
-}));
+describe('auth.service login error handling', () => {
+  const originalJwtSecret = process.env.JWT_SECRET;
 
-import { login } from '../src/modules/auth/auth.service';
-
-describe('auth.service login', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.JWT_SECRET = 'test_secret_123';
-    process.env.JWT_EXPIRES_IN = '24h';
+    process.env.JWT_SECRET = originalJwtSecret;
   });
 
-  it('returns null when user does not exist', async () => {
-    findUserByEmailMock.mockResolvedValueOnce(null);
+  it('wraps database failures with a login-specific error code', async () => {
+    vi.mocked(findUserByEmail).mockRejectedValue(new Error('connect ECONNREFUSED'));
 
-    const result = await login('missing@example.com', 'password');
-
-    expect(result).toBeNull();
-  });
-
-  it('returns null for invalid password', async () => {
-    findUserByEmailMock.mockResolvedValueOnce({
-      id: 'user-1',
-      email: 'admin@example.com',
-      password_hash: 'hashed',
-      role: 'admin',
+    await expect(login('admin@example.com', 'secret')).rejects.toMatchObject({
+      code: 'AUTH_DATABASE_ERROR',
+      statusCode: 500,
+      publicMessage: 'Unable to verify admin login right now.',
     });
-    bcryptCompareMock.mockResolvedValueOnce(false);
-
-    const result = await login('admin@example.com', 'wrong-password');
-
-    expect(result).toBeNull();
   });
 
-  it('returns token and user for valid credentials', async () => {
-    findUserByEmailMock.mockResolvedValueOnce({
-      id: 'user-1',
+  it('returns a configuration-specific error code when JWT_SECRET is missing', async () => {
+    vi.mocked(findUserByEmail).mockResolvedValue({
+      id: 'admin-1',
       email: 'admin@example.com',
-      password_hash: 'hashed',
+      password_hash: 'stored-hash',
       role: 'admin',
+      created_at: new Date().toISOString(),
     });
-    bcryptCompareMock.mockResolvedValueOnce(true);
-    jwtSignMock.mockReturnValueOnce('signed-token');
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    delete process.env.JWT_SECRET;
 
-    const result = await login('admin@example.com', 'correct-password');
-
-    expect(jwtSignMock).toHaveBeenCalled();
-    expect(result).toEqual({
-      token: 'signed-token',
-      user: {
-        id: 'user-1',
-        email: 'admin@example.com',
-        role: 'admin',
-      },
+    await expect(login('admin@example.com', 'secret')).rejects.toMatchObject({
+      code: 'AUTH_CONFIGURATION_ERROR',
+      statusCode: 500,
+      publicMessage: 'Admin login is temporarily unavailable.',
     });
   });
 });

@@ -37,6 +37,18 @@ interface Faq {
   created_at: string;
 }
 
+interface ApiResponseError {
+  code?: string;
+  message?: string;
+  requestId?: string;
+}
+
+interface ApiErrorPayload {
+  success?: boolean;
+  message?: string;
+  error?: ApiResponseError;
+}
+
 type TabType =
   | "dashboard"
   | "updates"
@@ -88,15 +100,26 @@ export default function AdminPage() {
     fallbackMessage: string
   ): Promise<string> => {
     try {
-      const data = await response.json();
-      return (
-        data?.error?.message ||
-        data?.message ||
-        `${fallbackMessage} (HTTP ${response.status})`
-      );
+      const data = (await response.json()) as ApiErrorPayload;
+      return formatApiError(data, fallbackMessage, response.status);
     } catch {
       return `${fallbackMessage} (HTTP ${response.status})`;
     }
+  };
+
+  const formatApiError = (
+    data: ApiErrorPayload | null | undefined,
+    fallbackMessage: string,
+    status: number
+  ) => {
+    const code = data?.error?.code || `HTTP_${status}`;
+    const message =
+      data?.error?.message || data?.message || `${fallbackMessage} (HTTP ${status})`;
+    const requestId = data?.error?.requestId;
+
+    return requestId
+      ? `${code}: ${message} (Ref: ${requestId})`
+      : `${code}: ${message}`;
   };
 
   const adminFetch = (url: string, init: RequestInit = {}) =>
@@ -304,7 +327,7 @@ export default function AdminPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as ApiErrorPayload;
 
       if (data.success) {
         const token = await fetchCsrfToken();
@@ -320,7 +343,7 @@ export default function AdminPage() {
         // Notify sidebar of auth change
         window.dispatchEvent(new Event("adminAuthChange"));
       } else {
-        setLoginError(data?.error?.message || data.message || "Login failed");
+        setLoginError(formatApiError(data, "Login failed", response.status));
       }
     } catch {
       setLoginError("Failed to connect to server");
