@@ -2,6 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
 import { ZodError } from 'zod';
 
+type ErrorWithMetadata = Error & {
+  code?: string;
+  statusCode?: number;
+  publicMessage?: string;
+};
+
 export default function errorHandler(
   err: Error | unknown,
   req: Request,
@@ -26,19 +32,33 @@ export default function errorHandler(
     return;
   }
 
-  const message = err instanceof Error ? err.message : 'Something went wrong';
+  const typedError = err instanceof Error ? (err as ErrorWithMetadata) : null;
+  const statusCode =
+    typedError?.statusCode && typedError.statusCode >= 400
+      ? typedError.statusCode
+      : 500;
+  const code =
+    typedError?.code ||
+    (statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'REQUEST_FAILED');
+  const publicMessage =
+    typedError?.publicMessage ||
+    (statusCode >= 500 ? 'Something went wrong' : 'Request failed');
+  const message = typedError?.message || 'Something went wrong';
+
   logger.error(message, {
     requestId,
     path: req.originalUrl,
     method: req.method,
+    code,
+    statusCode,
     error:
       err instanceof Error ? { message: err.message, stack: err.stack } : err,
   });
-  res.status(500).json({
+  res.status(statusCode).json({
     success: false,
     error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Something went wrong',
+      code,
+      message: publicMessage,
       requestId,
     },
   });
