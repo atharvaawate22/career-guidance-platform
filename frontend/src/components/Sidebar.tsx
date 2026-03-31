@@ -81,14 +81,16 @@ export default function Sidebar() {
     };
 
     const offset = computeOffset();
-    document.documentElement.style.setProperty("--sidebar-offset", offset);
+    const visible = !(pathname === "/admin" && !isAdmin);
+    const appliedOffset = visible ? offset : "0px";
+    document.documentElement.style.setProperty("--sidebar-offset", appliedOffset);
 
     window.dispatchEvent(
       new CustomEvent("sidebarToggle", {
-        detail: { collapsed: isCollapsed, offset },
+        detail: { collapsed: isCollapsed, offset: appliedOffset, visible },
       })
     );
-  }, [isCollapsed]);
+  }, [isCollapsed, isAdmin, pathname]);
 
   useLayoutEffect(() => {
     if (pathname === "/admin" && !isAdmin) {
@@ -130,6 +132,9 @@ export default function Sidebar() {
   // Hide sidebar on admin login page (when not logged in)
   // Show sidebar everywhere else, including admin dashboard after login
   if (pathname === "/admin" && !isAdmin) {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--sidebar-offset", "0px");
+    }
     return null;
   }
 
