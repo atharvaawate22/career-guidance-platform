@@ -202,8 +202,8 @@ export default function Sidebar() {
                     🎓
                   </div>
                   <div>
-                    <h1 className="text-lg font-bold">MHT-CET</h1>
-                    <p className="text-xs text-purple-200">Career Hub</p>
+                    <h1 className="text-lg font-bold">CETHub</h1>
+                    <p className="text-xs text-purple-200">cethub.in</p>
                   </div>
                 </div>
               </div>
