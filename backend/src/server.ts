@@ -100,6 +100,26 @@ import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger from './utils/logger';
 
 export const app = express();
+const trustProxySetting = (() => {
+  const configured = (process.env.TRUST_PROXY || '').trim().toLowerCase();
+  if (!configured) {
+    return process.env.NODE_ENV === 'production' ? 1 : false;
+  }
+  if (configured === 'false' || configured === '0' || configured === 'no') {
+    return false;
+  }
+  if (configured === 'true' || configured === 'yes') {
+    return true;
+  }
+
+  const numeric = Number(configured);
+  if (Number.isFinite(numeric) && numeric >= 0) {
+    return Math.floor(numeric);
+  }
+
+  return configured;
+})();
+app.set('trust proxy', trustProxySetting);
 const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
 const publicPredictLimiter = createPublicPostLimiter(60, 15 * 60 * 1000);
 const publicBookingLimiter = createPublicPostLimiter(20, 15 * 60 * 1000);

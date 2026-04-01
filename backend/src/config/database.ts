@@ -6,17 +6,16 @@ interface QueryOptions {
 }
 
 const SLOW_QUERY_THRESHOLD_MS = Number(process.env.DB_SLOW_QUERY_MS || '250');
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 const resolveSslRejectUnauthorized = (): boolean => {
-  if (IS_PRODUCTION) {
-    return true;
-  }
-
   const configured =
     process.env.DB_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
   if (configured === 'false' || configured === '0' || configured === 'no') {
     return false;
+  }
+
+  if (configured === 'true' || configured === '1' || configured === 'yes') {
+    return true;
   }
 
   return true;
