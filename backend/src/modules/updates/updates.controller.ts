@@ -29,24 +29,9 @@ export class UpdatesController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { title, content } = req.body as Omit<Update, 'id'>;
+      const { title, content } = req.body as Pick<Update, 'title' | 'content'>;
 
-      if (!title || !content) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Title and content are required',
-          },
-        });
-        return;
-      }
-
-      const newUpdate = await updatesService.createUpdate({
-        title,
-        content,
-        published_date: '', // Will use CURRENT_TIMESTAMP in database
-      });
+      const newUpdate = await updatesService.createUpdate({ title, content });
 
       res.status(201).json({
         success: true,
@@ -65,18 +50,6 @@ export class UpdatesController {
     try {
       const { id } = req.params;
       const { title, content, published_date } = req.body;
-
-      if (!title && !content && !published_date) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message:
-              'At least one field (title, content, or published_date) is required',
-          },
-        });
-        return;
-      }
 
       const updatedUpdate = await updatesService.updateUpdate(String(id), {
         title,

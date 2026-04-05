@@ -81,6 +81,8 @@ export default function AdminPage() {
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [bookingSuccess, setBookingSuccess] = useState("");
+  const [bookingsPage, setBookingsPage] = useState(1);
+  const [bookingsTotalPages, setBookingsTotalPages] = useState(1);
 
   // FAQs state
   const [faqs, setFaqs] = useState<Faq[]>([]);
@@ -295,10 +297,12 @@ export default function AdminPage() {
     }
   };
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (page = bookingsPage) => {
     try {
       setBookingsLoading(true);
-      const response = await adminFetch(`${API_BASE_URL}/api/admin/bookings`);
+      const response = await adminFetch(
+        `${API_BASE_URL}/api/admin/bookings?page=${page}&limit=50`
+      );
       if (response.status === 401) {
         handleSessionExpired();
         return;
@@ -306,6 +310,8 @@ export default function AdminPage() {
       const data = await response.json();
       if (data.success) {
         setBookings(data.data);
+        setBookingsPage(data.meta?.page ?? 1);
+        setBookingsTotalPages(data.meta?.totalPages ?? 1);
       }
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
@@ -1526,6 +1532,28 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+
+            {bookingsTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => fetchBookings(bookingsPage - 1)}
+                  disabled={bookingsPage <= 1 || bookingsLoading}
+                  className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {bookingsPage} of {bookingsTotalPages}
+                </span>
+                <button
+                  onClick={() => fetchBookings(bookingsPage + 1)}
+                  disabled={bookingsPage >= bookingsTotalPages || bookingsLoading}
+                  className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
 

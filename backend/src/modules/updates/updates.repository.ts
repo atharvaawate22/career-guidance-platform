@@ -9,7 +9,7 @@ export class UpdatesRepository {
     return result.rows;
   }
 
-  async createUpdate(update: Omit<Update, 'id'>): Promise<Update> {
+  async createUpdate(update: Pick<Update, 'title' | 'content'>): Promise<Update> {
     const result = await query(
       'INSERT INTO updates (id, title, content, published_date) VALUES (gen_random_uuid(), $1, $2, NOW()) RETURNING id, title, content, published_date, edited_at',
       [update.title, update.content],

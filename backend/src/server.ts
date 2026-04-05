@@ -17,71 +17,22 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
 const normalizeOrigin = (value: string) => value.trim().replace(/\/+$/, '');
-const VERCEL_HOST_SUFFIX = '.vercel.app';
-const DEFAULT_VERCEL_PROJECT_SLUG = 'career-guidance-platform';
-const frontendOrigins = (
-  process.env.FRONTEND_URL || 'https://career-guidance-platform-gilt.vercel.app'
-)
-  .split(',')
-  .map(normalizeOrigin)
-  .filter(Boolean);
 const allowedOrigins = Array.from(
   new Set([
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    ...frontendOrigins,
+    ...(
+      process.env.FRONTEND_URL ||
+      'https://career-guidance-platform-gilt.vercel.app'
+    )
+      .split(',')
+      .map(normalizeOrigin)
+      .filter(Boolean),
   ]),
 );
-const vercelProjectSlugs = Array.from(
-  new Set(
-    [
-      DEFAULT_VERCEL_PROJECT_SLUG,
-      ...(process.env.VERCEL_PROJECT_SLUGS || '')
-        .split(',')
-        .map((value) => value.trim().toLowerCase())
-        .filter(Boolean),
-      ...frontendOrigins
-        .map((origin) => {
-          try {
-            const hostname = new URL(origin).hostname.toLowerCase();
-            if (!hostname.endsWith(VERCEL_HOST_SUFFIX)) {
-              return [];
-            }
 
-            const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
-            const segments = subdomain.split('-').filter(Boolean);
-            return segments
-              .slice(0, Math.max(segments.length - 1, 1))
-              .map((_, index) => segments.slice(0, index + 1).join('-'))
-              .filter((slug) => slug.includes('-'));
-          } catch {
-            return [];
-          }
-        })
-        .flat(),
-    ].filter(Boolean),
-  ),
-);
-
-const isAllowedOrigin = (origin: string): boolean => {
-  if (allowedOrigins.includes(origin)) {
-    return true;
-  }
-
-  try {
-    const { protocol, hostname } = new URL(origin);
-    if (protocol !== 'https:' || !hostname.endsWith(VERCEL_HOST_SUFFIX)) {
-      return false;
-    }
-
-    const subdomain = hostname.slice(0, -VERCEL_HOST_SUFFIX.length);
-    return vercelProjectSlugs.some(
-      (slug) => subdomain === slug || subdomain.startsWith(`${slug}-`),
-    );
-  } catch {
-    return false;
-  }
-};
+const isAllowedOrigin = (origin: string): boolean =>
+  allowedOrigins.includes(origin);
 import bcrypt from 'bcrypt';
 import errorHandler from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
@@ -96,6 +47,7 @@ import resourcesRoutes from './modules/resources/resources.routes';
 import faqsRoutes from './modules/faqs/faqs.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import { testConnection, query } from './config/database';
+import { runMigrations } from './config/migrations';
 import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger from './utils/logger';
 
@@ -124,54 +76,6 @@ const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
 const publicPredictLimiter = createPublicPostLimiter(60, 15 * 60 * 1000);
 const publicBookingLimiter = createPublicPostLimiter(20, 15 * 60 * 1000);
 const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
-
-async function getExistingColumns(tableName: string): Promise<Set<string>> {
-  const result = await query(
-    `
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = $1
-    `,
-    [tableName],
-  );
-  return new Set(result.rows.map((row) => String(row.column_name)));
-}
-
-async function getExistingIndexes(tableName: string): Promise<Set<string>> {
-  const result = await query(
-    `
-      SELECT indexname
-      FROM pg_indexes
-      WHERE schemaname = 'public' AND tablename = $1
-    `,
-    [tableName],
-  );
-  return new Set(result.rows.map((row) => String(row.indexname)));
-}
-
-async function getExistingPolicies(tableName: string): Promise<Set<string>> {
-  const result = await query(
-    `
-      SELECT policyname
-      FROM pg_policies
-      WHERE schemaname = 'public' AND tablename = $1
-    `,
-    [tableName],
-  );
-  return new Set(result.rows.map((row) => String(row.policyname)));
-}
-
-async function isRowLevelSecurityEnabled(tableName: string): Promise<boolean> {
-  const result = await query(
-    `
-      SELECT relrowsecurity
-      FROM pg_class
-      WHERE oid = $1::regclass
-    `,
-    [`public.${tableName}`],
-  );
-  return Boolean(result.rows[0]?.relrowsecurity);
-}
 
 app.use(express.json({ limit: '50kb' }));
 app.use(
@@ -264,365 +168,9 @@ app.use(errorHandler);
 
 const initializeDatabase = async (): Promise<boolean> => {
   try {
-    // Test database connection
     await testConnection();
 
-    // Create updates table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS updates (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        published_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        edited_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-
-    // Add edited_at column if it doesn't exist (for existing tables)
-    await query(`
-      ALTER TABLE updates ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ
-    `);
-
-    // Alter published_date to TIMESTAMPTZ if it was DATE before
-    await query(`
-      ALTER TABLE updates ALTER COLUMN published_date TYPE TIMESTAMPTZ USING published_date::TIMESTAMPTZ
-    `).catch(() => {}); // ignore if already correct type
-
-    // Create index on published_date
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_updates_published_date 
-      ON updates(published_date)
-    `);
-
-    // Create admin_users table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS admin_users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Create cutoff_data table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS cutoff_data (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        year INTEGER NOT NULL,
-        college_code TEXT,
-        college_name TEXT NOT NULL,
-        branch_code TEXT,
-        branch TEXT NOT NULL,
-        category TEXT NOT NULL,
-        gender TEXT,
-        home_university TEXT NOT NULL DEFAULT 'All',
-        college_status TEXT,
-        stage TEXT,
-        level TEXT,
-        city_normalized TEXT,
-        percentile DECIMAL(6,4) NOT NULL,
-        cutoff_rank INTEGER,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-
-    // Migrate existing tables ? add new columns only when actually missing.
-    const cutoffColumns = await getExistingColumns('cutoff_data');
-
-    if (!cutoffColumns.has('college_code')) {
-      await query(`ALTER TABLE cutoff_data ADD COLUMN college_code TEXT`);
-    }
-    if (!cutoffColumns.has('branch_code')) {
-      await query(`ALTER TABLE cutoff_data ADD COLUMN branch_code TEXT`);
-    }
-    if (!cutoffColumns.has('college_status')) {
-      await query(`ALTER TABLE cutoff_data ADD COLUMN college_status TEXT`);
-    }
-    if (!cutoffColumns.has('stage')) {
-      await query(`ALTER TABLE cutoff_data ADD COLUMN stage TEXT`);
-    }
-    if (!cutoffColumns.has('level')) {
-      await query(`ALTER TABLE cutoff_data ADD COLUMN level TEXT`);
-    }
-    if (!cutoffColumns.has('city_normalized')) {
-      await query(`ALTER TABLE cutoff_data ADD COLUMN city_normalized TEXT`);
-    }
-    if (!cutoffColumns.has('cutoff_rank')) {
-      await query(`ALTER TABLE cutoff_data ADD COLUMN cutoff_rank INTEGER`);
-    }
-    // Make home_university nullable for rows where data is unknown
-    await query(
-      `ALTER TABLE cutoff_data ALTER COLUMN home_university SET DEFAULT 'All'`,
-    ).catch(() => {});
-
-    const cutoffIndexes = await getExistingIndexes('cutoff_data');
-
-    // Create indexes for cutoff_data only when missing.
-    if (!cutoffIndexes.has('idx_cutoff_year')) {
-      await query(`CREATE INDEX idx_cutoff_year ON cutoff_data(year)`);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_category')) {
-      await query(`CREATE INDEX idx_cutoff_category ON cutoff_data(category)`);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_home_university')) {
-      await query(
-        `CREATE INDEX idx_cutoff_home_university ON cutoff_data(home_university)`,
-      );
-    }
-    if (!cutoffIndexes.has('idx_cutoff_college_code')) {
-      await query(
-        `CREATE INDEX idx_cutoff_college_code ON cutoff_data(college_code)`,
-      );
-    }
-    if (!cutoffIndexes.has('idx_cutoff_meta_year_branch')) {
-      await query(
-        `CREATE INDEX idx_cutoff_meta_year_branch ON cutoff_data(year, branch)`,
-      );
-    }
-    if (!cutoffIndexes.has('idx_cutoff_meta_year_college_code_name')) {
-      await query(`
-        CREATE INDEX idx_cutoff_meta_year_college_code_name
-        ON cutoff_data(year, college_code, college_name)
-      `);
-    }
-
-    // Create guides table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS guides (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        file_url TEXT NOT NULL,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Create guide_downloads table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS guide_downloads (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        guide_id UUID NOT NULL REFERENCES guides(id),
-        name TEXT NOT NULL,
-        email TEXT NOT NULL,
-        percentile DECIMAL(5,2),
-        downloaded_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Create indexes for guide_downloads
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_guide_downloads_guide_id ON guide_downloads(guide_id)
-    `);
-
-    // Create resources table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS resources (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        file_url TEXT NOT NULL,
-        category TEXT NOT NULL DEFAULT 'Others',
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-
-    // Index to support active resources listing with optional category filter.
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_resources_active_category_created_at
-      ON resources(is_active, category, created_at DESC)
-    `);
-
-    // Create FAQs table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS faqs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        question TEXT NOT NULL,
-        answer TEXT NOT NULL,
-        display_order INTEGER NOT NULL DEFAULT 0,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_faqs_active_display_order
-      ON faqs(is_active, display_order, created_at)
-    `);
-
-    // Create bookings table if not exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS bookings (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        student_name TEXT NOT NULL,
-        email TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        percentile DECIMAL(5,2) NOT NULL,
-        category TEXT NOT NULL,
-        branch_preference TEXT NOT NULL,
-        meeting_purpose TEXT NOT NULL DEFAULT 'General admission guidance',
-        meeting_time TIMESTAMP NOT NULL,
-        meet_link TEXT NOT NULL,
-        booking_status TEXT DEFAULT 'scheduled',
-        email_status TEXT DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    const bookingColumns = await getExistingColumns('bookings');
-    if (!bookingColumns.has('meeting_purpose')) {
-      await query(
-        `ALTER TABLE bookings ADD COLUMN meeting_purpose TEXT NOT NULL DEFAULT 'General admission guidance'`,
-      );
-    }
-
-    // Create indexes for bookings
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_bookings_meeting_time ON bookings(meeting_time)
-    `);
-
-    // ---------------------------------------------------------------------
-    // Supabase Security hardening: enable RLS on public tables.
-    // Public read is allowed only where the app intentionally exposes data.
-    // Sensitive tables keep RLS enabled with no public policies.
-    // ---------------------------------------------------------------------
-    const rlsTargets = [
-      'updates',
-      'resources',
-      'faqs',
-      'guides',
-      'cutoff_data',
-      'admin_users',
-      'guide_downloads',
-      'bookings',
-    ] as const;
-
-    for (const tableName of rlsTargets) {
-      if (!(await isRowLevelSecurityEnabled(tableName))) {
-        await query(`ALTER TABLE ${tableName} ENABLE ROW LEVEL SECURITY`);
-      }
-    }
-
-    const updatesPolicies = await getExistingPolicies('updates');
-    if (!updatesPolicies.has('updates_public_read')) {
-      await query(
-        `CREATE POLICY updates_public_read ON updates FOR SELECT USING (true)`,
-      );
-    }
-
-    const faqPolicies = await getExistingPolicies('faqs');
-    if (!faqPolicies.has('faqs_public_read_active')) {
-      await query(
-        `CREATE POLICY faqs_public_read_active ON faqs FOR SELECT USING (is_active = true)`,
-      );
-    }
-
-    // Explicitly deny direct API access to private tables while keeping RLS enabled.
-    // This resolves "RLS enabled but no policy" advisor warnings without exposing data.
-    const adminPolicies = await getExistingPolicies('admin_users');
-    if (!adminPolicies.has('admin_users_no_access')) {
-      await query(
-        `CREATE POLICY admin_users_no_access ON admin_users FOR ALL USING (false) WITH CHECK (false)`,
-      );
-    }
-
-    const bookingPolicies = await getExistingPolicies('bookings');
-    if (!bookingPolicies.has('bookings_no_access')) {
-      await query(
-        `CREATE POLICY bookings_no_access ON bookings FOR ALL USING (false) WITH CHECK (false)`,
-      );
-    }
-
-    const guideDownloadPolicies = await getExistingPolicies('guide_downloads');
-    if (!guideDownloadPolicies.has('guide_downloads_no_access')) {
-      await query(
-        `CREATE POLICY guide_downloads_no_access ON guide_downloads FOR ALL USING (false) WITH CHECK (false)`,
-      );
-    }
-
-    const cutoffPolicies = await getExistingPolicies('cutoff_data');
-    if (!cutoffPolicies.has('cutoff_data_public_read')) {
-      await query(
-        `CREATE POLICY cutoff_data_public_read ON cutoff_data FOR SELECT USING (true)`,
-      );
-    }
-
-    const guidePolicies = await getExistingPolicies('guides');
-    if (!guidePolicies.has('guides_public_read_active')) {
-      await query(
-        `CREATE POLICY guides_public_read_active ON guides FOR SELECT USING (is_active = true)`,
-      );
-    }
-
-    const resourcePolicies = await getExistingPolicies('resources');
-    if (!resourcePolicies.has('resources_public_read_active')) {
-      await query(
-        `CREATE POLICY resources_public_read_active ON resources FOR SELECT USING (is_active = true)`,
-      );
-    }
-
-    if (!cutoffIndexes.has('idx_cutoff_meta_year_city_normalized_col')) {
-      await query(`
-        CREATE INDEX idx_cutoff_meta_year_city_normalized_col
-        ON cutoff_data(year, city_normalized)
-      `);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_year_stage_percentile_rank')) {
-      await query(`
-        CREATE INDEX idx_cutoff_year_stage_percentile_rank
-        ON cutoff_data(year, stage, percentile, cutoff_rank)
-        WHERE cutoff_rank IS NOT NULL AND percentile IS NOT NULL
-      `);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_year_stage_rank')) {
-      await query(`
-        CREATE INDEX idx_cutoff_year_stage_rank
-        ON cutoff_data(year, stage, cutoff_rank)
-        WHERE cutoff_rank IS NOT NULL
-      `);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_branch_trgm')) {
-      await query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
-      await query(`
-        CREATE INDEX idx_cutoff_branch_trgm
-        ON cutoff_data USING GIN (branch gin_trgm_ops)
-      `);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_college_name_trgm')) {
-      await query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
-      await query(`
-        CREATE INDEX idx_cutoff_college_name_trgm
-        ON cutoff_data USING GIN (college_name gin_trgm_ops)
-      `);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_year_stage_category_city_home')) {
-      await query(`
-        CREATE INDEX idx_cutoff_year_stage_category_city_home
-        ON cutoff_data(year, stage, category, city_normalized, home_university)
-      `);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_predictor_filters')) {
-      await query(`
-        CREATE INDEX idx_cutoff_predictor_filters
-        ON cutoff_data(year, stage, category, level, cutoff_rank)
-        WHERE cutoff_rank IS NOT NULL
-      `);
-    }
-    if (!cutoffIndexes.has('idx_cutoff_search_city_norm')) {
-      await query(`
-        CREATE INDEX idx_cutoff_search_city_norm
-        ON cutoff_data(year, stage, category, gender, (LOWER(TRIM(city_normalized))))
-        WHERE city_normalized IS NOT NULL AND TRIM(city_normalized) <> ''
-      `);
-    }
-
-    logger.info('Database tables initialized successfully');
-
     if (shouldSeedSampleData) {
-      // Insert sample data only in non-production environments, or when explicitly enabled.
       const { rows } = await query('SELECT COUNT(*) FROM updates');
       const count = parseInt(rows[0].count, 10);
 
@@ -704,7 +252,6 @@ const initializeDatabase = async (): Promise<boolean> => {
       logger.info('Skipping sample seed data (ENABLE_SAMPLE_SEED=false)');
     }
 
-    // Insert admin user if environment variables are set
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -769,6 +316,13 @@ const initializeDatabase = async (): Promise<boolean> => {
 };
 
 export const startServer = async () => {
+  try {
+    await runMigrations();
+  } catch (migrationError) {
+    logger.error('Migration failed, aborting startup', migrationError);
+    process.exit(1);
+  }
+
   const dbReady = await initializeDatabase();
 
   app.listen(PORT, () => {
@@ -778,6 +332,7 @@ export const startServer = async () => {
     }
   });
 };
+
 
 if (process.env.NODE_ENV !== 'test') {
   void startServer();

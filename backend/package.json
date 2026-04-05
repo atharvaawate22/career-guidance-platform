@@ -21,7 +21,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@types/nodemailer": "^7.0.10",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

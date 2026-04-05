@@ -131,6 +131,10 @@ function validateBookingRequest(request: CreateBookingRequest): string | null {
     return 'Booking must be made at least 3 hours in advance';
   }
 
+  if (meetingTime > new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)) {
+    return 'Booking cannot be scheduled more than 90 days in advance';
+  }
+
   // Validate required fields
   if (
     !request.student_name ||
