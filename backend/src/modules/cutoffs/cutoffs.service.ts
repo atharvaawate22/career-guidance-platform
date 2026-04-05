@@ -2,7 +2,7 @@ import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { CutoffsRepository } from './cutoffs.repository';
 
 const cutoffsRepository = new CutoffsRepository();
-const ACTIVE_CUTOFF_YEAR = 2025;
+const ACTIVE_CUTOFF_YEAR = parseInt(process.env.ACTIVE_CUTOFF_YEAR || '2025', 10);
 
 export class CutoffsService {
   async getCutoffs(

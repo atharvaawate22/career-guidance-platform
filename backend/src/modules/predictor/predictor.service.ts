@@ -121,6 +121,8 @@ export class PredictorService {
         effectiveRank,
         inputPercentile:
           inputMode === 'percentile' ? Number(request.percentile) : undefined,
+        windowFloor: Math.max(1, effectiveRank - ceilGap),
+        windowCeil: effectiveRank + floorGap,
       },
     };
   }

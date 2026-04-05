@@ -22,16 +22,6 @@ const PREDICTOR_YEAR = parseInt(
   10
 );
 
-/** Mirrors backend getDynamicThresholds — keep in sync */
-function getThresholds(rank: number) {
-  const h = Math.round(50 * Math.sqrt(rank));
-  const targetAbove = Math.round(0.5 * h);
-  const targetBelow = Math.round(0.3 * h);
-  const floorGap = h;
-  const ceilGap = h;
-  return { targetAbove, targetBelow, floorGap, ceilGap };
-}
-
 interface CollegeOption {
   id: string;
   college_code: string;
@@ -54,6 +44,8 @@ interface PredictionResults {
     inputMode: "rank" | "percentile";
     effectiveRank: number;
     inputPercentile?: number;
+    windowFloor: number;
+    windowCeil: number;
   };
 }
 
@@ -664,16 +656,8 @@ export default function PredictorPage() {
             </div>
 
             {/* Legend – thresholds shown are dynamic based on the effective rank */}
-            {(() => {
-              const resolvedRank =
-                results?.meta?.effectiveRank ??
-                (inputMode === "rank" ? Number(rank) : Number.NaN);
-              const r = resolvedRank;
-              if (!Number.isFinite(r) || r <= 0) return null;
-              const { floorGap, ceilGap } = getThresholds(r);
-              const floorVal = Math.max(1, r - ceilGap).toLocaleString();
-              const ceilVal = (r + floorGap).toLocaleString();
-              return (
+            {results?.meta?.windowFloor != null &&
+              results?.meta?.windowCeil != null && (
                 <div className="bg-white/70 rounded-xl p-4 border border-gray-200 mb-8 flex flex-col gap-3 text-sm">
                   {results?.meta?.inputMode === "percentile" && (
                     <div className="text-purple-700 font-medium">
@@ -711,16 +695,17 @@ export default function PredictorPage() {
                   <div className="text-gray-400 text-xs border-t border-gray-100 pt-2">
                     Only colleges with cutoff ranks between{" "}
                     <span className="font-medium text-gray-500">
-                      {floorVal}
+                      {results.meta.windowFloor.toLocaleString()}
                     </span>{" "}
                     and{" "}
-                    <span className="font-medium text-gray-500">{ceilVal}</span>{" "}
+                    <span className="font-medium text-gray-500">
+                      {results.meta.windowCeil.toLocaleString()}
+                    </span>{" "}
                     are shown — colleges far outside this range are not relevant
                     for your rank basis.
                   </div>
                 </div>
-              );
-            })()}
+              )}
 
             {renderSection(results.safe, "safe", "Safe Colleges")}
             {renderSection(results.target, "target", "Target Colleges")}

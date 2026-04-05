@@ -1,7 +1,9 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import jwt from 'jsonwebtoken';
 
 process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-for-contract-tests';
 
 import { app } from '../src/server';
 
@@ -115,5 +117,27 @@ describe('API contract: admin booking endpoints', () => {
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+
+  it('PATCH /admin/bookings/:id/status with invalid status returns 400', async () => {
+    const token = jwt.sign(
+      { id: 'admin-1', email: 'admin@example.com', role: 'admin' },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '1h' },
+    );
+    const csrfToken = 'test-csrf-token-contract';
+
+    const response = await request(app)
+      .patch('/api/admin/bookings/some-id/status')
+      .set('Cookie', [
+        `cgp_admin_session=${token}`,
+        `cgp_admin_csrf=${csrfToken}`,
+      ])
+      .set('x-csrf-token', csrfToken)
+      .send({ status: 'invalid_status_value' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 });

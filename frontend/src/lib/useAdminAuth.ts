@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 export function useAdminAuth() {
@@ -10,7 +10,9 @@ export function useAdminAuth() {
 
   // Keep a ref so adminWriteFetch stays stable without csrfToken as dep
   const csrfTokenRef = useRef(csrfToken);
-  csrfTokenRef.current = csrfToken;
+  useLayoutEffect(() => {
+    csrfTokenRef.current = csrfToken;
+  });
 
   const adminFetch = useCallback(
     (url: string, init: RequestInit = {}) =>

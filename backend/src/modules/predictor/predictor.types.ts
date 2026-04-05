@@ -35,6 +35,8 @@ export interface PredictorResponse {
     inputMode: 'rank' | 'percentile';
     effectiveRank: number;
     inputPercentile?: number;
+    windowFloor: number;
+    windowCeil: number;
   };
 }
 
