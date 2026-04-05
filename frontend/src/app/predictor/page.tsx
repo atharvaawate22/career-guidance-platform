@@ -17,7 +17,10 @@ import {
   STATIC_CUTOFF_CITIES_CLEAN,
 } from "@/lib/cutoffStaticMeta";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
-const PREDICTOR_YEAR = 2025;
+const PREDICTOR_YEAR = parseInt(
+  process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025",
+  10
+);
 
 /** Mirrors backend getDynamicThresholds — keep in sync */
 function getThresholds(rank: number) {

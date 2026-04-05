@@ -89,3 +89,31 @@ describe('API contract: public and auth boundary routes', () => {
     expect(response.body.error.code).toBe('MISSING_TOKEN');
   });
 });
+
+describe('API contract: admin booking endpoints', () => {
+  it('PATCH /admin/bookings/:id/status without auth returns 401', async () => {
+    const response = await request(app)
+      .patch('/api/admin/bookings/some-id/status')
+      .send({ status: 'confirmed' });
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+
+  it('DELETE /admin/bookings/:id without auth returns 401', async () => {
+    const response = await request(app).delete('/api/admin/bookings/some-id');
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+
+  it('GET /admin/bookings without auth returns 401', async () => {
+    const response = await request(app).get('/api/admin/bookings');
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+});
