@@ -6,6 +6,7 @@ import {
 } from '../../middleware/authMiddleware';
 import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
 import { validateBody } from '../../middleware/validateRequest';
+import { validateUuidParam } from '../../middleware/validateUuidParam';
 import { UpdatesController } from '../updates/updates.controller';
 import {
   createUpdateSchema,
@@ -89,6 +90,7 @@ router.put(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   validateBody(updateUpdateSchema),
   updatesController.updateUpdate.bind(updatesController),
 );
@@ -98,6 +100,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   updatesController.deleteUpdate.bind(updatesController),
 );
 
@@ -144,6 +147,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   guidesController.deleteGuide,
 );
 router.patch(
@@ -151,6 +155,7 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   guidesController.toggleGuide,
 );
 
@@ -167,6 +172,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   resourcesController.deleteResource,
 );
 router.patch(
@@ -174,6 +180,7 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   resourcesController.toggleResource,
 );
 
@@ -196,6 +203,7 @@ router.put(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   faqsController.updateFaq,
 );
 router.delete(
@@ -203,6 +211,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   faqsController.deleteFaq,
 );
 router.patch(
@@ -210,6 +219,7 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   faqsController.toggleFaq,
 );
 
@@ -226,6 +236,7 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   adminController.updateBookingStatus.bind(adminController),
 );
 
@@ -234,6 +245,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   adminController.deleteBooking.bind(adminController),
 );
 

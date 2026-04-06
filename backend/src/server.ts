@@ -2,13 +2,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Global error logging for diagnosis
+// Global error logging for diagnosis — uses logger once the module is fully loaded
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+  logger.error('Uncaught Exception', err);
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection:', reason);
+  logger.error('Unhandled Rejection', { reason });
 });
 
 import express from 'express';
@@ -77,6 +77,14 @@ const publicPredictLimiter = createPublicPostLimiter(60, 15 * 60 * 1000);
 const publicBookingLimiter = createPublicPostLimiter(20, 15 * 60 * 1000);
 const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
 
+app.use(
+  // Allow large JSON bodies for the admin bulk-cutoff import endpoint only.
+  // The global 50 kb parser below would reject a full-year import (~6–7 MB) with 413.
+  // body-parser sets req._body = true after parsing, so the global parser below
+  // skips re-parsing for requests already handled here.
+  '/api/admin/cutoffs',
+  express.json({ limit: '20mb' }),
+);
 app.use(express.json({ limit: '50kb' }));
 app.use(
   cors({

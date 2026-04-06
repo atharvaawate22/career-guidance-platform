@@ -82,6 +82,21 @@ export async function deleteBooking(bookingId: string): Promise<boolean> {
 }
 
 /**
+ * Returns true if an active booking already exists for the given meeting time.
+ * Used to prevent double-booking a slot when two requests race.
+ */
+export async function isSlotTaken(meetingTime: Date): Promise<boolean> {
+  const result = await query(
+    `SELECT 1 FROM bookings
+     WHERE meeting_time = $1
+       AND booking_status NOT IN ('cancelled', 'no_show')
+     LIMIT 1`,
+    [meetingTime],
+  );
+  return result.rows.length > 0;
+}
+
+/**
  * Returns booked HH:MM slot strings (IST) for a given date (YYYY-MM-DD, IST).
  * Only counts confirmed/pending bookings (not cancelled/no_show).
  */

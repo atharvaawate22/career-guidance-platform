@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+const MIN_ADVANCE_HOURS = 3;
+const MAX_ADVANCE_DAYS = 90;
+
 export const createBookingSchema = z.object({
   student_name: z
     .string()
@@ -26,9 +29,25 @@ export const createBookingSchema = z.object({
   meeting_purpose: z
     .string()
     .trim()
-    .min(1, 'Meeting purpose is required')
+    .min(3, 'Purpose of meeting must be at least 3 characters')
     .max(500),
   meeting_time: z
     .string()
-    .datetime({ message: 'meeting_time must be a valid ISO date-time' }),
+    .datetime({ message: 'meeting_time must be a valid ISO date-time' })
+    .refine(
+      (val) =>
+        new Date(val) >
+        new Date(Date.now() + MIN_ADVANCE_HOURS * 60 * 60 * 1000),
+      {
+        message: `Booking must be made at least ${MIN_ADVANCE_HOURS} hours in advance`,
+      },
+    )
+    .refine(
+      (val) =>
+        new Date(val) <=
+        new Date(Date.now() + MAX_ADVANCE_DAYS * 24 * 60 * 60 * 1000),
+      {
+        message: `Booking cannot be scheduled more than ${MAX_ADVANCE_DAYS} days in advance`,
+      },
+    ),
 });

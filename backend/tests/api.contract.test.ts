@@ -127,8 +127,10 @@ describe('API contract: admin booking endpoints', () => {
     );
     const csrfToken = 'test-csrf-token-contract';
 
+    // Use a well-formed UUID so the UUID validation passes and the
+    // invalid booking status is what triggers the 400.
     const response = await request(app)
-      .patch('/api/admin/bookings/some-id/status')
+      .patch('/api/admin/bookings/00000000-0000-0000-0000-000000000001/status')
       .set('Cookie', [
         `cgp_admin_session=${token}`,
         `cgp_admin_csrf=${csrfToken}`,
