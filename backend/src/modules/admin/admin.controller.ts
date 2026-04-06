@@ -8,6 +8,7 @@ const ALLOWED_BOOKING_STATUSES = [
   'confirmed',
   'cancelled',
   'completed',
+  'no_show',
 ] as const;
 
 export class AdminController {
