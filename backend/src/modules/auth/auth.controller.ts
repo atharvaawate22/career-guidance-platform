@@ -11,22 +11,22 @@ import {
 
 type SameSiteMode = 'lax' | 'strict' | 'none';
 
-const resolveSameSiteMode = (): SameSiteMode => {
+function resolveSameSiteMode(): SameSiteMode {
   const configured = (process.env.ADMIN_COOKIE_SAMESITE || '')
     .trim()
     .toLowerCase();
-  if (
-    configured === 'lax' ||
-    configured === 'strict' ||
-    configured === 'none'
-  ) {
+  if (configured === 'lax' || configured === 'strict' || configured === 'none') {
     return configured;
   }
-
   // In production, frontend and backend are commonly hosted on different origins,
   // so default to None to allow credentialed cross-site requests.
   return process.env.NODE_ENV === 'production' ? 'none' : 'lax';
-};
+}
+
+// Resolved once at module load — env vars do not change at runtime.
+const SAME_SITE_MODE = resolveSameSiteMode();
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const COOKIE_SECURE = IS_PRODUCTION || SAME_SITE_MODE === 'none';
 
 export const loginController = async (
   req: Request,
@@ -49,22 +49,19 @@ export const loginController = async (
       return;
     }
 
-    const isProduction = process.env.NODE_ENV === 'production';
-    const sameSite = resolveSameSiteMode();
-    const secure = isProduction || sameSite === 'none';
     const maxAge = getSessionCookieMaxAgeMs(process.env.JWT_EXPIRES_IN);
     const csrfToken = crypto.randomBytes(24).toString('hex');
     res.cookie(ADMIN_AUTH_COOKIE, result.token, {
       httpOnly: true,
-      secure,
-      sameSite,
+      secure: COOKIE_SECURE,
+      sameSite: SAME_SITE_MODE,
       path: '/',
       maxAge,
     });
     res.cookie(ADMIN_CSRF_COOKIE, csrfToken, {
       httpOnly: false,
-      secure,
-      sameSite,
+      secure: COOKIE_SECURE,
+      sameSite: SAME_SITE_MODE,
       path: '/',
       maxAge,
     });
@@ -101,14 +98,11 @@ export const csrfController = async (
   const csrfToken = existing || crypto.randomBytes(24).toString('hex');
 
   if (!existing) {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const sameSite = resolveSameSiteMode();
-    const secure = isProduction || sameSite === 'none';
     const maxAge = getSessionCookieMaxAgeMs(process.env.JWT_EXPIRES_IN);
     res.cookie(ADMIN_CSRF_COOKIE, csrfToken, {
       httpOnly: false,
-      secure,
-      sameSite,
+      secure: COOKIE_SECURE,
+      sameSite: SAME_SITE_MODE,
       path: '/',
       maxAge,
     });
@@ -124,19 +118,16 @@ export const logoutController = async (
   _req: Request,
   res: Response,
 ): Promise<void> => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite = resolveSameSiteMode();
-  const secure = isProduction || sameSite === 'none';
   res.clearCookie(ADMIN_AUTH_COOKIE, {
     httpOnly: true,
-    secure,
-    sameSite,
+    secure: COOKIE_SECURE,
+    sameSite: SAME_SITE_MODE,
     path: '/',
   });
   res.clearCookie(ADMIN_CSRF_COOKIE, {
     httpOnly: false,
-    secure,
-    sameSite,
+    secure: COOKIE_SECURE,
+    sameSite: SAME_SITE_MODE,
     path: '/',
   });
 

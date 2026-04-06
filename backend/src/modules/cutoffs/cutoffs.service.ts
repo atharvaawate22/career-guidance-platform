@@ -8,8 +8,7 @@ export class CutoffsService {
   async getCutoffs(
     filters: CutoffFilters,
   ): Promise<{ rows: CutoffData[]; total: number }> {
-    filters.year = ACTIVE_CUTOFF_YEAR;
-    return await cutoffsRepository.getCutoffs(filters);
+    return cutoffsRepository.getCutoffs({ ...filters, year: ACTIVE_CUTOFF_YEAR });
   }
 
   async bulkInsertCutoffs(cutoffs: BulkCutoffInsert[]): Promise<CutoffData[]> {
