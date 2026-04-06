@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   createBookingMock,
+  isSlotTakenMock,
   updateEmailStatusMock,
   generateMeetLinkMock,
   sendBookingConfirmationMock,
 } = vi.hoisted(() => ({
   createBookingMock: vi.fn(),
+  isSlotTakenMock: vi.fn(),
   updateEmailStatusMock: vi.fn(),
   generateMeetLinkMock: vi.fn(),
   sendBookingConfirmationMock: vi.fn(),
@@ -14,6 +16,7 @@ const {
 
 vi.mock('../src/modules/booking/booking.repository', () => ({
   createBooking: createBookingMock,
+  isSlotTaken: isSlotTakenMock,
   updateEmailStatus: updateEmailStatusMock,
 }));
 
@@ -31,22 +34,26 @@ describe('booking.service createBooking', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateEmailStatusMock.mockResolvedValue(undefined);
+    // Default: slot is available
+    isSlotTakenMock.mockResolvedValue(false);
   });
 
-  it('returns validation error for invalid email', async () => {
+  it('returns slot taken error when the requested time is already booked', async () => {
+    isSlotTakenMock.mockResolvedValueOnce(true);
+
     const result = await createBooking({
       student_name: 'Student',
-      email: 'invalid-email',
+      email: 'student@example.com',
       phone: '9999999999',
       percentile: 90,
       category: 'OPEN',
       branch_preference: 'Computer Engineering',
-      meeting_purpose: 'Guidance',
+      meeting_purpose: 'Need guidance',
       meeting_time: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
     });
 
     expect(result.success).toBe(false);
-    expect(result.error?.code).toBe('VALIDATION_ERROR');
+    expect(result.error?.code).toBe('SLOT_TAKEN');
   });
 
   it('returns calendar error when meet link generation fails', async () => {

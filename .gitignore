@@ -41,6 +41,15 @@ __pycache__/
 # Local data artifacts
 *.db
 
+# Data dumps and raw import files — store in cloud storage, not git
+backup.sql
+*.dump.sql
+*_dump.sql
+*.csv
+
+# Raw PDF source files kept out of git history
+cutoff_pdfs/
+
 # Script-generated reports/outputs
 scripts/*_output.txt
 scripts/*_output_utf8.txt
@@ -48,9 +57,6 @@ backend/reports/
 
 # Local security/debug artifacts
 backend/tmp_admin_cookie.txt
-
-# Raw PDF source files kept out of git history
-cutoff_pdfs/*.pdf
 
 # Playwright local artifacts
 frontend/test-results/

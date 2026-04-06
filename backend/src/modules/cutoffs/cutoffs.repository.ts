@@ -140,60 +140,69 @@ export class CutoffsRepository {
   async bulkInsertCutoffs(cutoffs: BulkCutoffInsert[]): Promise<CutoffData[]> {
     if (cutoffs.length === 0) return [];
 
-    const values: unknown[] = [];
-    const placeholders: string[] = [];
-    let p = 1;
+    // PostgreSQL accepts at most 65,535 bind parameters ($1–$65535).
+    // With 13 value columns per row the safe per-batch ceiling is floor(65535/13) = 5041.
+    const BATCH_SIZE = 5000;
+    const COLS = 13;
+    const allInserted: CutoffData[] = [];
 
-    const COLS = 13; // number of value columns per row
+    for (let offset = 0; offset < cutoffs.length; offset += BATCH_SIZE) {
+      const batch = cutoffs.slice(offset, offset + BATCH_SIZE);
 
-    cutoffs.forEach((c) => {
-      placeholders.push(
-        `(gen_random_uuid(), $${p}, $${p + 1}, $${p + 2}, $${p + 3}, $${p + 4}, $${p + 5}, $${p + 6}, $${p + 7}, $${p + 8}, $${p + 9}, $${p + 10}, $${p + 11}, $${p + 12})`,
-      );
-      values.push(
-        c.year,
-        c.college_code || null,
-        c.college_name,
-        c.branch_code || null,
-        c.branch,
-        c.category,
-        c.gender || null,
-        c.home_university || 'All',
-        c.college_status || null,
-        c.stage || null,
-        c.level || null,
-        c.percentile,
-        c.cutoff_rank ?? null,
-      );
-      p += COLS;
-    });
+      const values: unknown[] = [];
+      const placeholders: string[] = [];
+      let p = 1;
 
-    const sql = `
-      INSERT INTO cutoff_data
-        (id, year, college_code, college_name, branch_code, branch,
-         category, gender, home_university, college_status,
-         stage, level, percentile, cutoff_rank)
-      VALUES ${placeholders.join(', ')}
-      RETURNING
-        id, year, college_code, college_name, branch_code, branch,
-        category, gender, home_university, college_status,
-        stage, level, percentile, cutoff_rank, created_at
-    `;
+      batch.forEach((c) => {
+        placeholders.push(
+          `(gen_random_uuid(), $${p}, $${p + 1}, $${p + 2}, $${p + 3}, $${p + 4}, $${p + 5}, $${p + 6}, $${p + 7}, $${p + 8}, $${p + 9}, $${p + 10}, $${p + 11}, $${p + 12})`,
+        );
+        values.push(
+          c.year,
+          c.college_code || null,
+          c.college_name,
+          c.branch_code || null,
+          c.branch,
+          c.category,
+          c.gender || null,
+          c.home_university || 'All',
+          c.college_status || null,
+          c.stage || null,
+          c.level || null,
+          c.percentile,
+          c.cutoff_rank ?? null,
+        );
+        p += COLS;
+      });
 
-    const result = await query(sql, values);
+      const sql = `
+        INSERT INTO cutoff_data
+          (id, year, college_code, college_name, branch_code, branch,
+           category, gender, home_university, college_status,
+           stage, level, percentile, cutoff_rank)
+        VALUES ${placeholders.join(', ')}
+        RETURNING
+          id, year, college_code, college_name, branch_code, branch,
+          category, gender, home_university, college_status,
+          stage, level, percentile, cutoff_rank, created_at
+      `;
 
-    const insertedIds = result.rows.map((row) => row.id as string);
-    if (insertedIds.length > 0) {
-      await query(
-        `
-          UPDATE cutoff_data
-          SET city_normalized = LOWER(TRIM(${CITY_NORMALIZED_SQL}))
-          WHERE id = ANY($1::uuid[])
-        `,
-        [insertedIds],
-      );
+      const result = await query(sql, values);
+      allInserted.push(...result.rows);
+
+      const insertedIds = result.rows.map((row) => row.id as string);
+      if (insertedIds.length > 0) {
+        await query(
+          `
+            UPDATE cutoff_data
+            SET city_normalized = LOWER(TRIM(${CITY_NORMALIZED_SQL}))
+            WHERE id = ANY($1::uuid[])
+          `,
+          [insertedIds],
+        );
+      }
     }
 
-    return result.rows;
+    return allInserted;
   }
 }

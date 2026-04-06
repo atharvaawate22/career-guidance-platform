@@ -1,7 +1,9 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import jwt from 'jsonwebtoken';
 
 process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-for-contract-tests';
 
 import { app } from '../src/server';
 
@@ -87,5 +89,57 @@ describe('API contract: public and auth boundary routes', () => {
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+});
+
+describe('API contract: admin booking endpoints', () => {
+  it('PATCH /admin/bookings/:id/status without auth returns 401', async () => {
+    const response = await request(app)
+      .patch('/api/admin/bookings/some-id/status')
+      .send({ status: 'confirmed' });
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+
+  it('DELETE /admin/bookings/:id without auth returns 401', async () => {
+    const response = await request(app).delete('/api/admin/bookings/some-id');
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+
+  it('GET /admin/bookings without auth returns 401', async () => {
+    const response = await request(app).get('/api/admin/bookings');
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
+
+  it('PATCH /admin/bookings/:id/status with invalid status returns 400', async () => {
+    const token = jwt.sign(
+      { id: 'admin-1', email: 'admin@example.com', role: 'admin' },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '1h' },
+    );
+    const csrfToken = 'test-csrf-token-contract';
+
+    // Use a well-formed UUID so the UUID validation passes and the
+    // invalid booking status is what triggers the 400.
+    const response = await request(app)
+      .patch('/api/admin/bookings/00000000-0000-0000-0000-000000000001/status')
+      .set('Cookie', [
+        `cgp_admin_session=${token}`,
+        `cgp_admin_csrf=${csrfToken}`,
+      ])
+      .set('x-csrf-token', csrfToken)
+      .send({ status: 'invalid_status_value' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 });

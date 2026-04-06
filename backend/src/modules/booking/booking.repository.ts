@@ -42,13 +42,25 @@ export async function updateEmailStatus(
   ]);
 }
 
-export async function getAllBookings(): Promise<Booking[]> {
-  const result = await query(
-    `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at 
-    FROM bookings 
-    ORDER BY meeting_time DESC`,
-  );
-  return result.rows;
+export async function getAllBookings(
+  page = 1,
+  limit = 50,
+): Promise<{ data: Booking[]; total: number }> {
+  const offset = (page - 1) * limit;
+  const [dataResult, countResult] = await Promise.all([
+    query(
+      `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at 
+      FROM bookings 
+      ORDER BY meeting_time DESC
+      LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ),
+    query('SELECT COUNT(*) FROM bookings'),
+  ]);
+  return {
+    data: dataResult.rows,
+    total: parseInt(countResult.rows[0].count, 10),
+  };
 }
 
 export async function updateBookingStatus(
@@ -65,6 +77,21 @@ export async function deleteBooking(bookingId: string): Promise<boolean> {
   const result = await query(
     'DELETE FROM bookings WHERE id = $1 RETURNING id',
     [bookingId],
+  );
+  return result.rows.length > 0;
+}
+
+/**
+ * Returns true if an active booking already exists for the given meeting time.
+ * Used to prevent double-booking a slot when two requests race.
+ */
+export async function isSlotTaken(meetingTime: Date): Promise<boolean> {
+  const result = await query(
+    `SELECT 1 FROM bookings
+     WHERE meeting_time = $1
+       AND booking_status NOT IN ('cancelled', 'no_show')
+     LIMIT 1`,
+    [meetingTime],
   );
   return result.rows.length > 0;
 }

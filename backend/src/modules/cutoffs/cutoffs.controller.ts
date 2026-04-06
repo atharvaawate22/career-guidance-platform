@@ -9,7 +9,7 @@ import {
 } from './cutoffsMetaCache';
 
 const cutoffsService = new CutoffsService();
-const ACTIVE_CUTOFF_YEAR = 2025;
+const ACTIVE_CUTOFF_YEAR = parseInt(process.env.ACTIVE_CUTOFF_YEAR || '2025', 10);
 
 export class CutoffsController {
   async getMeta(

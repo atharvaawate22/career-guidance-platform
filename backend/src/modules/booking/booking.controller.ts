@@ -24,13 +24,15 @@ export async function createBooking(
 
     if (!result.success) {
       const code = result.error?.code;
-      // Distinguish between client validation errors and server-side failures
+      // Distinguish between client errors and server-side failures
       const status =
         code === 'VALIDATION_ERROR'
           ? 400
-          : code === 'CALENDAR_ERROR'
-            ? 503
-            : 500;
+          : code === 'SLOT_TAKEN'
+            ? 409
+            : code === 'CALENDAR_ERROR'
+              ? 503
+              : 500;
       res.status(status).json(result);
       return;
     }

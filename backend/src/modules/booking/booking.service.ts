@@ -7,20 +7,22 @@ import logger from '../../utils/logger';
 export async function createBooking(
   bookingRequest: CreateBookingRequest,
 ): Promise<CreateBookingResponse> {
-  // Step 1: Validate input
-  const validationError = validateBookingRequest(bookingRequest);
-  if (validationError) {
-    return {
-      success: false,
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: validationError,
-      },
-    };
-  }
-
   try {
     const meetingTime = new Date(bookingRequest.meeting_time);
+
+    // Check for slot collision before creating the calendar event
+    const slotTaken = await bookingRepository.isSlotTaken(meetingTime);
+    if (slotTaken) {
+      return {
+        success: false,
+        error: {
+          code: 'SLOT_TAKEN',
+          message:
+            'This time slot has already been booked. Please choose a different time.',
+        },
+      };
+    }
+
     let meetLink: string;
 
     try {
@@ -44,7 +46,7 @@ export async function createBooking(
       };
     }
 
-    // Step 3: Insert booking record with meet_link
+    // Insert booking record with meet_link
     const booking = await bookingRepository.createBooking({
       student_name: bookingRequest.student_name,
       email: bookingRequest.email,
@@ -57,7 +59,7 @@ export async function createBooking(
       meet_link: meetLink,
     });
 
-    // Step 4: Send email in background (truly non-blocking - don't await)
+    // Send email in background (truly non-blocking - don't await)
     emailService
       .sendBookingConfirmation({
         studentName: bookingRequest.student_name,
@@ -84,7 +86,7 @@ export async function createBooking(
         logger.error('Email sending error', err);
       });
 
-    // Step 5: Return booking_id + meet_link immediately (don't wait for email)
+    // Return booking_id + meet_link immediately (don't wait for email)
     return {
       success: true,
       message: 'Booking created successfully',
@@ -104,47 +106,4 @@ export async function createBooking(
       },
     };
   }
-}
-
-/**
- * Validate booking request
- */
-function validateBookingRequest(request: CreateBookingRequest): string | null {
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(request.email)) {
-    return 'Invalid email format';
-  }
-
-  // Validate percentile range
-  if (request.percentile < 0 || request.percentile > 100) {
-    return 'Percentile must be between 0 and 100';
-  }
-
-  // Validate meeting_time is in future
-  const meetingTime = new Date(request.meeting_time);
-  if (isNaN(meetingTime.getTime())) {
-    return 'Invalid meeting time format';
-  }
-
-  if (meetingTime < new Date(Date.now() + 3 * 60 * 60 * 1000)) {
-    return 'Booking must be made at least 3 hours in advance';
-  }
-
-  // Validate required fields
-  if (
-    !request.student_name ||
-    !request.phone ||
-    !request.category ||
-    !request.branch_preference ||
-    !request.meeting_purpose?.trim()
-  ) {
-    return 'All fields are required';
-  }
-
-  if (request.meeting_purpose.trim().length < 3) {
-    return 'Purpose of meeting must be at least 3 characters';
-  }
-
-  return null;
 }

@@ -2,14 +2,13 @@ import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { CutoffsRepository } from './cutoffs.repository';
 
 const cutoffsRepository = new CutoffsRepository();
-const ACTIVE_CUTOFF_YEAR = 2025;
+const ACTIVE_CUTOFF_YEAR = parseInt(process.env.ACTIVE_CUTOFF_YEAR || '2025', 10);
 
 export class CutoffsService {
   async getCutoffs(
     filters: CutoffFilters,
   ): Promise<{ rows: CutoffData[]; total: number }> {
-    filters.year = ACTIVE_CUTOFF_YEAR;
-    return await cutoffsRepository.getCutoffs(filters);
+    return cutoffsRepository.getCutoffs({ ...filters, year: ACTIVE_CUTOFF_YEAR });
   }
 
   async bulkInsertCutoffs(cutoffs: BulkCutoffInsert[]): Promise<CutoffData[]> {

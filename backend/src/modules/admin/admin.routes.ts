@@ -5,17 +5,29 @@ import {
   requireAdminRole,
 } from '../../middleware/authMiddleware';
 import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
+import { validateBody } from '../../middleware/validateRequest';
+import { validateUuidParam } from '../../middleware/validateUuidParam';
 import { UpdatesController } from '../updates/updates.controller';
+import {
+  createUpdateSchema,
+  updateUpdateSchema,
+} from '../updates/updates.schemas';
+import {
+  createFaqSchema,
+  updateFaqSchema,
+} from '../faqs/faqs.schemas';
+import { createGuideSchema } from '../guides/guides.schemas';
+import { createResourceSchema } from '../resources/resources.schemas';
 import { CutoffsController } from '../cutoffs/cutoffs.controller';
-import { invalidateCutoffMetaCache } from '../cutoffs/cutoffsMetaCache';
+import { AdminController } from './admin.controller';
 import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
 import * as faqsController from '../faqs/faqs.controller';
-import * as bookingRepository from '../booking/booking.repository';
 
 const router = Router();
 const updatesController = new UpdatesController();
 const cutoffsController = new CutoffsController();
+const adminController = new AdminController();
 
 const ALLOWED_UPLOAD_MIME_BY_EXT: Record<string, string[]> = {
   pdf: ['application/pdf'],
@@ -75,6 +87,7 @@ router.post(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateBody(createUpdateSchema),
   updatesController.createUpdate.bind(updatesController),
 );
 
@@ -83,6 +96,8 @@ router.put(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
+  validateBody(updateUpdateSchema),
   updatesController.updateUpdate.bind(updatesController),
 );
 
@@ -91,6 +106,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   updatesController.deleteUpdate.bind(updatesController),
 );
 
@@ -109,42 +125,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const rawYear = req.query.year;
-      const hasYearFilter =
-        rawYear !== undefined && String(rawYear).trim().length > 0;
-      const parsedYear = hasYearFilter
-        ? Number.parseInt(String(rawYear), 10)
-        : Number.NaN;
-      if (hasYearFilter && (!Number.isInteger(parsedYear) || parsedYear <= 0)) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'year must be a positive integer when provided',
-          },
-        });
-        return;
-      }
-      const year = hasYearFilter ? parsedYear : null;
-      const { query: dbQuery } = await import('../../config/database');
-      const sql =
-        year === null
-          ? 'DELETE FROM cutoff_data'
-          : 'DELETE FROM cutoff_data WHERE year = $1';
-      const vals: number[] = year === null ? [] : [year];
-      const result = await dbQuery(sql, vals);
-      invalidateCutoffMetaCache();
-      res.json({
-        success: true,
-        deleted: result.rowCount,
-        year: year || 'all',
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
+  adminController.deleteCutoffs.bind(adminController),
 );
 
 // Protected routes for guides management
@@ -153,6 +134,7 @@ router.post(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateBody(createGuideSchema),
   guidesController.createGuide,
 );
 router.get(
@@ -172,6 +154,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   guidesController.deleteGuide,
 );
 router.patch(
@@ -179,6 +162,7 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   guidesController.toggleGuide,
 );
 
@@ -188,6 +172,7 @@ router.post(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateBody(createResourceSchema),
   resourcesController.createResource,
 );
 router.delete(
@@ -195,6 +180,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   resourcesController.deleteResource,
 );
 router.patch(
@@ -202,6 +188,7 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   resourcesController.toggleResource,
 );
 
@@ -211,6 +198,7 @@ router.post(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateBody(createFaqSchema),
   faqsController.createFaq,
 );
 router.get(
@@ -224,6 +212,8 @@ router.put(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
+  validateBody(updateFaqSchema),
   faqsController.updateFaq,
 );
 router.delete(
@@ -231,6 +221,7 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   faqsController.deleteFaq,
 );
 router.patch(
@@ -238,6 +229,7 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateUuidParam('id'),
   faqsController.toggleFaq,
 );
 
@@ -246,17 +238,7 @@ router.get(
   '/bookings',
   authMiddleware,
   requireAdminRole,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const bookings = await bookingRepository.getAllBookings();
-      res.json({
-        success: true,
-        data: bookings,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
+  adminController.getBookings.bind(adminController),
 );
 
 router.patch(
@@ -264,48 +246,8 @@ router.patch(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      if (!status) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Status is required',
-          },
-        });
-        return;
-      }
-
-      const ALLOWED_STATUSES = [
-        'scheduled',
-        'confirmed',
-        'cancelled',
-        'completed',
-      ];
-      if (!ALLOWED_STATUSES.includes(status)) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: `Invalid status. Must be one of: ${ALLOWED_STATUSES.join(', ')}`,
-          },
-        });
-        return;
-      }
-
-      await bookingRepository.updateBookingStatus(String(id), status);
-      res.json({
-        success: true,
-        message: 'Booking status updated',
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
+  validateUuidParam('id'),
+  adminController.updateBookingStatus.bind(adminController),
 );
 
 router.delete(
@@ -313,30 +255,8 @@ router.delete(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const deleted = await bookingRepository.deleteBooking(String(id));
-
-      if (!deleted) {
-        res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Booking not found',
-          },
-        });
-        return;
-      }
-
-      res.json({
-        success: true,
-        message: 'Booking deleted successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
+  validateUuidParam('id'),
+  adminController.deleteBooking.bind(adminController),
 );
 
 // Protected route for uploading files to Supabase Storage

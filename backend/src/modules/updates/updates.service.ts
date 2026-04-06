@@ -8,7 +8,7 @@ export class UpdatesService {
     return await updatesRepository.getAllUpdates();
   }
 
-  async createUpdate(update: Omit<Update, 'id'>): Promise<Update> {
+  async createUpdate(update: Pick<Update, 'title' | 'content'>): Promise<Update> {
     return await updatesRepository.createUpdate(update);
   }
 
