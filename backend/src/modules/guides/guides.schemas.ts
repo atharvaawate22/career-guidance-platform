@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+export const createGuideSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required').max(200),
+  description: z.string().trim().min(1, 'Description is required').max(1000),
+  file_url: z.string().trim().url('file_url must be a valid URL'),
+});
+
 export const guideDownloadSchema = z.object({
   guide_id: z.string().trim().uuid('guide_id must be a valid UUID'),
   name: z

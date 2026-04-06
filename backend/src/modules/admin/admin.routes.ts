@@ -12,6 +12,12 @@ import {
   createUpdateSchema,
   updateUpdateSchema,
 } from '../updates/updates.schemas';
+import {
+  createFaqSchema,
+  updateFaqSchema,
+} from '../faqs/faqs.schemas';
+import { createGuideSchema } from '../guides/guides.schemas';
+import { createResourceSchema } from '../resources/resources.schemas';
 import { CutoffsController } from '../cutoffs/cutoffs.controller';
 import { AdminController } from './admin.controller';
 import * as guidesController from '../guides/guides.controller';
@@ -128,6 +134,7 @@ router.post(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateBody(createGuideSchema),
   guidesController.createGuide,
 );
 router.get(
@@ -165,6 +172,7 @@ router.post(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateBody(createResourceSchema),
   resourcesController.createResource,
 );
 router.delete(
@@ -190,6 +198,7 @@ router.post(
   authMiddleware,
   requireAdminRole,
   verifyCsrfToken,
+  validateBody(createFaqSchema),
   faqsController.createFaq,
 );
 router.get(
@@ -204,6 +213,7 @@ router.put(
   requireAdminRole,
   verifyCsrfToken,
   validateUuidParam('id'),
+  validateBody(updateFaqSchema),
   faqsController.updateFaq,
 );
 router.delete(
