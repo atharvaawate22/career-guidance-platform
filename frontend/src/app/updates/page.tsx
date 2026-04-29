@@ -28,13 +28,9 @@ export default function UpdatesPage() {
         const data = await response.json();
 
         if (data.success && Array.isArray(data.data)) {
-          // Sort by published_date in reverse chronological order
-          const sortedUpdates = data.data.sort(
-            (a: Update, b: Update) =>
-              new Date(b.published_date).getTime() -
-              new Date(a.published_date).getTime()
-          );
-          setUpdates(sortedUpdates);
+          // The backend already returns updates ORDER BY published_date DESC;
+          // no client-side re-sort needed.
+          setUpdates(data.data);
           setError("");
         } else {
           setError("Invalid response format from backend");
@@ -52,13 +48,17 @@ export default function UpdatesPage() {
   }, []);
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+    // Always format in IST (Asia/Kolkata) regardless of the visitor's local TZ,
+    // so that the date/time shown matches the counselor's schedule.
+    return new Date(dateString).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   };
 
   return (

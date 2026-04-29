@@ -12,7 +12,7 @@ export function getSessionCookieMaxAgeMs(
     return asNumber * 1000;
   }
 
-  const match = trimmed.match(/^(\d+)([smhd])$/i);
+  const match = trimmed.match(/^(\d+)([smhdw])$/i);
   if (!match) return 24 * 60 * 60 * 1000;
 
   const value = Number(match[1]);
@@ -24,6 +24,8 @@ export function getSessionCookieMaxAgeMs(
         ? 60 * 1000
         : unit === 'h'
           ? 60 * 60 * 1000
-          : 24 * 60 * 60 * 1000;
+          : unit === 'w'
+            ? 7 * 24 * 60 * 60 * 1000
+            : 24 * 60 * 60 * 1000; // 'd'
   return value * multiplier;
 }

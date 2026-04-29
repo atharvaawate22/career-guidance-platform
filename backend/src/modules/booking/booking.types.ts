@@ -28,12 +28,15 @@ export interface CreateBookingRequest {
 export interface CreateBookingResponse {
   success: boolean;
   message?: string;
+  /** Set when booking succeeded but a non-fatal step (e.g. calendar) failed. */
+  warning?: string;
   error?: {
     code: string;
     message: string;
   };
   data?: {
     booking_id: string;
-    meet_link: string;
+    /** null when the calendar API failed; admin will add the link manually. */
+    meet_link: string | null;
   };
 }

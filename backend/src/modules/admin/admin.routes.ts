@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import express from 'express';
+import path from 'path';
 import {
   authMiddleware,
   requireAdminRole,
@@ -112,34 +113,42 @@ router.delete(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const rawYear = req.query.year;
-      const hasYearFilter =
-        rawYear !== undefined && String(rawYear).trim().length > 0;
-      const parsedYear = hasYearFilter
-        ? Number.parseInt(String(rawYear), 10)
-        : Number.NaN;
-      if (hasYearFilter && (!Number.isInteger(parsedYear) || parsedYear <= 0)) {
+
+      // year is required — refusing to accept a request that would delete
+      // ALL cutoff data in one shot (no accidental full wipe from a missing param).
+      if (rawYear === undefined || String(rawYear).trim().length === 0) {
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'year must be a positive integer when provided',
+            message: 'year query parameter is required (e.g. ?year=2025)',
           },
         });
         return;
       }
-      const year = hasYearFilter ? parsedYear : null;
+
+      const parsedYear = Number.parseInt(String(rawYear), 10);
+      if (!Number.isInteger(parsedYear) || parsedYear <= 0) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'year must be a positive integer',
+          },
+        });
+        return;
+      }
+
       const { query: dbQuery } = await import('../../config/database');
-      const sql =
-        year === null
-          ? 'DELETE FROM cutoff_data'
-          : 'DELETE FROM cutoff_data WHERE year = $1';
-      const vals: number[] = year === null ? [] : [year];
-      const result = await dbQuery(sql, vals);
+      const result = await dbQuery(
+        'DELETE FROM cutoff_data WHERE year = $1',
+        [parsedYear],
+      );
       invalidateCutoffMetaCache();
       res.json({
         success: true,
         deleted: result.rowCount,
-        year: year || 'all',
+        year: parsedYear,
       });
     } catch (error) {
       next(error);
@@ -349,7 +358,18 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const bucket = String(req.query.bucket || '');
-      const filename = String(req.query.filename || '');
+      // Strip directory components so that e.g. "../../secrets/file.pdf" is
+      // reduced to "file.pdf". Also reject any remaining slashes or encoded
+      // sequences that could be used to traverse Supabase Storage paths.
+      const rawFilename = String(req.query.filename || '');
+      const filename = path.basename(rawFilename);
+      if (!filename || filename !== rawFilename || /[/\\%]/.test(rawFilename)) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Invalid filename: path components are not allowed' },
+        });
+        return;
+      }
 
       if (!bucket || !filename) {
         res.status(400).json({

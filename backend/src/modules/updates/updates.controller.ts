@@ -84,6 +84,17 @@ export class UpdatesController {
         published_date,
       });
 
+      if (updatedUpdate === 'NO_FIELDS') {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'No valid fields to update were provided',
+          },
+        });
+        return;
+      }
+
       if (!updatedUpdate) {
         res.status(404).json({
           success: false,

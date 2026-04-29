@@ -4,25 +4,55 @@ import * as emailService from './email.service';
 import { CreateBookingRequest, CreateBookingResponse } from './booking.types';
 import logger from '../../utils/logger';
 
+function isPgUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  return (
+    'code' in error &&
+    (error as { code?: string }).code === '23505'
+  );
+}
+
 export async function createBooking(
   bookingRequest: CreateBookingRequest,
 ): Promise<CreateBookingResponse> {
-  // Step 1: Validate input
-  const validationError = validateBookingRequest(bookingRequest);
-  if (validationError) {
-    return {
-      success: false,
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: validationError,
-      },
-    };
-  }
-
   try {
     const meetingTime = new Date(bookingRequest.meeting_time);
-    let meetLink: string;
 
+    // ── Step 1: Insert into DB first ─────────────────────────────────────────
+    // We create the booking row before generating a Google Meet link so that
+    // a DB failure (e.g. duplicate time slot) does not leave an orphaned
+    // calendar event with no corresponding booking record.
+    let booking;
+    try {
+      booking = await bookingRepository.createBooking({
+        student_name: bookingRequest.student_name,
+        email: bookingRequest.email,
+        phone: bookingRequest.phone,
+        percentile: bookingRequest.percentile,
+        category: bookingRequest.category,
+        branch_preference: bookingRequest.branch_preference,
+        meeting_purpose: bookingRequest.meeting_purpose.trim(),
+        meeting_time: meetingTime,
+        // Placeholder; will be updated below after the Meet link is generated.
+        meet_link: '',
+      });
+    } catch (error) {
+      if (isPgUniqueViolation(error)) {
+        return {
+          success: false,
+          error: {
+            code: 'SLOT_TAKEN',
+            message:
+              'This time slot has already been booked. Please choose a different time.',
+          },
+        };
+      }
+      throw error;
+    }
+
+    // ── Step 2: Generate Google Meet link ────────────────────────────────────
+    // Only reached when the DB row was successfully created.
+    let meetLink: string;
     try {
       meetLink = await calendarService.generateMeetLink(
         bookingRequest.student_name,
@@ -35,29 +65,24 @@ export async function createBooking(
       );
     } catch (calendarError) {
       logger.error('Failed to generate meeting link', calendarError);
+      // Calendar failed but the booking already exists in the DB.
+      // Return success:true with a warning so the client still shows the
+      // booking confirmation. The admin can add a Meet link manually.
       return {
-        success: false,
-        error: {
-          code: 'CALENDAR_ERROR',
-          message: 'Failed to generate meeting link. Please try again.',
+        success: true,
+        warning: 'Booking saved but the meeting link could not be generated. Our team will follow up with a link.',
+        data: {
+          booking_id: booking.id,
+          meet_link: null,
         },
       };
     }
 
-    // Step 3: Insert booking record with meet_link
-    const booking = await bookingRepository.createBooking({
-      student_name: bookingRequest.student_name,
-      email: bookingRequest.email,
-      phone: bookingRequest.phone,
-      percentile: bookingRequest.percentile,
-      category: bookingRequest.category,
-      branch_preference: bookingRequest.branch_preference,
-      meeting_purpose: bookingRequest.meeting_purpose.trim(),
-      meeting_time: meetingTime,
-      meet_link: meetLink,
-    });
+    // ── Step 3: Persist the Meet link back to the booking row ────────────────
+    await bookingRepository.updateMeetLink(booking.id, meetLink);
 
-    // Step 4: Send email in background (truly non-blocking - don't await)
+    // Email is fire-and-forget; failures are logged but do NOT affect the
+    // HTTP response. The client receives the meet link immediately.
     emailService
       .sendBookingConfirmation({
         studentName: bookingRequest.student_name,
@@ -84,7 +109,6 @@ export async function createBooking(
         logger.error('Email sending error', err);
       });
 
-    // Step 5: Return booking_id + meet_link immediately (don't wait for email)
     return {
       success: true,
       message: 'Booking created successfully',
@@ -104,47 +128,4 @@ export async function createBooking(
       },
     };
   }
-}
-
-/**
- * Validate booking request
- */
-function validateBookingRequest(request: CreateBookingRequest): string | null {
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(request.email)) {
-    return 'Invalid email format';
-  }
-
-  // Validate percentile range
-  if (request.percentile < 0 || request.percentile > 100) {
-    return 'Percentile must be between 0 and 100';
-  }
-
-  // Validate meeting_time is in future
-  const meetingTime = new Date(request.meeting_time);
-  if (isNaN(meetingTime.getTime())) {
-    return 'Invalid meeting time format';
-  }
-
-  if (meetingTime < new Date(Date.now() + 3 * 60 * 60 * 1000)) {
-    return 'Booking must be made at least 3 hours in advance';
-  }
-
-  // Validate required fields
-  if (
-    !request.student_name ||
-    !request.phone ||
-    !request.category ||
-    !request.branch_preference ||
-    !request.meeting_purpose?.trim()
-  ) {
-    return 'All fields are required';
-  }
-
-  if (request.meeting_purpose.trim().length < 3) {
-    return 'Purpose of meeting must be at least 3 characters';
-  }
-
-  return null;
 }

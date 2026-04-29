@@ -20,7 +20,7 @@ export class UpdatesRepository {
   async updateUpdate(
     id: string,
     update: Partial<Omit<Update, 'id'>>,
-  ): Promise<Update | null> {
+  ): Promise<Update | null | 'NO_FIELDS'> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let paramCount = 1;
@@ -39,7 +39,10 @@ export class UpdatesRepository {
     }
 
     if (fields.length === 0) {
-      return null;
+      // Caller sent a valid request body but with no recognised update fields.
+      // Return a sentinel so the controller can distinguish "id not found"
+      // (null → 404) from "nothing to update" (this → 400).
+      return 'NO_FIELDS';
     }
 
     // Always set edited_at when updating

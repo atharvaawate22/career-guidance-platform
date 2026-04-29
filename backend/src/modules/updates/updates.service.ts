@@ -15,7 +15,7 @@ export class UpdatesService {
   async updateUpdate(
     id: string,
     update: Partial<Omit<Update, 'id'>>,
-  ): Promise<Update | null> {
+  ): Promise<Update | null | 'NO_FIELDS'> {
     return await updatesRepository.updateUpdate(id, update);
   }
 

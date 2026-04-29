@@ -17,17 +17,11 @@ import {
   STATIC_CUTOFF_CITIES_CLEAN,
 } from "@/lib/cutoffStaticMeta";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
-const PREDICTOR_YEAR = 2025;
 
-/** Mirrors backend getDynamicThresholds — keep in sync */
-function getThresholds(rank: number) {
-  const h = Math.round(50 * Math.sqrt(rank));
-  const targetAbove = Math.round(0.5 * h);
-  const targetBelow = Math.round(0.3 * h);
-  const floorGap = h;
-  const ceilGap = h;
-  return { targetAbove, targetBelow, floorGap, ceilGap };
-}
+const PREDICTOR_YEAR = parseInt(
+  process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025",
+  10
+);
 
 interface CollegeOption {
   id: string;
@@ -51,7 +45,23 @@ interface PredictionResults {
     inputMode: "rank" | "percentile";
     effectiveRank: number;
     inputPercentile?: number;
+    windowFloor: number;
+    windowCeil: number;
   };
+}
+
+function SectionLabel({ n, label, optional }: { n: number; label: string; optional?: boolean }) {
+  return (
+    <div className="flex items-center gap-3 mb-5">
+      <span className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0"
+        style={{ background: "var(--gold)", color: "var(--navy)" }}>
+        {n}
+      </span>
+      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--slate)" }}>
+        {label}{optional && <span className="ml-1.5 normal-case font-normal tracking-normal" style={{ color: "var(--slate-light)" }}>— optional</span>}
+      </span>
+    </div>
+  );
 }
 
 export default function PredictorPage() {
@@ -59,130 +69,72 @@ export default function PredictorPage() {
   const [error, setError] = useState("");
   const [results, setResults] = useState<PredictionResults | null>(null);
 
-  // Form state
-  const [inputMode, setInputMode] = useState<"percentile" | "rank">(
-    "percentile"
-  );
+  const [inputMode, setInputMode] = useState<"percentile" | "rank">("percentile");
   const [percentile, setPercentile] = useState("");
   const [rank, setRank] = useState("");
   const [category, setCategory] = useState("");
   const [includeTfws, setIncludeTfws] = useState(false);
   const [gender, setGender] = useState("");
-  const [selectedMinorityTypes, setSelectedMinorityTypes] = useState<string[]>(
-    []
-  );
-  const [selectedMinorityGroups, setSelectedMinorityGroups] = useState<
-    string[]
-  >([]);
+  const [selectedMinorityTypes, setSelectedMinorityTypes] = useState<string[]>([]);
+  const [selectedMinorityGroups, setSelectedMinorityGroups] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
-  // Branch autocomplete
   const branchOptions = STATIC_CUTOFF_BRANCHES;
   const cityOptions = STATIC_CUTOFF_CITIES_CLEAN;
 
-  useEffect(() => {
-    if (selectedMinorityTypes.length > 0) return;
-    if (selectedMinorityGroups.length > 0) {
-      setSelectedMinorityGroups([]);
-    }
-  }, [selectedMinorityGroups, selectedMinorityTypes]);
+  // When minority types are cleared, also clear the minority groups.
+  // This is handled directly in the onChange for selectedMinorityTypes rather
+  // than via a useEffect, to avoid the dependency cycle that arises from
+  // having selectedMinorityGroups in the deps array while also setting it inside.
+  // (The effect below is therefore intentionally removed.)
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputMode === "percentile" && !percentile) {
-      setError("Percentile is required");
-      return;
-    }
-    if (inputMode === "rank" && !rank) {
-      setError("Rank is required");
-      return;
-    }
-    if (!gender) {
-      setError("Please select gender to apply the correct seat rule.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setResults(null);
-
+    if (inputMode === "percentile" && !percentile) { setError("Percentile is required"); return; }
+    if (inputMode === "rank" && !rank) { setError("Rank is required"); return; }
+    if (!gender) { setError("Please select gender to apply the correct seat rule."); return; }
+    setLoading(true); setError(""); setResults(null);
     try {
-      const preferred_branches = selectedBranches;
-
-      const body: Record<string, unknown> = {
-        year: PREDICTOR_YEAR,
-        category,
-        gender,
-        include_tfws: includeTfws,
-      };
-      if (selectedMinorityTypes.length > 0) {
-        body.minority_types = selectedMinorityTypes;
-      }
-      if (selectedMinorityGroups.length > 0) {
-        body.minority_groups = selectedMinorityGroups;
-      }
+      const body: Record<string, unknown> = { year: PREDICTOR_YEAR, category, gender, include_tfws: includeTfws };
+      if (selectedMinorityTypes.length > 0) body.minority_types = selectedMinorityTypes;
+      if (selectedMinorityGroups.length > 0) body.minority_groups = selectedMinorityGroups;
       if (inputMode === "percentile") body.percentile = Number(percentile);
       if (inputMode === "rank") body.rank = Number(rank);
-      if (preferred_branches.length > 0)
-        body.preferred_branches = preferred_branches;
+      if (selectedBranches.length > 0) body.preferred_branches = selectedBranches;
       if (selectedCities.length > 0) body.cities = selectedCities;
-
-      const res = await fetch(`${API_BASE_URL}/api/predict`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const res = await fetch(`${API_BASE_URL}/api/predict`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
-
       if (data.success) setResults(data.data);
       else setError(data.error?.message || "Failed to get predictions");
-    } catch {
-      setError("Failed to connect to server");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError("Failed to connect to server"); }
+    finally { setLoading(false); }
   };
 
-  const renderSection = (
-    colleges: CollegeOption[],
-    tier: "safe" | "target" | "dream",
-    title: string
-  ) => {
-    const headingColors = {
-      safe: "text-green-600",
-      target: "text-amber-600",
-      dream: "text-blue-600",
-    };
+  const totalResults = results ? results.safe.length + results.target.length + results.dream.length : 0;
+
+  const renderSection = (colleges: CollegeOption[], tier: "safe" | "target" | "dream", title: string) => {
+    const colors = { safe: "var(--gold)", target: "#F59E0B", dream: "#3B82F6" };
     return (
       <div className="mb-10">
-        <h3
-          className={`text-2xl font-bold mb-4 flex items-center gap-3 ${headingColors[tier]}`}
-        >
-          {title}
-          <span className="text-base font-medium text-gray-500">
-            ({colleges.length} options)
-          </span>
-        </h3>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="w-2 h-6 rounded-full shrink-0" style={{ background: colors[tier] }} />
+          <h3 className="text-xl font-bold" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>{title}</h3>
+          <span className="text-sm ml-1" style={{ color: "var(--slate)" }}>({colleges.length})</span>
+        </div>
         {colleges.length === 0 ? (
-          <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl text-center text-gray-500 border border-gray-200">
-            No {title.toLowerCase()} found with these filters
+          <div className="card p-6 text-center text-sm" style={{ color: "var(--slate)" }}>
+            No {title.toLowerCase()} found with these filters.
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {colleges.slice(0, 100).map((college) => (
-                <PredictorResultCard
-                  key={college.id}
-                  college={college}
-                  tier={tier}
-                />
-              ))}
+          <div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+              {colleges.slice(0, 100).map(c => <PredictorResultCard key={c.id} college={c} tier={tier} />)}
             </div>
             {colleges.length > 100 && (
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center text-sm text-gray-500">
-                Showing top 100 of {colleges.length} results - add more filters
-                to narrow down
-              </div>
+              <p className="mt-3 text-xs text-center px-4 py-2 rounded-lg" style={{ background: "var(--ice-mid)", color: "var(--slate)" }}>
+                Showing top 100 of {colleges.length} — add more filters to narrow down
+              </p>
             )}
           </div>
         )}
@@ -190,427 +142,214 @@ export default function PredictorPage() {
     );
   };
 
-  const totalResults = results
-    ? results.safe.length + results.target.length + results.dream.length
-    : 0;
-
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <div style={{ minHeight: "100vh", background: "var(--ice)" }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+
+        {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+          <p className="section-label mb-2">MHT-CET 2025</p>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>
             College Predictor
           </h1>
-          <p className="text-gray-600 text-base sm:text-lg">
-            Based on MHT-CET 2025 CAP Round I cutoffs — enter your percentile or
-            rank to see eligible colleges
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            Predictions are generated from historical cutoff data (2025 CAP
-            Round 1 dataset). Results are indicative, not guaranteed.
+          <p className="text-sm" style={{ color: "var(--slate)" }}>
+            Based on 2025 CAP Round I cutoffs. Enter your percentile or rank to see eligible colleges.
+            Results are indicative, not guaranteed.
           </p>
         </div>
 
-        {/* Input Form */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-8">
-          {/* Card header */}
-          <div className="bg-linear-to-r from-purple-50 via-white to-pink-50 px-6 py-5 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800">Your Details</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Fill in your score and preferences to find matching colleges
-            </p>
+        {/* Form card */}
+        <div className="card mb-8" style={{ borderRadius: "1rem", overflow: "hidden" }}>
+          {/* Step header strip */}
+          <div className="step-indicator">
+            {["Your Score", "Candidate Profile", "Preferences"].map((s, i) => (
+              <div key={s} className="flex items-center flex-1 min-w-0">
+                {i > 0 && <div className="step-line" />}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className={`step-dot active`}>{i + 1}</div>
+                  <span className="text-xs font-semibold hidden sm:block" style={{ color: "var(--slate)" }}>{s}</span>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <form onSubmit={handlePredict} className="p-6 space-y-0">
-            {/* ── Step 1: Your Score ──────────────────────────────── */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold shrink-0">
-                  1
-                </span>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                  Your Score
-                </h3>
-              </div>
+          <form onSubmit={handlePredict} className="p-6 space-y-8">
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Input mode segmented control */}
+            {/* Step 1 */}
+            <div>
+              <SectionLabel n={1} label="Your Score" />
+              <div className="grid sm:grid-cols-2 gap-4">
+                {/* Toggle */}
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Input Type
-                  </label>
-                  <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setInputMode("percentile")}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-150 ${
-                        inputMode === "percentile"
-                          ? "bg-white shadow text-purple-700 font-semibold"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      Percentile
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInputMode("rank")}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-150 ${
-                        inputMode === "rank"
-                          ? "bg-white shadow text-purple-700 font-semibold"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      Rank
-                      <span className="ml-1 text-xs text-green-600 font-normal">
-                        (more accurate)
-                      </span>
-                    </button>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Input Type</label>
+                  <div className="flex rounded-lg p-1 gap-1" style={{ background: "var(--ice-mid)", border: "1px solid var(--border)" }}>
+                    {(["percentile", "rank"] as const).map(m => (
+                      <button key={m} type="button" onClick={() => setInputMode(m)}
+                        className="flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all"
+                        style={{
+                          background: inputMode === m ? "var(--white)" : "transparent",
+                          color: inputMode === m ? "var(--ink)" : "var(--slate)",
+                          boxShadow: inputMode === m ? "var(--shadow-sm)" : "none",
+                        }}>
+                        {m === "percentile" ? "Percentile" : <>Rank <span className="text-xs font-normal" style={{ color: "#22C55E" }}>(accurate)</span></>}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 {/* Score input */}
                 {inputMode === "percentile" ? (
                   <div>
-                    <label
-                      htmlFor="percentile"
-                      className="block mb-2 text-sm font-medium text-gray-700"
-                    >
-                      Percentile <span className="text-red-500">*</span>
+                    <label htmlFor="percentile" className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>
+                      Percentile <span style={{ color: "#EF4444" }}>*</span>
                     </label>
-                    <input
-                      type="number"
-                      id="percentile"
-                      value={percentile}
-                      onChange={(e) => setPercentile(e.target.value)}
-                      min="0"
-                      max="100"
-                      step="0.0001"
-                      required={inputMode === "percentile"}
-                      placeholder="e.g., 96.5000"
-                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-shadow"
-                    />
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      Rank is estimated from available percentile data
-                    </p>
+                    <input id="percentile" type="number" value={percentile} onChange={e => setPercentile(e.target.value)}
+                      min="0" max="100" step="0.0001" required={inputMode === "percentile"}
+                      placeholder="e.g. 96.5000" className="input-base" />
+                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-light)" }}>Rank is estimated from percentile data</p>
                   </div>
                 ) : (
                   <div>
-                    <label
-                      htmlFor="rank"
-                      className="block mb-2 text-sm font-medium text-gray-700"
-                    >
-                      Rank <span className="text-red-500">*</span>
+                    <label htmlFor="rank" className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>
+                      Rank <span style={{ color: "#EF4444" }}>*</span>
                     </label>
-                    <input
-                      type="number"
-                      id="rank"
-                      value={rank}
-                      onChange={(e) => setRank(e.target.value)}
-                      min="1"
-                      max="500000"
-                      step="1"
-                      required={inputMode === "rank"}
-                      placeholder="e.g., 5000"
-                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-shadow"
-                    />
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      Best once your official rank is published
-                    </p>
+                    <input id="rank" type="number" value={rank} onChange={e => setRank(e.target.value)}
+                      min="1" max="500000" step="1" required={inputMode === "rank"}
+                      placeholder="e.g. 5000" className="input-base" />
+                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-light)" }}>Best once your official rank is published</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="border-t border-dashed border-gray-200 mb-6" />
+            <div style={{ borderTop: "1px dashed var(--border)" }} />
 
-            {/* ── Step 2: Candidate Profile ───────────────────────── */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold shrink-0">
-                  2
-                </span>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                  Candidate Profile
-                </h3>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-linear-to-br from-white via-white to-purple-50/50 p-4 sm:p-5">
+            {/* Step 2 */}
+            <div>
+              <SectionLabel n={2} label="Candidate Profile" />
+              <div className="rounded-xl p-5" style={{ background: "var(--ice)", border: "1px solid var(--border)" }}>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
-                  {/* Category */}
                   <div className="xl:col-span-4">
-                    <label
-                      htmlFor="category"
-                      className="block mb-2 text-sm font-medium text-gray-700"
-                    >
-                      Category
-                    </label>
-                    <CustomSelect
-                      id="category"
-                      value={category}
-                      onChange={(val) => {
-                        setCategory(val);
-                        if (val === "TFWS") setIncludeTfws(false);
-                      }}
-                      options={[
-                        { value: "", label: "All Categories" },
-                        ...CUTOFF_CATEGORIES.filter((c) => c !== "TFWS").map(
-                          (c) => ({ value: c, label: c })
-                        ),
-                      ]}
-                    />
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Category</label>
+                    <CustomSelect id="category" value={category}
+                      onChange={v => { setCategory(v); if (v === "TFWS") setIncludeTfws(false); }}
+                      options={[{ value: "", label: "All Categories" }, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))]} />
                   </div>
-
-                  {/* Gender */}
                   <div className="xl:col-span-4">
-                    <label
-                      htmlFor="gender"
-                      className="block mb-2 text-sm font-medium text-gray-700"
-                    >
-                      Gender
-                    </label>
-                    <CustomSelect
-                      id="gender"
-                      value={gender}
-                      onChange={setGender}
-                      options={[...CANDIDATE_GENDER_OPTIONS]}
-                      placeholder="Select Gender"
-                    />
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Gender <span style={{ color: "#EF4444" }}>*</span></label>
+                    <CustomSelect id="gender" value={gender} onChange={setGender}
+                      options={[...CANDIDATE_GENDER_OPTIONS]} placeholder="Select Gender" />
                   </div>
-
                   <div className="xl:col-span-4">
-                    <span className="block mb-2 text-sm font-medium text-gray-700">
-                      Seat Options
-                    </span>
+                    <span className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Seat Options</span>
                     {category !== "TFWS" ? (
-                      <label
-                        className={`flex h-13 items-center gap-3 rounded-xl border px-4 cursor-pointer select-none transition-all duration-150 ${
-                          includeTfws
-                            ? "border-purple-300 bg-purple-50"
-                            : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={includeTfws}
-                          onChange={(e) => setIncludeTfws(e.target.checked)}
-                          className="h-4 w-4 shrink-0 rounded accent-purple-600"
-                        />
-                        <span className="text-sm font-medium text-gray-800">
-                          Also include{" "}
-                          <span className="text-purple-700 font-semibold">
-                            TFWS
-                          </span>{" "}
-                          seats
+                      <label className={`flex h-11 items-center gap-3 rounded-lg px-4 cursor-pointer select-none transition-all`}
+                        style={{
+                          border: `1px solid ${includeTfws ? "var(--gold)" : "var(--border)"}`,
+                          background: includeTfws ? "rgb(201 168 76 / .07)" : "var(--white)",
+                        }}>
+                        <input type="checkbox" checked={includeTfws} onChange={e => setIncludeTfws(e.target.checked)}
+                          className="h-4 w-4 shrink-0 rounded" style={{ accentColor: "var(--gold)" }} />
+                        <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>
+                          Include <span style={{ color: "var(--gold)", fontWeight: 700 }}>TFWS</span> seats
                         </span>
                       </label>
                     ) : (
-                      <div className="flex h-13 items-center rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-500">
-                        TFWS is already selected as the category.
+                      <div className="flex h-11 items-center rounded-lg px-4 text-sm" style={{ border: "1px solid var(--border)", color: "var(--slate)" }}>
+                        TFWS already selected
                       </div>
                     )}
                   </div>
 
                   <div className="xl:col-span-6">
-                    <label
-                      htmlFor="minorityType"
-                      className="block mb-2 text-sm font-medium text-gray-700"
-                    >
-                      Minority Type
-                    </label>
-                    <MultiSelect
-                      id="minorityType"
-                      value={selectedMinorityTypes}
-                      onChange={setSelectedMinorityTypes}
-                      options={MINORITY_TYPE_OPTIONS}
-                      placeholder="All Minority Types"
-                    />
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Minority Type</label>
+                    <MultiSelect id="minorityType" value={selectedMinorityTypes} onChange={values => {
+                        setSelectedMinorityTypes(values);
+                        // Clear groups whenever types are cleared, inline rather than
+                        // via useEffect to avoid a dependency-cycle render.
+                        if (values.length === 0) setSelectedMinorityGroups([]);
+                      }}
+                      options={MINORITY_TYPE_OPTIONS} placeholder="All Minority Types" />
                   </div>
-
                   <div className="xl:col-span-6">
-                    <label
-                      htmlFor="minorityGroup"
-                      className="block mb-2 text-sm font-medium text-gray-700"
-                    >
-                      Minority Group
-                    </label>
-                    <MultiSelect
-                      id="minorityGroup"
-                      value={selectedMinorityGroups}
-                      onChange={(values) => {
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Minority Group</label>
+                    <MultiSelect id="minorityGroup" value={selectedMinorityGroups}
+                      onChange={values => {
                         if (selectedMinorityTypes.length === 0) return;
                         setSelectedMinorityGroups(values);
-                        const impliedTypes = getMinorityTypesForGroups(values);
-                        setSelectedMinorityTypes((current) =>
-                          Array.from(new Set([...current, ...impliedTypes]))
-                        );
+                        setSelectedMinorityTypes(cur => Array.from(new Set([...cur, ...getMinorityTypesForGroups(values)])));
                       }}
-                      options={
-                        selectedMinorityTypes.length > 0
-                          ? getMinorityGroupOptions(selectedMinorityTypes)
-                          : []
-                      }
-                      placeholder={
-                        selectedMinorityTypes.length > 0
-                          ? "All Minority Groups"
-                          : "Select minority type first"
-                      }
-                      disabled={selectedMinorityTypes.length === 0}
-                    />
-                    <p className="mt-1 text-xs text-gray-400">
-                      Minority groups are available after selecting at least one
-                      minority type.
-                    </p>
+                      options={selectedMinorityTypes.length > 0 ? getMinorityGroupOptions(selectedMinorityTypes) : []}
+                      placeholder={selectedMinorityTypes.length > 0 ? "All Minority Groups" : "Select minority type first"}
+                      disabled={selectedMinorityTypes.length === 0} />
                   </div>
                 </div>
 
-                {/* TFWS toggle — styled card row */}
-                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {false && category !== "TFWS" && (
-                    <label
-                      className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer select-none transition-all duration-150 md:col-span-2 xl:col-span-4 ${
-                        includeTfws
-                          ? "border-purple-300 bg-purple-50"
-                          : "border-gray-200 bg-gray-50 hover:border-purple-200 hover:bg-purple-50/40"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={includeTfws}
-                        onChange={(e) => setIncludeTfws(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 rounded accent-purple-600"
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-gray-800">
-                          Also include{" "}
-                          <span className="text-purple-700 font-semibold">
-                            TFWS
-                          </span>{" "}
-                          seats
-                        </span>
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          Tuition Fee Waiver Scheme — for economically weaker
-                          sections (income-based eligibility)
-                        </p>
-                      </div>
-                    </label>
-                  )}
-                  <div className="rounded-xl border border-purple-100 bg-purple-50/70 px-4 py-3 text-sm text-gray-700">
-                    <span className="font-semibold text-purple-700">
-                      Seat rule:
-                    </span>{" "}
-                    Male candidates see gender-neutral seats only. Female
-                    candidates see gender-neutral and ladies seats.
+                <div className="mt-4 grid sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "rgb(201 168 76 / .08)", border: "1px solid rgb(201 168 76 / .2)", color: "var(--ink-mid)" }}>
+                    <span className="font-semibold" style={{ color: "var(--gold)" }}>Seat rule:</span>{" "}
+                    Male → gender-neutral seats only. Female → gender-neutral + ladies seats.
                   </div>
-
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-gray-700">
-                    <span className="font-semibold text-indigo-700">
-                      Minority filters:
-                    </span>{" "}
-                    Add one or more minority types or groups only if they apply
-                    to you. Groups can be combined when eligible.
+                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--ice)", border: "1px solid var(--border)", color: "var(--slate)" }}>
+                    <span className="font-semibold" style={{ color: "var(--ink-mid)" }}>Minority:</span>{" "}
+                    Add type/group only if applicable. Groups require a type selection first.
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-dashed border-gray-200 mb-6" />
+            <div style={{ borderTop: "1px dashed var(--border)" }} />
 
-            {/* ── Step 3: Preferences ─────────────────────────────── */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-300 text-white text-xs font-bold shrink-0">
-                  3
-                </span>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                  Preferences
-                </h3>
-                <span className="text-xs text-gray-400 font-normal">
-                  — optional, leave blank for all
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Step 3 */}
+            <div>
+              <SectionLabel n={3} label="Preferences" optional />
+              <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label
-                    htmlFor="branches"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Preferred Branches
-                  </label>
-                  <MultiSelect
-                    id="branches"
-                    value={selectedBranches}
-                    onChange={setSelectedBranches}
-                    options={branchOptions}
-                    placeholder="All Branches"
-                  />
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Preferred Branches</label>
+                  <MultiSelect id="branches" value={selectedBranches} onChange={setSelectedBranches}
+                    options={branchOptions} placeholder="All Branches" />
                 </div>
                 <div>
-                  <label
-                    htmlFor="cities"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Preferred Cities
-                  </label>
-                  <MultiSelect
-                    id="cities"
-                    value={selectedCities}
-                    onChange={setSelectedCities}
-                    options={cityOptions}
-                    placeholder="All Cities"
-                  />
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Preferred Cities</label>
+                  <MultiSelect id="cities" value={selectedCities} onChange={setSelectedCities}
+                    options={cityOptions} placeholder="All Cities" />
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-5 text-sm">
+              <div className="rounded-lg p-3 text-sm flex items-center gap-2"
+                style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                 {error}
               </div>
             )}
 
-            {/* CTA banner */}
-            <div className="mb-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 flex flex-wrap items-center justify-between gap-3">
-              <span>
-                Results are purely cutoff-data based. For more accurate
-                end-to-end guidance, book a consultation session.
-              </span>
-              <Link
-                href="/book"
-                className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-white font-medium hover:bg-blue-700 transition-colors shrink-0"
-              >
-                Book a Session Now
+            {/* Guidance banner */}
+            <div className="rounded-lg p-4 flex flex-wrap items-center justify-between gap-3"
+              style={{ background: "var(--navy)", border: "1px solid var(--navy-border)" }}>
+              <p className="text-sm" style={{ color: "var(--slate-light)" }}>
+                For in-depth personalised guidance, book a free counseling session.
+              </p>
+              <Link href="/book"
+                className="text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                style={{ background: "var(--gold)", color: "var(--navy)" }}>
+                Book Free Session
               </Link>
             </div>
 
-            {/* Action buttons */}
+            {/* Actions */}
             <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-8 py-3 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-semibold disabled:opacity-50 transition-all shadow-md hover:shadow-lg"
-              >
+              <button type="submit" disabled={loading} className="btn-gold" style={{ opacity: loading ? .6 : 1 }}>
                 {loading ? "Predicting…" : "Predict Colleges"}
               </button>
-              <button
-                type="button"
+              <button type="button" className="btn-outline"
                 onClick={() => {
-                  setInputMode("percentile");
-                  setPercentile("");
-                  setRank("");
-                  setCategory("");
-                  setIncludeTfws(false);
-                  setGender("");
-                  setSelectedMinorityTypes([]);
-                  setSelectedMinorityGroups([]);
-                  setSelectedBranches([]);
-                  setSelectedCities([]);
-                  setResults(null);
-                  setError("");
-                }}
-                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
-              >
+                  setInputMode("percentile"); setPercentile(""); setRank(""); setCategory("");
+                  setIncludeTfws(false); setGender(""); setSelectedMinorityTypes([]);
+                  setSelectedMinorityGroups([]); setSelectedBranches([]); setSelectedCities([]);
+                  setResults(null); setError("");
+                }}>
                 Reset
               </button>
             </div>
@@ -619,115 +358,63 @@ export default function PredictorPage() {
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-16 bg-white/70 backdrop-blur-sm rounded-2xl">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
-            <div className="text-xl text-gray-700 font-medium">
-              Analysing 2025 cutoffs...
-            </div>
+          <div className="card flex flex-col items-center justify-center py-20">
+            <div className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin mb-4"
+              style={{ borderColor: "var(--border)", borderTopColor: "var(--gold)" }} />
+            <p className="text-base font-medium" style={{ color: "var(--slate)" }}>Analysing 2025 cutoffs…</p>
           </div>
         )}
 
         {/* Results */}
         {!loading && results && (
-          <div>
-            {/* Summary Banner */}
-            <div className="grid grid-cols-2 gap-3 mb-8 sm:gap-4 lg:grid-cols-4">
-              <div className="bg-white/80 rounded-2xl p-4 sm:p-5 border border-gray-200 shadow text-center">
-                <div className="text-3xl font-bold text-gray-800">
-                  {totalResults}
+          <div className="animate-fade-up">
+            {/* Summary */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+              {[
+                { val: totalResults, label: "Total Options", accent: "var(--ink)" },
+                { val: results.safe.length, label: "Safe Colleges", accent: "#16A34A" },
+                { val: results.target.length, label: "Target Colleges", accent: "#D97706" },
+                { val: results.dream.length, label: "Dream Colleges", accent: "#2563EB" },
+              ].map(s => (
+                <div key={s.label} className="card p-4 sm:p-5 text-center">
+                  <div className="text-3xl font-bold" style={{ color: s.accent, fontFamily: "var(--font-playfair)" }}>{s.val}</div>
+                  <div className="text-xs mt-1" style={{ color: "var(--slate)" }}>{s.label}</div>
                 </div>
-                <div className="text-sm text-gray-500 mt-1">Total Options</div>
-              </div>
-              <div className="bg-green-50 rounded-2xl p-4 sm:p-5 border border-green-200 shadow text-center">
-                <div className="text-3xl font-bold text-green-700">
-                  {results.safe.length}
-                </div>
-                <div className="text-sm text-green-600 mt-1">Safe Colleges</div>
-              </div>
-              <div className="bg-amber-50 rounded-2xl p-4 sm:p-5 border border-amber-200 shadow text-center">
-                <div className="text-3xl font-bold text-amber-600">
-                  {results.target.length}
-                </div>
-                <div className="text-sm text-amber-600 mt-1">
-                  Target Colleges
-                </div>
-              </div>
-              <div className="bg-blue-50 rounded-2xl p-4 sm:p-5 border border-blue-200 shadow text-center">
-                <div className="text-3xl font-bold text-blue-600">
-                  {results.dream.length}
-                </div>
-                <div className="text-sm text-blue-600 mt-1">Dream Colleges</div>
-              </div>
+              ))}
             </div>
 
-            {/* Legend – thresholds shown are dynamic based on the effective rank */}
-            {(() => {
-              const resolvedRank =
-                results?.meta?.effectiveRank ??
-                (inputMode === "rank" ? Number(rank) : Number.NaN);
-              const r = resolvedRank;
-              if (!Number.isFinite(r) || r <= 0) return null;
-              const { floorGap, ceilGap } = getThresholds(r);
-              const floorVal = Math.max(1, r - ceilGap).toLocaleString();
-              const ceilVal = (r + floorGap).toLocaleString();
-              return (
-                <div className="bg-white/70 rounded-xl p-4 border border-gray-200 mb-8 flex flex-col gap-3 text-sm">
-                  {results?.meta?.inputMode === "percentile" && (
-                    <div className="text-purple-700 font-medium">
-                      Your rank is likely to be around or slightly above{" "}
-                      <span className="font-bold">
-                        {results.meta.effectiveRank.toLocaleString()}
-                      </span>
-                      {results.meta.inputPercentile !== undefined && (
-                        <span className="text-gray-500 font-normal">
-                          {" "}
-                          (from {results.meta.inputPercentile.toFixed(4)}{" "}
-                          percentile)
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex gap-6 flex-wrap">
-                    <div>
-                      <span className="font-semibold text-green-600">Safe</span>{" "}
-                      - colleges where your profile looks comfortably
-                      competitive
-                    </div>
-                    <div>
-                      <span className="font-semibold text-amber-600">
-                        Target
-                      </span>{" "}
-                      - colleges that look realistic and worth strongly
-                      considering
-                    </div>
-                    <div>
-                      <span className="font-semibold text-blue-600">Dream</span>{" "}
-                      - more competitive colleges that are still worth a try
-                    </div>
-                  </div>
-                  <div className="text-gray-400 text-xs border-t border-gray-100 pt-2">
-                    Only colleges with cutoff ranks between{" "}
-                    <span className="font-medium text-gray-500">
-                      {floorVal}
-                    </span>{" "}
-                    and{" "}
-                    <span className="font-medium text-gray-500">{ceilVal}</span>{" "}
-                    are shown — colleges far outside this range are not relevant
-                    for your rank basis.
-                  </div>
+            {/* Legend / meta */}
+            {results.meta?.windowFloor != null && (
+              <div className="card p-4 mb-8">
+                {results.meta.inputMode === "percentile" && (
+                  <p className="text-sm mb-2" style={{ color: "var(--ink-mid)" }}>
+                    Estimated rank for your percentile:{" "}
+                    <strong style={{ color: "var(--gold)" }}>{results.meta.effectiveRank.toLocaleString()}</strong>
+                    {results.meta.inputPercentile !== undefined && (
+                      <span style={{ color: "var(--slate)" }}> (from {results.meta.inputPercentile.toFixed(4)} percentile)</span>
+                    )}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-4 text-sm mb-3">
+                  <span><strong style={{ color: "#16A34A" }}>Safe</strong> — comfortably competitive</span>
+                  <span><strong style={{ color: "#D97706" }}>Target</strong> — realistic, worth considering</span>
+                  <span><strong style={{ color: "#2563EB" }}>Dream</strong> — competitive but worth a try</span>
                 </div>
-              );
-            })()}
+                <p className="text-xs" style={{ color: "var(--slate-light)", borderTop: "1px solid var(--border)", paddingTop: ".5rem" }}>
+                  Showing colleges with cutoff ranks between{" "}
+                  <strong>{results.meta.windowFloor.toLocaleString()}</strong> and{" "}
+                  <strong>{results.meta.windowCeil.toLocaleString()}</strong>
+                </p>
+              </div>
+            )}
 
             {renderSection(results.safe, "safe", "Safe Colleges")}
             {renderSection(results.target, "target", "Target Colleges")}
             {renderSection(results.dream, "dream", "Dream Colleges")}
 
             {totalResults === 0 && (
-              <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-2xl">
-                <div className="text-xl text-gray-600">
-                  No colleges found. Try adjusting category or branch filters.
-                </div>
+              <div className="card py-14 text-center">
+                <p className="text-base" style={{ color: "var(--slate)" }}>No colleges found. Try adjusting category or branch filters.</p>
               </div>
             )}
           </div>

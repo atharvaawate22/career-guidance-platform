@@ -23,8 +23,10 @@ export class CutoffsService {
         throw new Error('Missing required fields in cutoff data');
       }
 
+      // percentile is required and must be a valid number in [0, 100].
+      // Use == null to catch both undefined and null (null would bypass === undefined).
       if (
-        cutoff.percentile === undefined ||
+        cutoff.percentile == null ||
         cutoff.percentile < 0 ||
         cutoff.percentile > 100
       ) {

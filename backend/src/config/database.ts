@@ -2,6 +2,11 @@ import { Pool, QueryResult } from 'pg';
 import logger from '../utils/logger';
 
 interface QueryOptions {
+  /**
+   * A human-readable label used ONLY in slow-query and error log output.
+   * Do NOT pass this to pg's named prepared-statement feature — dynamic
+   * WHERE clauses cannot share a statement plan safely across filter combinations.
+   */
   name?: string;
 }
 

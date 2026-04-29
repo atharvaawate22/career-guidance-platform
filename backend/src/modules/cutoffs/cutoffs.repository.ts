@@ -1,6 +1,9 @@
 import { query } from '../../config/database';
 import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
-import { CITY_NORMALIZED_SQL } from '../../utils/cityNormalization';
+import {
+  CITY_NORMALIZED_SQL,
+  CITY_FILTER_SQL,
+} from '../../utils/cityNormalization';
 import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
 import { buildMinorityStatusFilter } from '../../utils/minorityStatus';
 
@@ -70,13 +73,11 @@ export class CutoffsRepository {
       values.push(filters.level);
     }
     if (filters.cities && filters.cities.length > 0) {
-      conditions.push(`(
-        LOWER(TRIM(city_normalized)) = ANY($${p}::text[])
-        OR (
-          (city_normalized IS NULL OR TRIM(city_normalized) = '')
-          AND LOWER(TRIM(${CITY_NORMALIZED_SQL})) = ANY($${p}::text[])
-        )
-      )`);
+      // CITY_FILTER_SQL = COALESCE(city_normalized column, computed CITY_NORMALIZED_SQL),
+      // meaning it prefers the persisted city_normalized value (written at insert / backfill)
+      // and falls back to the expression-based normalization for older rows.
+      // This matches exactly what the meta-endpoint returns for dropdown values.
+      conditions.push(`LOWER(TRIM(${CITY_FILTER_SQL})) = ANY($${p}::text[])`);
       values.push(filters.cities.map((c) => c.trim().toLowerCase()));
       p++;
     }
@@ -126,9 +127,12 @@ export class CutoffsRepository {
       LIMIT ${LIMIT}
     `;
 
-    const result = await query(sql, values, {
-      name: 'cutoffs.get_cutoffs',
-    });
+    // Do NOT use a named prepared statement here: the WHERE clause is built
+    // dynamically based on user-supplied filters, so each call may produce a
+    // structurally different SQL string. Using a fixed name would cause
+    // node-postgres to reuse the first call's query plan for all subsequent
+    // calls, returning results for wrong filters (critical correctness bug).
+    const result = await query(sql, values);
     const total =
       result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
     const rows = result.rows.map(

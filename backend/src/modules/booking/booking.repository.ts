@@ -42,13 +42,39 @@ export async function updateEmailStatus(
   ]);
 }
 
-export async function getAllBookings(): Promise<Booking[]> {
-  const result = await query(
-    `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at 
-    FROM bookings 
-    ORDER BY meeting_time DESC`,
-  );
-  return result.rows;
+/**
+ * Writes the Google Meet link back to a booking row that was initially
+ * created with a placeholder empty string (before the calendar API call).
+ */
+export async function updateMeetLink(
+  bookingId: string,
+  meetLink: string,
+): Promise<void> {
+  await query('UPDATE bookings SET meet_link = $1 WHERE id = $2', [
+    meetLink,
+    bookingId,
+  ]);
+}
+
+export async function getAllBookings(
+  page = 1,
+  limit = 50,
+): Promise<{ data: Booking[]; total: number }> {
+  const offset = (page - 1) * limit;
+  const [dataResult, countResult] = await Promise.all([
+    query(
+      `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at 
+      FROM bookings 
+      ORDER BY meeting_time DESC
+      LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ),
+    query('SELECT COUNT(*) FROM bookings'),
+  ]);
+  return {
+    data: dataResult.rows,
+    total: parseInt(countResult.rows[0].count, 10),
+  };
 }
 
 export async function updateBookingStatus(

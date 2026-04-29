@@ -92,6 +92,9 @@ function getAvailableSlots(dateStr: string) {
   const nowIST = getNowIST();
   const todayIST = nowIST.toISOString().slice(0, 10);
   if (dateStr !== todayIST) return TIME_SLOTS;
+  // getNowIST() returns new Date(Date.now() + 5.5h), so the UTC fields
+  // of this object ARE the IST hours/minutes. Using getUTCHours() here is
+  // intentional and correct — do NOT change to getHours() (local TZ).
   const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
   return TIME_SLOTS.filter((slot) => {
     const [h, m] = slot.split(":").map(Number);
@@ -152,6 +155,9 @@ export default function BookPage() {
         },
         body: JSON.stringify({
           ...formData,
+          // Concatenate country code with the 10-digit local number so the
+          // backend stores a fully-qualified phone number (e.g. "+919876543210").
+          phone: `${countryCode}${formData.phone}`,
           percentile: Number(formData.percentile),
         }),
         signal: controller.signal,
@@ -290,7 +296,8 @@ export default function BookPage() {
             </h2>
             <p className="text-gray-600 mb-6">
               Your consultation has been scheduled successfully. A confirmation
-              email has been sent to your inbox.
+              email has been requested — please check your inbox (and spam
+              folder) shortly.
             </p>
             <div className="bg-linear-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 mb-6">
               <p className="text-sm text-gray-600 font-medium mb-2">

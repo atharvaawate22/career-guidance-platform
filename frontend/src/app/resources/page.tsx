@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 interface Resource {
@@ -47,31 +47,7 @@ export default function ResourcesPage() {
   const [error, setError] = useState<string>("");
   const [activeCategory, setActiveCategory] = useState("All");
 
-  useEffect(() => {
-    try {
-      const cached = localStorage.getItem(RESOURCES_CACHE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached) as {
-          data: Resource[];
-          timestamp: number;
-        };
-        if (
-          Array.isArray(parsed.data) &&
-          Date.now() - parsed.timestamp < RESOURCES_CACHE_TTL_MS
-        ) {
-          setResources(parsed.data);
-          setLoading(false);
-        }
-      }
-    } catch {
-      // Ignore cache read errors and continue with network fetch.
-    }
-
-    fetchResources(resources.length === 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchResources = async (showLoader = false) => {
+  const fetchResources = useCallback(async (showLoader = false) => {
     try {
       if (showLoader) setLoading(true);
       setError("");
@@ -95,7 +71,32 @@ export default function ResourcesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // no state deps — only uses stable setter functions
+
+  useEffect(() => {
+    let shouldShowLoader = true;
+    try {
+      const cached = localStorage.getItem(RESOURCES_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as {
+          data: Resource[];
+          timestamp: number;
+        };
+        if (
+          Array.isArray(parsed.data) &&
+          Date.now() - parsed.timestamp < RESOURCES_CACHE_TTL_MS
+        ) {
+          setResources(parsed.data);
+          setLoading(false);
+          shouldShowLoader = false;
+        }
+      }
+    } catch {
+      // Ignore cache read errors and continue with network fetch.
+    }
+
+    fetchResources(shouldShowLoader);
+  }, [fetchResources]);
 
   const filteredResources =
     activeCategory === "All"

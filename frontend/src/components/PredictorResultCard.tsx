@@ -3,126 +3,79 @@
 import { getCutoffCategoryColor } from "@/lib/cutoffCategoryColors";
 import { getMinorityStatusLabel } from "@/lib/minorityStatus";
 
-interface PredictorResultCardProps {
+interface Props {
   college: {
-    id: string;
-    college_code: string;
-    college_name: string;
-    branch: string;
-    category: string;
-    college_status: string | null;
-    stage: string;
-    cutoff_rank: number | null;
-    cutoff_percentile: number;
+    id: string; college_code: string; college_name: string;
+    branch: string; category: string; college_status: string | null;
+    stage: string; cutoff_rank: number | null; cutoff_percentile: number;
   };
   tier: "safe" | "target" | "dream";
 }
 
-const TIER_STYLES = {
-  safe: {
-    shell: "border-green-200 bg-linear-to-br from-green-50 via-white to-emerald-50",
-    accent: "bg-green-600",
-    tag: "bg-green-100 text-green-700",
-    label: "Safe Pick",
-  },
-  target: {
-    shell: "border-amber-200 bg-linear-to-br from-amber-50 via-white to-yellow-50",
-    accent: "bg-amber-500",
-    tag: "bg-amber-100 text-amber-700",
-    label: "Target Pick",
-  },
-  dream: {
-    shell: "border-blue-200 bg-linear-to-br from-blue-50 via-white to-indigo-50",
-    accent: "bg-blue-600",
-    tag: "bg-blue-100 text-blue-700",
-    label: "Dream Pick",
-  },
+const TIER = {
+  safe:   { bar: "#16A34A", badge: { bg: "#D1FAE5", color: "#065F46" }, label: "Safe" },
+  target: { bar: "#D97706", badge: { bg: "#FEF3C7", color: "#92400E" }, label: "Target" },
+  dream:  { bar: "#2563EB", badge: { bg: "#DBEAFE", color: "#1E40AF" }, label: "Dream" },
 } as const;
 
 function formatRound(stage: string | null) {
-  if (!stage) return "Round -";
-
-  const normalized = stage.trim().toUpperCase();
-  const romanToNumber: Record<string, string> = {
-    I: "1",
-    II: "2",
-    III: "3",
-    IV: "4",
-  };
-
-  if (romanToNumber[normalized]) {
-    return `CAP Round ${romanToNumber[normalized]}`;
-  }
-
-  return stage;
+  if (!stage) return "—";
+  const n = stage.trim().toUpperCase();
+  const map: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4" };
+  return map[n] ? `CAP R${map[n]}` : stage;
 }
 
-export default function PredictorResultCard({
-  college,
-  tier,
-}: PredictorResultCardProps) {
-  const style = TIER_STYLES[tier];
-  const minorityLabel = getMinorityStatusLabel(college.college_status);
+export default function PredictorResultCard({ college, tier }: Props) {
+  const t = TIER[tier];
+  const minority = getMinorityStatusLabel(college.college_status);
 
   return (
-    <article
-      className={`relative overflow-hidden rounded-2xl border shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg ${style.shell}`}
-    >
-      <div className={`absolute left-0 top-0 h-full w-1 ${style.accent}`} />
+    <article className="card card-hover relative overflow-hidden" style={{ borderRadius: ".75rem" }}>
+      {/* Tier bar */}
+      <span className="absolute left-0 top-0 bottom-0 w-1" style={{ background: t.bar }} />
 
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${style.tag}`}
-              >
-                {style.label}
-              </span>
-              <span
-                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getCutoffCategoryColor(
-                  college.category
-                )}`}
-              >
-                {college.category}
-              </span>
-              <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-medium text-gray-600 border border-gray-200">
-                {formatRound(college.stage)}
-              </span>
-            </div>
-
-            <h4 className="text-lg font-bold leading-snug text-gray-900">
-              {college.college_name}
-            </h4>
-            <p className="mt-1 text-sm text-gray-600">{college.branch}</p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-              <span>Code: {college.college_code}</span>
-              {minorityLabel && (
-                <span className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2 py-0.5 font-medium text-fuchsia-700">
-                  {minorityLabel}
-                </span>
-              )}
-            </div>
-          </div>
+      <div className="pl-4 pr-4 py-4">
+        {/* Tags row */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide"
+            style={{ background: t.badge.bg, color: t.badge.color }}>
+            {t.label}
+          </span>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${getCutoffCategoryColor(college.category)}`}>
+            {college.category}
+          </span>
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
+            style={{ background: "var(--ice-mid)", color: "var(--slate)", border: "1px solid var(--border)" }}>
+            {formatRound(college.stage)}
+          </span>
+          {minority && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
+              style={{ background: "#FDF4FF", color: "#7E22CE", border: "1px solid #E9D5FF" }}>
+              {minority}
+            </span>
+          )}
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-gray-200 bg-white/80 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Cutoff Rank
-            </div>
-            <div className="mt-1 text-xl font-bold text-purple-700">
-              {college.cutoff_rank
-                ? college.cutoff_rank.toLocaleString()
-                : "-"}
+        {/* College name + branch */}
+        <h4 className="text-sm font-bold leading-snug mb-0.5" style={{ color: "var(--ink)" }}>
+          {college.college_name}
+        </h4>
+        <p className="text-xs mb-1" style={{ color: "var(--slate)" }}>{college.branch}</p>
+        <p className="text-[10px] mb-3" style={{ color: "var(--slate-light)" }}>Code: {college.college_code}</p>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="stat-box">
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate)" }}>Cutoff Rank</div>
+            <div className="text-lg font-bold" style={{ color: t.bar, fontFamily: "var(--font-playfair)" }}>
+            {/* Uses != null so that a rank of 0 is shown correctly rather
+                than being treated as falsy and displaying "—". */}
+              {college.cutoff_rank != null ? college.cutoff_rank.toLocaleString() : "—"}
             </div>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white/80 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Percentile
-            </div>
-            <div className="mt-1 text-xl font-bold text-gray-900">
+          <div className="stat-box">
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate)" }}>Percentile</div>
+            <div className="text-lg font-bold" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>
               {Number(college.cutoff_percentile).toFixed(2)}
             </div>
           </div>

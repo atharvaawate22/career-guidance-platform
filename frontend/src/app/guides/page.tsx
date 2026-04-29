@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 interface Guide {
@@ -31,31 +31,7 @@ export default function GuidesPage() {
   const [downloadError, setDownloadError] = useState<string>("");
   const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => {
-    try {
-      const cached = localStorage.getItem(GUIDES_CACHE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached) as {
-          data: Guide[];
-          timestamp: number;
-        };
-        if (
-          Array.isArray(parsed.data) &&
-          Date.now() - parsed.timestamp < GUIDES_CACHE_TTL_MS
-        ) {
-          setGuides(parsed.data);
-          setLoading(false);
-        }
-      }
-    } catch {
-      // Ignore cache read errors and continue with network fetch.
-    }
-
-    fetchGuides(guides.length === 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchGuides = async (showLoader = false) => {
+  const fetchGuides = useCallback(async (showLoader = false) => {
     try {
       if (showLoader) setLoading(true);
       setError("");
@@ -80,7 +56,33 @@ export default function GuidesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // no state deps — only uses setter functions which are stable
+
+  useEffect(() => {
+    let shouldShowLoader = true;
+    try {
+      const cached = localStorage.getItem(GUIDES_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as {
+          data: Guide[];
+          timestamp: number;
+        };
+        if (
+          Array.isArray(parsed.data) &&
+          Date.now() - parsed.timestamp < GUIDES_CACHE_TTL_MS
+        ) {
+          setGuides(parsed.data);
+          setLoading(false);
+          // Cache hit: don't show spinner on background refresh
+          shouldShowLoader = false;
+        }
+      }
+    } catch {
+      // Ignore cache read errors and continue with network fetch.
+    }
+
+    fetchGuides(shouldShowLoader);
+  }, [fetchGuides]);
 
   const handleDownloadClick = (guide: Guide) => {
     setSelectedGuide(guide);
@@ -147,7 +149,8 @@ export default function GuidesPage() {
         window.open(data.data?.file_url || data.file_url, "_blank");
         handleCloseModal();
       } else {
-        setDownloadError(data.message || "Failed to process download");
+        // Read from data.error.message (API envelope) not data.message
+        setDownloadError(data.error?.message || "Failed to process download");
       }
     } catch {
       setDownloadError("Error connecting to server");

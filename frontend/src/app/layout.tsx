@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MainContent from "@/components/MainContent";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -20,14 +23,9 @@ export const metadata: Metadata = {
   description:
     "All-in-one MHT-CET career guidance platform — predict colleges based on your percentile, explore 2025 cutoff data, book expert counseling sessions, and plan your engineering admission in Maharashtra.",
   keywords: [
-    "MHT-CET",
-    "college predictor",
-    "MHT-CET cutoffs",
-    "engineering admissions Maharashtra",
-    "CAP round guidance",
-    "career counseling",
-    "MHT-CET 2025",
-    "college admission",
+    "MHT-CET", "college predictor", "MHT-CET cutoffs",
+    "engineering admissions Maharashtra", "CAP round guidance",
+    "career counseling", "MHT-CET 2025", "college admission",
   ],
   openGraph: {
     title: "MHT-CET Career Hub — College Predictor & Cutoff Explorer",
@@ -39,15 +37,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <div className="flex min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-blue-50">
+      <body className={`${inter.variable} ${playfair.variable} antialiased`}>
+        <div className="flex min-h-screen" style={{ background: "var(--ice)" }}>
           <Sidebar />
           <MainContent>{children}</MainContent>
         </div>

@@ -26,6 +26,9 @@ function getDynamicThresholds(rank: number): {
   const h = Math.round(50 * Math.sqrt(rank));
   const targetAbove = Math.round(0.5 * h);
   const targetBelow = Math.round(0.3 * h);
+  // floorGap and ceilGap are currently equal (both = h), so the relevance
+  // window is symmetric around the student's rank. If the thresholds are
+  // ever made asymmetric, update min/max_cutoff_rank below accordingly.
   const floorGap = h;
   const ceilGap = h;
   return { targetAbove, targetBelow, floorGap, ceilGap };
@@ -103,7 +106,8 @@ export class PredictorService {
     const r = effectiveRank;
     const relevant = colleges.filter((c) => {
       const cr = Number(c.cutoff_rank);
-      if (!cr) return false; // skip null ranks
+      // Use == null (not !cr) so that a valid cutoff_rank of 0 is not discarded.
+      if (c.cutoff_rank == null || isNaN(cr)) return false;
       return cr >= r - ceilGap && cr <= r + floorGap;
     });
 

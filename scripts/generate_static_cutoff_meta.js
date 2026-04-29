@@ -101,10 +101,17 @@ function sortByRelation(a, b) {
   );
 }
 
+function pickFirstExistingPath(candidates) {
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 function generate() {
   const root = path.resolve(__dirname, "..");
-  const cutoffsCsvPath = path.join(root, "cutoffs_2025_cap1_final_verified.csv");
-  const aliasesCsvPath = path.join(root, "city_aliases_2025.csv");
   const outPath = path.join(
     root,
     "frontend",
@@ -112,6 +119,32 @@ function generate() {
     "lib",
     "cutoffStaticMeta.ts"
   );
+  const cutoffsCsvPath = pickFirstExistingPath([
+    process.env.CUTOFFS_CSV_PATH,
+    path.join(root, "cutoffs_2025_cap1_final_verified.csv"),
+    path.join(root, "data", "cutoffs_2025_cap1_final_verified.csv"),
+  ]);
+  const aliasesCsvPath = pickFirstExistingPath([
+    process.env.CITY_ALIASES_CSV_PATH,
+    path.join(root, "city_aliases_2025.csv"),
+    path.join(root, "data", "city_aliases_2025.csv"),
+  ]);
+
+  if (!cutoffsCsvPath || !aliasesCsvPath) {
+    if (fs.existsSync(outPath)) {
+      console.warn(
+        "Skipping regeneration: source CSVs not found. " +
+          "Keeping existing frontend/src/lib/cutoffStaticMeta.ts. " +
+          "Set CUTOFFS_CSV_PATH and CITY_ALIASES_CSV_PATH to regenerate."
+      );
+      return;
+    }
+
+    throw new Error(
+      "Missing source CSV files for static cutoff metadata generation. " +
+        "Provide CUTOFFS_CSV_PATH and CITY_ALIASES_CSV_PATH."
+    );
+  }
 
   const cutoffRows = parseCsv(fs.readFileSync(cutoffsCsvPath, "utf8"));
   const aliasRows = parseCsv(fs.readFileSync(aliasesCsvPath, "utf8"));

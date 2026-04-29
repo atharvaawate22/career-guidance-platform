@@ -33,20 +33,23 @@ describe('booking.service createBooking', () => {
     updateEmailStatusMock.mockResolvedValue(undefined);
   });
 
-  it('returns validation error for invalid email', async () => {
+  it('returns slot taken error when insert hits unique slot collision', async () => {
+    generateMeetLinkMock.mockResolvedValueOnce('https://meet.google.com/test');
+    createBookingMock.mockRejectedValueOnce({ code: '23505' });
+
     const result = await createBooking({
       student_name: 'Student',
-      email: 'invalid-email',
+      email: 'student@example.com',
       phone: '9999999999',
       percentile: 90,
       category: 'OPEN',
       branch_preference: 'Computer Engineering',
-      meeting_purpose: 'Guidance',
+      meeting_purpose: 'Need guidance',
       meeting_time: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
     });
 
     expect(result.success).toBe(false);
-    expect(result.error?.code).toBe('VALIDATION_ERROR');
+    expect(result.error?.code).toBe('SLOT_TAKEN');
   });
 
   it('returns calendar error when meet link generation fails', async () => {
