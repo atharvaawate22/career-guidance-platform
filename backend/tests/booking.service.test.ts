@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   createBookingMock,
   updateEmailStatusMock,
+  updateMeetLinkMock,
   generateMeetLinkMock,
   sendBookingConfirmationMock,
 } = vi.hoisted(() => ({
   createBookingMock: vi.fn(),
   updateEmailStatusMock: vi.fn(),
+  updateMeetLinkMock: vi.fn(),
   generateMeetLinkMock: vi.fn(),
   sendBookingConfirmationMock: vi.fn(),
 }));
@@ -15,6 +17,7 @@ const {
 vi.mock('../src/modules/booking/booking.repository', () => ({
   createBooking: createBookingMock,
   updateEmailStatus: updateEmailStatusMock,
+  updateMeetLink: updateMeetLinkMock,
 }));
 
 vi.mock('../src/modules/booking/calendar.service', () => ({
@@ -29,8 +32,11 @@ import { createBooking } from '../src/modules/booking/booking.service';
 
 describe('booking.service createBooking', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // mockReset clears both call history AND any queued mock implementations
+    // (mockResolvedValueOnce / mockRejectedValueOnce) to prevent bleed between tests.
+    vi.resetAllMocks();
     updateEmailStatusMock.mockResolvedValue(undefined);
+    updateMeetLinkMock.mockResolvedValue(undefined);
   });
 
   it('returns slot taken error when insert hits unique slot collision', async () => {
@@ -52,7 +58,9 @@ describe('booking.service createBooking', () => {
     expect(result.error?.code).toBe('SLOT_TAKEN');
   });
 
-  it('returns calendar error when meet link generation fails', async () => {
+  it('returns success:true + warning when meet link generation fails (booking still saved)', async () => {
+    // DB insert succeeds; calendar fails after.
+    createBookingMock.mockResolvedValueOnce({ id: 'booking-calendar-fail' });
     generateMeetLinkMock.mockRejectedValueOnce(new Error('calendar failed'));
 
     const result = await createBooking({
@@ -66,13 +74,18 @@ describe('booking.service createBooking', () => {
       meeting_time: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
     });
 
-    expect(result.success).toBe(false);
-    expect(result.error?.code).toBe('CALENDAR_ERROR');
+    // Booking IS saved in DB; we return success:true so the client shows confirmation.
+    expect(result.success).toBe(true);
+    expect(result.warning).toBeDefined();
+    expect(result.data?.booking_id).toBe('booking-calendar-fail');
+    expect(result.data?.meet_link).toBeNull();
   });
 
   it('creates booking successfully', async () => {
-    generateMeetLinkMock.mockResolvedValueOnce('https://meet.google.com/test');
+    // Set up mocks in the same order the service calls them:
+    // 1. DB insert (createBooking), 2. calendar (generateMeetLink), 3. email
     createBookingMock.mockResolvedValueOnce({ id: 'booking-1' });
+    generateMeetLinkMock.mockResolvedValueOnce('https://meet.google.com/test');
     sendBookingConfirmationMock.mockResolvedValueOnce(true);
 
     const result = await createBooking({
