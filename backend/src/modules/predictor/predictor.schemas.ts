@@ -12,22 +12,36 @@ export const predictorRequestSchema = z
       .min(0, 'Percentile must be between 0 and 100')
       .max(100, 'Percentile must be between 0 and 100')
       .optional(),
-    category: z.string().trim().min(1).max(100).optional(),
-    gender: z.string().trim().min(1).max(50).optional(),
+    category: z
+      .string({ required_error: 'Please select a valid admission category.' })
+      .trim()
+      .min(1, 'Please select your category (e.g. OPEN, OBC, SC) to predict cutoffs.'),
+    gender: z
+      .string({ required_error: 'Please select your gender.' })
+      .trim()
+      .min(1, 'Please select your gender to determine seat eligibility.'),
     minority_types: z
-      .array(z.string().trim().min(1).max(50))
+      .array(z.string().trim().min(1, 'Minority type cannot be empty').max(50))
       .max(10)
       .optional(),
     minority_groups: z
-      .array(z.string().trim().min(1).max(50))
+      .array(z.string().trim().min(1, 'Minority group cannot be empty').max(50))
       .max(20)
       .optional(),
-    level: z.string().trim().min(1).max(80).optional(),
+    level: z
+      .string()
+      .trim()
+      .min(1, 'Seat level cannot be empty')
+      .max(80)
+      .optional(),
     preferred_branches: z
-      .array(z.string().trim().min(1).max(150))
+      .array(z.string().trim().min(1, 'Preferred branch cannot be empty').max(150))
       .max(20)
       .optional(),
-    cities: z.array(z.string().trim().min(1).max(100)).max(30).optional(),
+    cities: z
+      .array(z.string().trim().min(1, 'City name cannot be empty').max(100))
+      .max(30)
+      .optional(),
     include_tfws: z.boolean().optional(),
   })
   .refine((data) => data.rank !== undefined || data.percentile !== undefined, {

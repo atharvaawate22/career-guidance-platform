@@ -73,6 +73,7 @@ export default function PredictorPage() {
   const [percentile, setPercentile] = useState("");
   const [rank, setRank] = useState("");
   const [category, setCategory] = useState("");
+  const [categoryError, setCategoryError] = useState("");
   const [includeTfws, setIncludeTfws] = useState(false);
   const [gender, setGender] = useState("");
   const [genderError, setGenderError] = useState("");
@@ -94,11 +95,24 @@ export default function PredictorPage() {
     e.preventDefault();
     if (inputMode === "percentile" && !percentile) { setError("Please enter your percentile."); return; }
     if (inputMode === "rank" && !rank) { setError("Please enter your rank."); return; }
+    
+    let hasValidationError = false;
+    if (!category) {
+      setCategoryError("Please select your category — it determines your cutoff tier.");
+      hasValidationError = true;
+    } else {
+      setCategoryError("");
+    }
+    
     if (!gender) {
       setGenderError("Please select your gender — it determines which seats you are eligible for.");
-      return;
+      hasValidationError = true;
+    } else {
+      setGenderError("");
     }
-    setGenderError("");
+
+    if (hasValidationError) return;
+
     setLoading(true); setError(""); setResults(null);
     try {
       const body: Record<string, unknown> = { year: PREDICTOR_YEAR, category, gender, include_tfws: includeTfws };
@@ -235,10 +249,14 @@ export default function PredictorPage() {
               <div className="rounded-xl p-5" style={{ background: "var(--ice)", border: "1px solid var(--border)" }}>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
                   <div className="xl:col-span-4">
-                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Category</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Category <span style={{ color: "#EF4444" }}>*</span></label>
                     <CustomSelect id="category" value={category}
-                      onChange={v => { setCategory(v); if (v === "TFWS") setIncludeTfws(false); }}
-                      options={[{ value: "", label: "All Categories" }, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))]} />
+                      onChange={v => { setCategory(v); setCategoryError(""); if (v === "TFWS") setIncludeTfws(false); }}
+                      options={[{ value: "", label: "Select Category" }, ...CANDIDATE_GENDER_OPTIONS, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))].filter(o => o.value !== "Male" && o.value !== "Female")}
+                      placeholder="Select Category" />
+                    {categoryError && (
+                      <p className="text-xs mt-1.5 font-medium" style={{ color: "#DC2626" }}>{categoryError}</p>
+                    )}
                   </div>
                   <div className="xl:col-span-4">
                     <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Gender <span style={{ color: "#EF4444" }}>*</span></label>
@@ -356,7 +374,7 @@ export default function PredictorPage() {
                   setInputMode("percentile"); setPercentile(""); setRank(""); setCategory("");
                   setIncludeTfws(false); setGender(""); setSelectedMinorityTypes([]);
                   setSelectedMinorityGroups([]); setSelectedBranches([]); setSelectedCities([]);
-                  setResults(null); setError(""); setGenderError("");
+                  setResults(null); setError(""); setGenderError(""); setCategoryError("");
                 }}>
                 Reset
               </button>
