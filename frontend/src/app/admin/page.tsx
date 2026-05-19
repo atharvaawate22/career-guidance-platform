@@ -286,7 +286,12 @@ export default function AdminPage() {
       const response = await fetch(`${API_BASE_URL}/api/updates`);
       const data = await response.json();
       if (data.success) {
-        setUpdates(data.data);
+        const list = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.data?.data)
+            ? data.data.data
+            : [];
+        setUpdates(list);
       }
     } catch (error) {
       console.error("Failed to fetch updates:", error);
@@ -305,7 +310,12 @@ export default function AdminPage() {
       }
       const data = await response.json();
       if (data.success) {
-        setBookings(data.data);
+        const list = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.data?.data)
+            ? data.data.data
+            : [];
+        setBookings(list);
       }
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
@@ -507,7 +517,12 @@ export default function AdminPage() {
       }
       const data = await response.json();
       if (data.success) {
-        setFaqs(data.data);
+        const list = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.data?.data)
+            ? data.data.data
+            : [];
+        setFaqs(list);
       } else {
         setFaqError(data.error?.message || "Failed to load FAQs");
       }
@@ -676,7 +691,14 @@ export default function AdminPage() {
       setResourcesLoading(true);
       const response = await fetch(`${API_BASE_URL}/api/resources`);
       const data = await response.json();
-      if (data.success) setResources(data.data);
+      if (data.success) {
+        const list = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.data?.data)
+            ? data.data.data
+            : [];
+        setResources(list);
+      }
     } catch (error) {
       console.error("Failed to fetch resources:", error);
     } finally {
@@ -771,7 +793,12 @@ export default function AdminPage() {
       }
       const data = await response.json();
       if (data.success) {
-        setGuides(data.data);
+        const list = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.data?.data)
+            ? data.data.data
+            : [];
+        setGuides(list);
       } else {
         setGuideError(data.error?.message || "Failed to load guides");
       }
@@ -795,7 +822,14 @@ export default function AdminPage() {
         return;
       }
       const data = await response.json();
-      if (data.success) setDownloads(data.data);
+      if (data.success) {
+        const list = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.data?.data)
+            ? data.data.data
+            : [];
+        setDownloads(list);
+      }
     } catch (error) {
       console.error("Failed to fetch downloads:", error);
     } finally {
