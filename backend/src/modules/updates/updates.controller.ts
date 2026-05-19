@@ -17,6 +17,10 @@ const createUpdateSchema = z.object({
     .trim()
     .min(1, 'Content cannot be empty')
     .max(10000, 'Content must be under 10,000 characters'),
+  published_date: z
+    .string()
+    .trim()
+    .optional(),
 });
 
 const updateUpdateSchema = z.object({
@@ -66,11 +70,11 @@ export class UpdatesController {
         return;
       }
 
-      const { title, content } = parse.data;
+      const { title, content, published_date } = parse.data;
       const newUpdate = await updatesService.createUpdate({
         title,
         content,
-        published_date: '',
+        published_date: published_date || '',
       });
 
       res.status(201).json({

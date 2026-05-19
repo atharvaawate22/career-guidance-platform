@@ -2,6 +2,7 @@ import * as bookingRepository from './booking.repository';
 import * as calendarService from './calendar.service';
 import * as emailService from './email.service';
 import { CreateBookingRequest, CreateBookingResponse } from './booking.types';
+import { getBookingSlotConfig } from './booking.schemas';
 import logger from '../../utils/logger';
 
 function isPgUniqueViolation(error: unknown): boolean {
@@ -12,27 +13,67 @@ function isPgUniqueViolation(error: unknown): boolean {
   );
 }
 
-/** Returns true if the date falls on a Saturday (6) or Sunday (0) in IST. */
-function isWeekend(date: Date): boolean {
-  // Convert UTC to IST (+05:30 = 330 minutes) for day-of-week check
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const dayIST = new Date(date.getTime() + istOffset).getUTCDay();
-  return dayIST === 0 || dayIST === 6;
-}
-
 export async function createBooking(
   bookingRequest: CreateBookingRequest,
 ): Promise<CreateBookingResponse> {
   try {
     const meetingTime = new Date(bookingRequest.meeting_time);
 
-    // ── Guard: weekends are not available ────────────────────────────────────
-    if (isWeekend(meetingTime)) {
+    // ── Load dynamic booking configuration ────────────────────────────────
+    const slotConfig = await getBookingSlotConfig();
+
+    // ── Guard: bookings disabled ──────────────────────────────────────────
+    if (!slotConfig.enabled) {
+      return {
+        success: false,
+        error: {
+          code: 'BOOKINGS_DISABLED',
+          message: 'Booking sessions are currently closed. Please check back later.',
+        },
+      };
+    }
+
+    // ── Guard: validate time slot against configured slots ────────────────
+    const slotStr = meetingTime.toLocaleTimeString('en-IN', {
+      hour: '2-digit', minute: '2-digit', hour12: false,
+      timeZone: 'Asia/Kolkata',
+    });
+    if (!slotConfig.slots.includes(slotStr)) {
       return {
         success: false,
         error: {
           code: 'SLOT_UNAVAILABLE',
-          message: 'Sessions are only available Monday to Friday. Please choose a weekday.',
+          message: `The time slot ${slotStr} is not currently available. Please choose from the available slots.`,
+        },
+      };
+    }
+
+    // ── Guard: check working days and special dates ───────────────────────
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(meetingTime.getTime() + istOffset);
+    const dayOfWeek = istDate.getUTCDay(); // 0=Sun, 6=Sat
+    const dateStr = istDate.toISOString().slice(0, 10); // YYYY-MM-DD
+
+    // Check if this specific date is force-closed
+    if (slotConfig.special_closed_dates.includes(dateStr)) {
+      return {
+        success: false,
+        error: {
+          code: 'SLOT_UNAVAILABLE',
+          message: 'Sessions are not available on this date. Please choose a different day.',
+        },
+      };
+    }
+
+    // If not a configured working day AND not a special open date, reject
+    const isWorkingDay = slotConfig.working_days.includes(dayOfWeek);
+    const isSpecialOpen = slotConfig.special_open_dates.includes(dateStr);
+    if (!isWorkingDay && !isSpecialOpen) {
+      return {
+        success: false,
+        error: {
+          code: 'SLOT_UNAVAILABLE',
+          message: 'Sessions are not available on this day. Please choose a working day.',
         },
       };
     }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import * as settingsRepository from '../settings/settings.repository';
 
 // Valid booking categories matching Maharashtra MHT-CET reservation structure
 export const VALID_BOOKING_CATEGORIES = [
@@ -6,13 +7,53 @@ export const VALID_BOOKING_CATEGORIES = [
   'OBC', 'EWS', 'TFWS', 'DEF_OPEN', 'DEF_OBC', 'PWD_OPEN',
 ] as const;
 
-// Valid time slots (HH:MM, 10:00–17:30 at 30-min intervals)
-const VALID_TIME_SLOTS = [
+// Default time slots — used as fallback if DB config is unavailable
+const DEFAULT_TIME_SLOTS = [
   '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00',
   '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
   '17:00', '17:30',
 ];
 
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
+
+export interface BookingSlotConfig {
+  enabled: boolean;
+  slots: string[];
+  working_days: number[];
+  special_open_dates: string[];
+  special_closed_dates: string[];
+}
+
+/**
+ * Fetches the current booking slot configuration from the database.
+ * Falls back to defaults if the DB is unavailable or the setting doesn't exist.
+ */
+export async function getBookingSlotConfig(): Promise<BookingSlotConfig> {
+  try {
+    const setting = await settingsRepository.getSetting('booking_slots');
+    if (setting?.value) {
+      const v = setting.value as Record<string, unknown>;
+      return {
+        enabled: v.enabled !== false,
+        slots: Array.isArray(v.slots) ? v.slots as string[] : DEFAULT_TIME_SLOTS,
+        working_days: Array.isArray(v.working_days) ? v.working_days as number[] : DEFAULT_WORKING_DAYS,
+        special_open_dates: Array.isArray(v.special_open_dates) ? v.special_open_dates as string[] : [],
+        special_closed_dates: Array.isArray(v.special_closed_dates) ? v.special_closed_dates as string[] : [],
+      };
+    }
+  } catch {
+    // Fall back to defaults if DB read fails
+  }
+  return {
+    enabled: true,
+    slots: DEFAULT_TIME_SLOTS,
+    working_days: DEFAULT_WORKING_DAYS,
+    special_open_dates: [],
+    special_closed_dates: [],
+  };
+}
+
+// Base schema without time slot validation (time slot is validated dynamically)
 export const createBookingSchema = z.object({
   student_name: z
     .string({ required_error: 'Full name is required' })
@@ -59,12 +100,5 @@ export const createBookingSchema = z.object({
     .refine(
       (val) => new Date(val) > new Date(),
       'Meeting time must be in the future',
-    )
-    .refine((val) => {
-      const slot = new Date(val).toLocaleTimeString('en-IN', {
-        hour: '2-digit', minute: '2-digit', hour12: false,
-        timeZone: 'Asia/Kolkata',
-      });
-      return VALID_TIME_SLOTS.includes(slot);
-    }, `Meeting time must be one of the available slots (${VALID_TIME_SLOTS.join(', ')})`),
+    ),
 });

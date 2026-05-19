@@ -18,6 +18,7 @@ import guidesRoutes from './modules/guides/guides.routes';
 import resourcesRoutes from './modules/resources/resources.routes';
 import faqsRoutes from './modules/faqs/faqs.routes';
 import bookingRoutes from './modules/booking/booking.routes';
+import settingsRoutes from './modules/settings/settings.routes';
 import { testConnection, query } from './config/database';
 import { runMigrations } from './config/migrations';
 import { runSampleSeed, bootstrapAdmin } from './config/seed';
@@ -160,6 +161,7 @@ app.use('/api/resources', resourcesRoutes);
 app.use('/api/faqs', faqsRoutes);
 app.use('/api/bookings/slots', publicBookingSlotsGetLimiter);
 app.use('/api/bookings', publicBookingLimiter, bookingRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/admin', authRoutes);
 app.use('/api/admin', adminRoutes);
 

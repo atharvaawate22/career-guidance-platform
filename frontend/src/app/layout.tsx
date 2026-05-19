@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MainContent from "@/components/MainContent";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${playfair.variable} antialiased`}>
+        <AnnouncementBanner />
         <div className="flex min-h-screen" style={{ background: "var(--ice)" }}>
           <Sidebar />
           <MainContent>{children}</MainContent>

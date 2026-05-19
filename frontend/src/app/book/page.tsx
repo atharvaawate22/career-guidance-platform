@@ -1,56 +1,35 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
-const TIME_SLOTS = [
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
+// Default fallback — only used if settings API is unreachable
+const DEFAULT_TIME_SLOTS = [
+  "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00",
+  "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+  "17:00", "17:30",
 ];
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
+
+interface SlotConfig {
+  enabled: boolean;
+  slots: string[];
+  working_days: number[];
+  special_open_dates: string[];
+  special_closed_dates: string[];
+}
 
 // MHT-CET is a Maharashtra-only exam — India phone numbers only.
 const INDIA_COUNTRY_CODE = "+91";
 
 const MEETING_PURPOSE_OPTIONS = [
-  {
-    value: "Help me build my college preference list",
-    label: "Help me build my college preference list",
-  },
-  {
-    value: "Compare branches & choose the right one",
-    label: "Compare branches & choose the right one",
-  },
-  {
-    value: "CAP round strategy & option form guidance",
-    label: "CAP round strategy & option form guidance",
-  },
-  {
-    value: "Admission process, eligibility & documents",
-    label: "Admission process, eligibility & documents",
-  },
-  {
-    value: "Percentile/rank-based college planning",
-    label: "Percentile/rank-based college planning",
-  },
-  {
-    value: "Understanding cutoff trends & seat matrix",
-    label: "Understanding cutoff trends & seat matrix",
-  },
+  { value: "Help me build my college preference list", label: "Help me build my college preference list" },
+  { value: "Compare branches & choose the right one", label: "Compare branches & choose the right one" },
+  { value: "CAP round strategy & option form guidance", label: "CAP round strategy & option form guidance" },
+  { value: "Admission process, eligibility & documents", label: "Admission process, eligibility & documents" },
+  { value: "Percentile/rank-based college planning", label: "Percentile/rank-based college planning" },
+  { value: "Understanding cutoff trends & seat matrix", label: "Understanding cutoff trends & seat matrix" },
   { value: "Other", label: "Other" },
 ];
 
@@ -65,42 +44,49 @@ function getNowIST() {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000);
 }
 
-/** Returns true if the given YYYY-MM-DD string is a Saturday or Sunday (IST). */
-function isWeekend(dateStr: string): boolean {
+/** Returns true if the given YYYY-MM-DD string is NOT a working day (based on config). */
+function isNonWorkingDay(dateStr: string, config: SlotConfig): boolean {
+  // Force-closed dates always block
+  if (config.special_closed_dates.includes(dateStr)) return true;
   const d = new Date(`${dateStr}T00:00:00+05:30`);
   const day = d.getDay(); // 0=Sun, 6=Sat
-  return day === 0 || day === 6;
+  // If it's a special open date, it's always working
+  if (config.special_open_dates.includes(dateStr)) return false;
+  return !config.working_days.includes(day);
 }
 
-/** Next non-weekend date string on/after `date`. */
-function nextWeekday(dateStr: string): string {
+/** Next working date string on/after `date`. */
+function nextWorkingDay(dateStr: string, config: SlotConfig): string {
   let d = new Date(`${dateStr}T00:00:00+05:30`);
-  while ([0, 6].includes(d.getDay())) {
+  let attempts = 0;
+  while (isNonWorkingDay(d.toISOString().slice(0, 10), config) && attempts < 30) {
     d = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+    attempts++;
   }
   return d.toISOString().slice(0, 10);
 }
 
-function getMinDate() {
+function getMinDate(config: SlotConfig) {
   const nowIST = getNowIST();
   const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
   const todayIST = nowIST.toISOString().slice(0, 10);
-  // If even the last slot (17:30) minus 1h buffer has already passed, start tomorrow
+  // Find latest slot time to determine if today is still valid
+  const sortedSlots = [...config.slots].sort();
+  const lastSlot = sortedSlots[sortedSlots.length - 1] || "17:30";
+  const [lastH, lastM] = lastSlot.split(":").map(Number);
   const baseDate =
-    nowMinutes + 60 > 17 * 60 + 30
+    nowMinutes + 60 > lastH * 60 + lastM
       ? new Date(nowIST.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
       : todayIST;
-  // Skip past weekends
-  return nextWeekday(baseDate);
+  return nextWorkingDay(baseDate, config);
 }
 
-function getAvailableSlots(dateStr: string) {
+function getAvailableSlots(dateStr: string, config: SlotConfig) {
   const nowIST = getNowIST();
   const todayIST = nowIST.toISOString().slice(0, 10);
-  if (dateStr !== todayIST) return TIME_SLOTS;
-  // getNowIST() returns new Date(Date.now() + 5.5h), so UTC fields ARE IST hours/minutes.
+  if (dateStr !== todayIST) return config.slots;
   const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
-  return TIME_SLOTS.filter((slot) => {
+  return config.slots.filter((slot) => {
     const [h, m] = slot.split(":").map(Number);
     return h * 60 + m >= nowMinutes + 60; // 1-hour booking buffer
   });
@@ -124,6 +110,25 @@ export default function BookPage() {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [meetingPurposeOption, setMeetingPurposeOption] = useState("");
+
+  const [slotConfig, setSlotConfig] = useState<SlotConfig>({
+    enabled: true,
+    slots: DEFAULT_TIME_SLOTS,
+    working_days: DEFAULT_WORKING_DAYS,
+    special_open_dates: [],
+    special_closed_dates: [],
+  });
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings/booking-slots`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.data) {
+          setSlotConfig(d.data);
+        }
+      })
+      .catch(() => { /* fallback to defaults */ });
+  }, []);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -159,8 +164,8 @@ export default function BookPage() {
     if (meetingPurposeOption === "Other" && !formData.meeting_purpose.trim())
       newFieldErrors.meeting_purpose_text = "Please describe what you need help with.";
     if (!selectedDate) newFieldErrors.meeting_date = "Please select a date for your session.";
-    if (selectedDate && isWeekend(selectedDate))
-      newFieldErrors.meeting_date = "Sessions are only available Monday to Friday.";
+    if (selectedDate && isNonWorkingDay(selectedDate, slotConfig))
+      newFieldErrors.meeting_date = "Sessions are not available on the selected date.";
     if (!formData.meeting_time) newFieldErrors.meeting_time = "Please select a time slot.";
 
     if (Object.keys(newFieldErrors).length > 0) {
@@ -289,7 +294,7 @@ export default function BookPage() {
     clearError("meeting_date");
     clearError("meeting_time");
     setSlotError("");
-    const available = getAvailableSlots(date);
+    const available = getAvailableSlots(date, slotConfig);
     const timeStillValid = selectedTime && available.includes(selectedTime);
     if (timeStillValid) {
       setFormData({ ...formData, meeting_time: `${date}T${selectedTime}:00+05:30` });
@@ -581,10 +586,10 @@ export default function BookPage() {
                   required
                   value={selectedDate}
                   onChange={handleDateChange}
-                  min={getMinDate()}
+                  min={getMinDate(slotConfig)}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
-                <p className="text-xs text-gray-400 mt-1">Mon – Fri only. Weekends unavailable.</p>
+                <p className="text-xs text-gray-400 mt-1">Check availability in the calendar.</p>
                 {fieldErrors.meeting_date && (
                   <p className="text-xs text-red-600 mt-1">{fieldErrors.meeting_date}</p>
                 )}
@@ -617,10 +622,10 @@ export default function BookPage() {
                       </span>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                      {TIME_SLOTS.map((slot) => {
+                      {slotConfig.slots.map((slot) => {
                         const isBooked = bookedSlots.includes(slot);
                         const isUnavailable =
-                          !getAvailableSlots(selectedDate).includes(slot);
+                          !getAvailableSlots(selectedDate, slotConfig).includes(slot);
                         const isSelected = selectedTime === slot;
                         let cls = "";
                         if (isUnavailable) {

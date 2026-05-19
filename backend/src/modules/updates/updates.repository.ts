@@ -10,6 +10,15 @@ export class UpdatesRepository {
   }
 
   async createUpdate(update: Omit<Update, 'id'>): Promise<Update> {
+    // If a custom published_date is provided, use it; otherwise default to NOW()
+    if (update.published_date && update.published_date.trim() !== '') {
+      const result = await query(
+        'INSERT INTO updates (id, title, content, published_date) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING id, title, content, published_date, edited_at',
+        [update.title, update.content, update.published_date],
+      );
+      return result.rows[0];
+    }
+
     const result = await query(
       'INSERT INTO updates (id, title, content, published_date) VALUES (gen_random_uuid(), $1, $2, NOW()) RETURNING id, title, content, published_date, edited_at',
       [update.title, update.content],

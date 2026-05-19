@@ -13,6 +13,7 @@ import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
 import * as faqsController from '../faqs/faqs.controller';
 import * as bookingRepository from '../booking/booking.repository';
+import * as settingsController from '../settings/settings.controller';
 import { query as dbQuery } from '../../config/database';
 
 const router = Router();
@@ -480,6 +481,30 @@ router.post(
       next(error);
     }
   },
+);
+
+// ── Admin settings routes ─────────────────────────────────────────────────────
+router.get(
+  '/settings',
+  authMiddleware,
+  requireAdminRole,
+  settingsController.getAllSettings,
+);
+
+router.put(
+  '/settings/:key',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  settingsController.updateSetting,
+);
+
+// ── Analytics endpoint ────────────────────────────────────────────────────────
+router.get(
+  '/analytics',
+  authMiddleware,
+  requireAdminRole,
+  settingsController.getAnalytics,
 );
 
 export default router;
