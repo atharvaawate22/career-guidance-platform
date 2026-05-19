@@ -38,5 +38,8 @@ export interface CreateBookingResponse {
     booking_id: string;
     /** null when the calendar API failed; admin will add the link manually. */
     meet_link: string | null;
+    /** Included so the frontend can display a booking confirmation summary. */
+    student_name?: string;
+    meeting_time?: string;
   };
 }

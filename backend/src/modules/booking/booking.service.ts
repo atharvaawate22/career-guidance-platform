@@ -12,11 +12,52 @@ function isPgUniqueViolation(error: unknown): boolean {
   );
 }
 
+/** Returns true if the date falls on a Saturday (6) or Sunday (0) in IST. */
+function isWeekend(date: Date): boolean {
+  // Convert UTC to IST (+05:30 = 330 minutes) for day-of-week check
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const dayIST = new Date(date.getTime() + istOffset).getUTCDay();
+  return dayIST === 0 || dayIST === 6;
+}
+
 export async function createBooking(
   bookingRequest: CreateBookingRequest,
 ): Promise<CreateBookingResponse> {
   try {
     const meetingTime = new Date(bookingRequest.meeting_time);
+
+    // ── Guard: weekends are not available ────────────────────────────────────
+    if (isWeekend(meetingTime)) {
+      return {
+        success: false,
+        error: {
+          code: 'SLOT_UNAVAILABLE',
+          message: 'Sessions are only available Monday to Friday. Please choose a weekday.',
+        },
+      };
+    }
+
+    // ── Guard: no duplicate active booking for same email ────────────────────
+    const existing = await bookingRepository.getExistingActiveBookingByEmail(
+      bookingRequest.email,
+    );
+    if (existing) {
+      const bookedDate = existing.meeting_time.toLocaleDateString('en-IN', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+        timeZone: 'Asia/Kolkata',
+      });
+      const bookedTime = existing.meeting_time.toLocaleTimeString('en-IN', {
+        hour: '2-digit', minute: '2-digit', hour12: true,
+        timeZone: 'Asia/Kolkata',
+      });
+      return {
+        success: false,
+        error: {
+          code: 'DUPLICATE_BOOKING',
+          message: `You already have a session booked on ${bookedDate} at ${bookedTime} IST. Please cancel it before booking a new one.`,
+        },
+      };
+    }
 
     // ── Step 1: Insert into DB first ─────────────────────────────────────────
     // We create the booking row before generating a Google Meet link so that
@@ -43,7 +84,7 @@ export async function createBooking(
           error: {
             code: 'SLOT_TAKEN',
             message:
-              'This time slot has already been booked. Please choose a different time.',
+              'This time slot was just booked by someone else. Please choose a different time.',
           },
         };
       }
@@ -51,7 +92,6 @@ export async function createBooking(
     }
 
     // ── Step 2: Generate Google Meet link ────────────────────────────────────
-    // Only reached when the DB row was successfully created.
     let meetLink: string;
     try {
       meetLink = await calendarService.generateMeetLink(
@@ -65,15 +105,16 @@ export async function createBooking(
       );
     } catch (calendarError) {
       logger.error('Failed to generate meeting link', calendarError);
-      // Calendar failed but the booking already exists in the DB.
-      // Return success:true with a warning so the client still shows the
-      // booking confirmation. The admin can add a Meet link manually.
+      // Calendar failed but the booking exists in DB.
+      // Return success:true with a warning — the admin can add the Meet link manually.
       return {
         success: true,
-        warning: 'Booking saved but the meeting link could not be generated. Our team will follow up with a link.',
+        warning: 'Your session is booked! A Meet link could not be generated automatically — our team will send it to your email within a few hours.',
         data: {
           booking_id: booking.id,
           meet_link: null,
+          student_name: bookingRequest.student_name,
+          meeting_time: bookingRequest.meeting_time,
         },
       };
     }
@@ -115,6 +156,8 @@ export async function createBooking(
       data: {
         booking_id: booking.id,
         meet_link: meetLink,
+        student_name: bookingRequest.student_name,
+        meeting_time: bookingRequest.meeting_time,
       },
     };
   } catch (error) {
@@ -124,7 +167,7 @@ export async function createBooking(
       success: false,
       error: {
         code: 'BOOKING_ERROR',
-        message: 'Failed to create booking',
+        message: 'Something went wrong while creating your booking. Please try again.',
       },
     };
   }

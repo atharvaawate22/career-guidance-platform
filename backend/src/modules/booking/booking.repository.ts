@@ -13,9 +13,9 @@ export async function createBooking(bookingData: {
   meet_link: string;
 }): Promise<Booking> {
   const result = await query(
-    `INSERT INTO bookings 
-    (student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+    `INSERT INTO bookings
+    (student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at`,
     [
       bookingData.student_name,
@@ -63,8 +63,8 @@ export async function getAllBookings(
   const offset = (page - 1) * limit;
   const [dataResult, countResult] = await Promise.all([
     query(
-      `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at 
-      FROM bookings 
+      `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at
+      FROM bookings
       ORDER BY meeting_time DESC
       LIMIT $1 OFFSET $2`,
       [limit, offset],
@@ -103,11 +103,30 @@ export async function getBookedSlotsForDate(
   dateIST: string,
 ): Promise<string[]> {
   const result = await query(
-    `SELECT TO_CHAR((meeting_time AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata', 'HH24:MI') AS slot
+    `SELECT TO_CHAR(meeting_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI') AS slot
      FROM bookings
-     WHERE DATE((meeting_time AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') = $1
+     WHERE DATE(meeting_time AT TIME ZONE 'Asia/Kolkata') = $1
        AND booking_status NOT IN ('cancelled', 'no_show')`,
     [dateIST],
   );
   return result.rows.map((r: { slot: string }) => r.slot);
+}
+
+/**
+ * Checks if a student already has an active (scheduled/confirmed) future booking.
+ * Used to prevent duplicate bookings from the same email address.
+ */
+export async function getExistingActiveBookingByEmail(
+  email: string,
+): Promise<{ id: string; meeting_time: Date } | null> {
+  const result = await query(
+    `SELECT id, meeting_time FROM bookings
+     WHERE email = $1
+       AND booking_status NOT IN ('cancelled', 'no_show', 'completed')
+       AND meeting_time > NOW()
+     ORDER BY meeting_time ASC
+     LIMIT 1`,
+    [email],
+  );
+  return result.rows[0] ?? null;
 }
