@@ -1,9 +1,32 @@
+import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { UpdatesService } from './updates.service';
 import { Update } from './updates.types';
 import logger from '../../utils/logger';
 
 const updatesService = new UpdatesService();
+
+const createUpdateSchema = z.object({
+  title: z
+    .string({ required_error: 'Title is required' })
+    .trim()
+    .min(1, 'Title cannot be empty')
+    .max(300, 'Title must be under 300 characters'),
+  content: z
+    .string({ required_error: 'Content is required' })
+    .trim()
+    .min(1, 'Content cannot be empty')
+    .max(10000, 'Content must be under 10,000 characters'),
+});
+
+const updateUpdateSchema = z.object({
+  title: z.string().trim().min(1, 'Title cannot be empty').max(300).optional(),
+  content: z.string().trim().min(1, 'Content cannot be empty').max(10000).optional(),
+  published_date: z.string().trim().optional(),
+}).refine(
+  (data) => data.title !== undefined || data.content !== undefined || data.published_date !== undefined,
+  { message: 'At least one field (title, content, or published_date) is required' },
+);
 
 export class UpdatesController {
   async getUpdates(
@@ -29,23 +52,25 @@ export class UpdatesController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { title, content } = req.body as Omit<Update, 'id'>;
-
-      if (!title || !content) {
+      const parse = createUpdateSchema.safeParse(req.body);
+      if (!parse.success) {
+        const first = parse.error.issues[0];
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Title and content are required',
+            message: first?.message ?? 'Invalid request',
+            details: parse.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
           },
         });
         return;
       }
 
+      const { title, content } = parse.data;
       const newUpdate = await updatesService.createUpdate({
         title,
         content,
-        published_date: '', // Will use CURRENT_TIMESTAMP in database
+        published_date: '',
       });
 
       res.status(201).json({
@@ -64,20 +89,22 @@ export class UpdatesController {
   ): Promise<void> {
     try {
       const { id } = req.params;
-      const { title, content, published_date } = req.body;
 
-      if (!title && !content && !published_date) {
+      const parse = updateUpdateSchema.safeParse(req.body);
+      if (!parse.success) {
+        const first = parse.error.issues[0];
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message:
-              'At least one field (title, content, or published_date) is required',
+            message: first?.message ?? 'Invalid request',
+            details: parse.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
           },
         });
         return;
       }
 
+      const { title, content, published_date } = parse.data;
       const updatedUpdate = await updatesService.updateUpdate(String(id), {
         title,
         content,

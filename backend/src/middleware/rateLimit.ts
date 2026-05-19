@@ -17,6 +17,23 @@ export function createPublicPostLimiter(maxRequests: number, windowMs: number) {
   });
 }
 
+export function createPublicGetLimiter(maxRequests: number, windowMs: number) {
+  return rateLimit({
+    windowMs,
+    max: maxRequests,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.method !== 'GET',
+    message: {
+      success: false,
+      error: {
+        code: 'RATE_LIMITED',
+        message: 'Too many requests. Please slow down.',
+      },
+    },
+  });
+}
+
 export function createAdminLoginLimiter(
   maxRequests = 8,
   windowMs = 15 * 60 * 1000,
@@ -35,3 +52,4 @@ export function createAdminLoginLimiter(
     },
   });
 }
+

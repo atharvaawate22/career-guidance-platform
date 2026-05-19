@@ -8,7 +8,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import errorHandler from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
-import { createPublicPostLimiter } from './middleware/rateLimit';
+import { createPublicPostLimiter, createPublicGetLimiter } from './middleware/rateLimit';
 import updatesRoutes from './modules/updates/updates.routes';
 import authRoutes from './modules/auth/auth.routes';
 import adminRoutes from './modules/admin/admin.routes';
@@ -67,6 +67,7 @@ app.set('trust proxy', resolveTrustProxy());
 const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
 const publicPredictLimiter = createPublicPostLimiter(60, 15 * 60 * 1000);
 const publicBookingLimiter = createPublicPostLimiter(20, 15 * 60 * 1000);
+const publicBookingSlotsGetLimiter = createPublicGetLimiter(120, 15 * 60 * 1000);
 const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
 
 app.use(
@@ -97,6 +98,7 @@ app.use(
       }
     },
     credentials: true,
+    maxAge: 86400, // Cache preflight responses for 24 hours
   }),
 );
 app.use(helmet());
@@ -156,6 +158,7 @@ app.use('/api/guides/download', publicGuideDownloadLimiter);
 app.use('/api/guides', guidesRoutes);
 app.use('/api/resources', resourcesRoutes);
 app.use('/api/faqs', faqsRoutes);
+app.use('/api/bookings/slots', publicBookingSlotsGetLimiter);
 app.use('/api/bookings', publicBookingLimiter, bookingRoutes);
 app.use('/api/admin', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -213,6 +216,15 @@ const initializeDatabase = async (): Promise<boolean> => {
 };
 
 export const startServer = async () => {
+  // Validate JWT_SECRET is configured and strong enough
+  const jwtSecret = process.env.JWT_SECRET || '';
+  if (process.env.NODE_ENV === 'production' && jwtSecret.length < 32) {
+    logger.error(
+      'JWT_SECRET must be at least 32 characters in production. Aborting startup.',
+    );
+    process.exit(1);
+  }
+
   let migrationsReady = true;
   try {
     await runMigrations();

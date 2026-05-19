@@ -1,6 +1,26 @@
+import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import * as faqService from './faqs.service';
-import { CreateFaqRequest, UpdateFaqRequest } from './faqs.types';
+
+const createFaqSchema = z.object({
+  question: z
+    .string({ required_error: 'Question is required' })
+    .trim()
+    .min(5, 'Question must be at least 5 characters')
+    .max(500, 'Question must be under 500 characters'),
+  answer: z
+    .string({ required_error: 'Answer is required' })
+    .trim()
+    .min(5, 'Answer must be at least 5 characters')
+    .max(3000, 'Answer must be under 3,000 characters'),
+  display_order: z.number().int().min(1).optional(),
+});
+
+const updateFaqSchema = z.object({
+  question: z.string().trim().min(5).max(500).optional(),
+  answer: z.string().trim().min(5).max(3000).optional(),
+  display_order: z.number().int().min(1).optional(),
+});
 
 export async function getFaqs(
   _req: Request,
@@ -35,30 +55,23 @@ export async function createFaq(
   next: NextFunction,
 ) {
   try {
-    const faqRequest: CreateFaqRequest = {
-      question: req.body.question,
-      answer: req.body.answer,
-      display_order: req.body.display_order,
-    };
-    const faq = await faqService.createFaq(faqRequest);
+    const parse = createFaqSchema.safeParse(req.body);
+    if (!parse.success) {
+      const first = parse.error.issues[0];
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: first?.message ?? 'Invalid request',
+          details: parse.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+        },
+      });
+      return;
+    }
+
+    const faq = await faqService.createFaq(parse.data);
     res.status(201).json({ success: true, data: faq });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('required')) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: error.message },
-      });
-      return;
-    }
-
-    if (error instanceof Error && error.message.includes('display_order')) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: error.message },
-      });
-      return;
-    }
-
     next(error);
   }
 }
@@ -70,12 +83,22 @@ export async function updateFaq(
 ) {
   try {
     const { id } = req.params;
-    const faqRequest: UpdateFaqRequest = {
-      question: req.body.question,
-      answer: req.body.answer,
-      display_order: req.body.display_order,
-    };
-    const faq = await faqService.updateFaq(String(id), faqRequest);
+
+    const parse = updateFaqSchema.safeParse(req.body);
+    if (!parse.success) {
+      const first = parse.error.issues[0];
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: first?.message ?? 'Invalid request',
+          details: parse.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+        },
+      });
+      return;
+    }
+
+    const faq = await faqService.updateFaq(String(id), parse.data);
     if (!faq) {
       res.status(404).json({
         success: false,
@@ -85,18 +108,6 @@ export async function updateFaq(
     }
     res.json({ success: true, data: faq });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message.includes('required') ||
-        error.message.includes('display_order'))
-    ) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: error.message },
-      });
-      return;
-    }
-
     next(error);
   }
 }
