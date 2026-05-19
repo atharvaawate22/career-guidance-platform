@@ -55,3 +55,13 @@ cutoff_pdfs/*.pdf
 # Playwright local artifacts
 frontend/test-results/
 frontend/playwright-report/
+
+# Large data files — should live in cloud storage, not in git
+backup.sql
+cutoffs_*.csv
+city_aliases_*.csv
+cutoff_pdfs/
+
+# Root-level node_modules (only backend/ and frontend/ should have their own)
+/node_modules/
+

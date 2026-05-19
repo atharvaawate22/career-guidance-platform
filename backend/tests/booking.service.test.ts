@@ -4,12 +4,14 @@ const {
   createBookingMock,
   updateEmailStatusMock,
   updateMeetLinkMock,
+  getExistingActiveBookingByEmailMock,
   generateMeetLinkMock,
   sendBookingConfirmationMock,
 } = vi.hoisted(() => ({
   createBookingMock: vi.fn(),
   updateEmailStatusMock: vi.fn(),
   updateMeetLinkMock: vi.fn(),
+  getExistingActiveBookingByEmailMock: vi.fn(),
   generateMeetLinkMock: vi.fn(),
   sendBookingConfirmationMock: vi.fn(),
 }));
@@ -18,6 +20,7 @@ vi.mock('../src/modules/booking/booking.repository', () => ({
   createBooking: createBookingMock,
   updateEmailStatus: updateEmailStatusMock,
   updateMeetLink: updateMeetLinkMock,
+  getExistingActiveBookingByEmail: getExistingActiveBookingByEmailMock,
 }));
 
 vi.mock('../src/modules/booking/calendar.service', () => ({
@@ -30,6 +33,23 @@ vi.mock('../src/modules/booking/email.service', () => ({
 
 import { createBooking } from '../src/modules/booking/booking.service';
 
+/**
+ * Returns an ISO string for a date guaranteed to be a weekday (Mon-Fri)
+ * ~8 hours from now, in IST context.
+ */
+function getNextWeekdayISO(): string {
+  const now = new Date();
+  const target = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  // Shift to IST for day-of-week check
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  let dayIST = new Date(target.getTime() + istOffset).getUTCDay();
+  let daysToAdd = 0;
+  if (dayIST === 0) daysToAdd = 1; // Sunday → Monday
+  if (dayIST === 6) daysToAdd = 2; // Saturday → Monday
+  target.setDate(target.getDate() + daysToAdd);
+  return target.toISOString();
+}
+
 describe('booking.service createBooking', () => {
   beforeEach(() => {
     // mockReset clears both call history AND any queued mock implementations
@@ -37,6 +57,8 @@ describe('booking.service createBooking', () => {
     vi.resetAllMocks();
     updateEmailStatusMock.mockResolvedValue(undefined);
     updateMeetLinkMock.mockResolvedValue(undefined);
+    // Default: no existing booking for the email
+    getExistingActiveBookingByEmailMock.mockResolvedValue(null);
   });
 
   it('returns slot taken error when insert hits unique slot collision', async () => {
@@ -51,7 +73,7 @@ describe('booking.service createBooking', () => {
       category: 'OPEN',
       branch_preference: 'Computer Engineering',
       meeting_purpose: 'Need guidance',
-      meeting_time: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      meeting_time: getNextWeekdayISO(),
     });
 
     expect(result.success).toBe(false);
@@ -71,7 +93,7 @@ describe('booking.service createBooking', () => {
       category: 'OPEN',
       branch_preference: 'Computer Engineering',
       meeting_purpose: 'Need branch guidance',
-      meeting_time: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      meeting_time: getNextWeekdayISO(),
     });
 
     // Booking IS saved in DB; we return success:true so the client shows confirmation.
@@ -96,11 +118,54 @@ describe('booking.service createBooking', () => {
       category: 'OPEN',
       branch_preference: 'Computer Engineering',
       meeting_purpose: 'Need branch guidance',
-      meeting_time: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      meeting_time: getNextWeekdayISO(),
     });
 
     expect(result.success).toBe(true);
     expect(result.data?.booking_id).toBe('booking-1');
     expect(result.data?.meet_link).toBe('https://meet.google.com/test');
+    expect(result.data?.student_name).toBe('Student');
+  });
+
+  it('rejects weekend bookings', async () => {
+    // Force a Saturday in IST
+    const saturday = new Date('2026-05-23T10:00:00+05:30');
+
+    const result = await createBooking({
+      student_name: 'Student',
+      email: 'student@example.com',
+      phone: '9999999999',
+      percentile: 90,
+      category: 'OPEN',
+      branch_preference: 'Computer Engineering',
+      meeting_purpose: 'Need guidance',
+      meeting_time: saturday.toISOString(),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.code).toBe('SLOT_UNAVAILABLE');
+    expect(result.error?.message).toContain('Monday to Friday');
+  });
+
+  it('rejects duplicate bookings for same email', async () => {
+    getExistingActiveBookingByEmailMock.mockResolvedValueOnce({
+      id: 'existing-booking',
+      meeting_time: new Date('2026-05-22T10:00:00+05:30'),
+    });
+
+    const result = await createBooking({
+      student_name: 'Student',
+      email: 'student@example.com',
+      phone: '9999999999',
+      percentile: 90,
+      category: 'OPEN',
+      branch_preference: 'Computer Engineering',
+      meeting_purpose: 'Need guidance',
+      meeting_time: getNextWeekdayISO(),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.code).toBe('DUPLICATE_BOOKING');
+    expect(result.error?.message).toContain('already have a session');
   });
 });

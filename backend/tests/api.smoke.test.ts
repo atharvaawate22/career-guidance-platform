@@ -64,14 +64,23 @@ describe('API smoke: critical login and booking flows', () => {
   });
 
   it('creates booking for valid payload', async () => {
-    const meetingTime = new Date(
-      Date.now() + 24 * 60 * 60 * 1000,
-    ).toISOString();
+    // Build a guaranteed future Wednesday at 10:00 IST (+05:30)
+    const now = new Date();
+    const target = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Shift to next Wednesday (day 3)
+    const day = target.getDay();
+    const daysUntilWed = (3 - day + 7) % 7 || 7;
+    target.setDate(target.getDate() + daysUntilWed);
+    // Format as YYYY-MM-DDT10:00:00+05:30 (valid slot in IST)
+    const yyyy = target.getFullYear();
+    const mm = String(target.getMonth() + 1).padStart(2, '0');
+    const dd = String(target.getDate()).padStart(2, '0');
+    const meetingTime = `${yyyy}-${mm}-${dd}T10:00:00+05:30`;
 
     const response = await request(app).post('/api/bookings').send({
       student_name: 'Aarav Kulkarni',
       email: 'aarav@example.com',
-      phone: '+91 9876543210',
+      phone: '9876543210',
       percentile: 92.4,
       category: 'OPEN',
       branch_preference: 'Computer Engineering',
