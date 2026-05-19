@@ -1,6 +1,6 @@
 -- Database Schema for MHT CET Career Guidance Platform
--- Version: 1.0.0
--- Created: 2026-02-18
+-- Version: 1.1.0
+-- Updated: 2026-05-19
 
 -- Enable UUID extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -80,6 +80,24 @@ ON cutoff_data(college_name);
 -- Composite index for common query patterns
 CREATE INDEX IF NOT EXISTS idx_cutoff_composite 
 ON cutoff_data(year, category, branch);
+
+-- ============================================================================
+-- TABLE: resources
+-- Purpose: Downloadable documents — seat matrices, circulars, cutoff PDFs
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS resources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Others',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Index for active resources listing
+CREATE INDEX IF NOT EXISTS idx_resources_created_at
+ON resources(created_at DESC);
 
 -- ============================================================================
 -- TABLE: guides
