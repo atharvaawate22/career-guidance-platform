@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 interface Resource {
@@ -16,14 +16,7 @@ interface Resource {
 const RESOURCES_CACHE_KEY = "resources:v1";
 const RESOURCES_CACHE_TTL_MS = 10 * 60 * 1000;
 
-const CATEGORIES = [
-  "All",
-  "Seat Matrix",
-  "Previous Year Cutoffs",
-  "Government Circulars",
-  "Exam Guidelines",
-  "Others",
-];
+// Categories are derived dynamically from loaded data — see useMemo below.
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Seat Matrix": "bg-blue-100 text-blue-700 border-blue-200",
@@ -46,6 +39,19 @@ export default function ResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [activeCategory, setActiveCategory] = useState("All");
+
+  // Derive tabs from real data so new admin-added categories appear automatically.
+  const categories = useMemo(() => {
+    const unique = Array.from(new Set(resources.map((r) => r.category))).sort();
+    return ["All", ...unique];
+  }, [resources]);
+
+  // Reset active tab if the category disappears after a data refresh.
+  useEffect(() => {
+    if (activeCategory !== "All" && !categories.includes(activeCategory)) {
+      setActiveCategory("All");
+    }
+  }, [categories, activeCategory]);
 
   const fetchResources = useCallback(async (showLoader = false) => {
     try {
@@ -145,7 +151,7 @@ export default function ResourcesPage() {
 
         {/* Category filter tabs */}
         <div className="flex flex-wrap gap-2 mb-8">
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const count = countFor(cat);
             if (cat !== "All" && count === 0) return null;
             return (

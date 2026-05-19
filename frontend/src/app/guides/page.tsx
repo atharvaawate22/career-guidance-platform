@@ -98,6 +98,17 @@ export default function GuidesPage() {
     setDownloadError("");
   };
 
+  // ESC key closes the modal
+  useEffect(() => {
+    if (!showModal) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleCloseModal();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal]);
+
   // Validation handlers for download form
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow letters, spaces, hyphens, and apostrophes
@@ -219,8 +230,16 @@ export default function GuidesPage() {
 
         {/* Download Modal */}
         {showModal && selectedGuide && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+          // Backdrop click closes modal
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={handleCloseModal}
+          >
+            {/* Stop click propagation so inner card doesn't close */}
+            <div
+              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h2 className="text-2xl font-bold mb-4 bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Download: {selectedGuide.title}
               </h2>
@@ -241,6 +260,7 @@ export default function GuidesPage() {
                     required
                     minLength={2}
                     maxLength={100}
+                    autoComplete="name"
                     value={downloadForm.name}
                     onChange={handleNameChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -255,15 +275,11 @@ export default function GuidesPage() {
                   <input
                     type="email"
                     required
+                    autoComplete="email"
                     value={downloadForm.email}
-                    onChange={(e) =>
-                      setDownloadForm({
-                        ...downloadForm,
-                        email: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setDownloadForm({ ...downloadForm, email: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Enter your email"
+                    placeholder="your.email@gmail.com"
                   />
                 </div>
 
@@ -273,13 +289,13 @@ export default function GuidesPage() {
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     min="0"
                     max="100"
                     value={downloadForm.percentile}
                     onChange={handlePercentileChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Enter your percentile"
+                    placeholder="e.g. 95.5000"
                   />
                 </div>
 

@@ -75,6 +75,7 @@ export default function PredictorPage() {
   const [category, setCategory] = useState("");
   const [includeTfws, setIncludeTfws] = useState(false);
   const [gender, setGender] = useState("");
+  const [genderError, setGenderError] = useState("");
   const [selectedMinorityTypes, setSelectedMinorityTypes] = useState<string[]>([]);
   const [selectedMinorityGroups, setSelectedMinorityGroups] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
@@ -91,9 +92,13 @@ export default function PredictorPage() {
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputMode === "percentile" && !percentile) { setError("Percentile is required"); return; }
-    if (inputMode === "rank" && !rank) { setError("Rank is required"); return; }
-    if (!gender) { setError("Please select gender to apply the correct seat rule."); return; }
+    if (inputMode === "percentile" && !percentile) { setError("Please enter your percentile."); return; }
+    if (inputMode === "rank" && !rank) { setError("Please enter your rank."); return; }
+    if (!gender) {
+      setGenderError("Please select your gender — it determines which seats you are eligible for.");
+      return;
+    }
+    setGenderError("");
     setLoading(true); setError(""); setResults(null);
     try {
       const body: Record<string, unknown> = { year: PREDICTOR_YEAR, category, gender, include_tfws: includeTfws };
@@ -184,7 +189,7 @@ export default function PredictorPage() {
                   <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Input Type</label>
                   <div className="flex rounded-lg p-1 gap-1" style={{ background: "var(--ice-mid)", border: "1px solid var(--border)" }}>
                     {(["percentile", "rank"] as const).map(m => (
-                      <button key={m} type="button" onClick={() => setInputMode(m)}
+                      <button key={m} type="button" onClick={() => { setInputMode(m); setError(""); }}
                         className="flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all"
                         style={{
                           background: inputMode === m ? "var(--white)" : "transparent",
@@ -237,8 +242,11 @@ export default function PredictorPage() {
                   </div>
                   <div className="xl:col-span-4">
                     <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Gender <span style={{ color: "#EF4444" }}>*</span></label>
-                    <CustomSelect id="gender" value={gender} onChange={setGender}
+                    <CustomSelect id="gender" value={gender} onChange={(v) => { setGender(v); setGenderError(""); }}
                       options={[...CANDIDATE_GENDER_OPTIONS]} placeholder="Select Gender" />
+                    {genderError && (
+                      <p className="text-xs mt-1.5 font-medium" style={{ color: "#DC2626" }}>{genderError}</p>
+                    )}
                   </div>
                   <div className="xl:col-span-4">
                     <span className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Seat Options</span>
@@ -348,7 +356,7 @@ export default function PredictorPage() {
                   setInputMode("percentile"); setPercentile(""); setRank(""); setCategory("");
                   setIncludeTfws(false); setGender(""); setSelectedMinorityTypes([]);
                   setSelectedMinorityGroups([]); setSelectedBranches([]); setSelectedCities([]);
-                  setResults(null); setError("");
+                  setResults(null); setError(""); setGenderError("");
                 }}>
                 Reset
               </button>

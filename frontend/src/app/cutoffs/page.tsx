@@ -57,6 +57,7 @@ export default function CutoffsPage() {
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [genderError, setGenderError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("percentile-desc");
 
@@ -140,7 +141,11 @@ export default function CutoffsPage() {
   };
 
   const handleSearch = async () => {
-    if (!gender) { setError("Please select gender to apply the correct seat rule."); return; }
+    if (!gender) {
+      setGenderError("Please select a gender — it determines which seats you are eligible for.");
+      return;
+    }
+    setGenderError("");
     setLoading(true); setError(""); setHasSearched(true);
     try {
       const params = new URLSearchParams();
@@ -173,7 +178,7 @@ export default function CutoffsPage() {
     setGender(""); setSelectedMinorityTypes([]); setSelectedMinorityGroups([]);
     setStage(""); setCollegeName(""); setCollegeCode(null);
     setSelectedCities([]); setCutoffs([]); setTotal(null);
-    setError(""); setHasSearched(false); setSortBy("percentile-desc");
+    setError(""); setGenderError(""); setHasSearched(false); setSortBy("percentile-desc");
   };
 
   const sortedCutoffs = [...cutoffs].sort((a, b) => {
@@ -252,8 +257,11 @@ export default function CutoffsPage() {
                 </div>
                 <div>
                   <FilterLabel>Gender <span style={{ color: "#EF4444" }}>*</span></FilterLabel>
-                  <CustomSelect id="gender" value={gender} onChange={setGender}
+                  <CustomSelect id="gender" value={gender} onChange={(v) => { setGender(v); setGenderError(""); }}
                     options={[...CANDIDATE_GENDER_OPTIONS]} placeholder="Select Gender" />
+                  {genderError && (
+                    <p className="text-xs mt-1.5 font-medium" style={{ color: "#DC2626" }}>{genderError}</p>
+                  )}
                 </div>
                 <div>
                   <FilterLabel>Minority Type</FilterLabel>
