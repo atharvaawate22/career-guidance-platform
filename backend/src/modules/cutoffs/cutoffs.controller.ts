@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CutoffsService } from './cutoffs.service';
 import { CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { query } from '../../config/database';
+import { ACTIVE_CUTOFF_YEAR, MAX_FILTER_ARRAY_LENGTH } from '../../config/constants';
 import { CITY_FILTER_SQL } from '../../utils/cityNormalization';
 import {
   getOrLoadCutoffMeta,
@@ -9,7 +10,11 @@ import {
 } from './cutoffsMetaCache';
 
 const cutoffsService = new CutoffsService();
-const ACTIVE_CUTOFF_YEAR = 2025;
+
+const parseArrayParam = (value: unknown): string[] => {
+  const arr = (Array.isArray(value) ? value : value ? [value] : []) as string[];
+  return arr.slice(0, MAX_FILTER_ARRAY_LENGTH);
+};
 
 export class CutoffsController {
   async getMeta(
@@ -21,16 +26,8 @@ export class CutoffsController {
       const year = ACTIVE_CUTOFF_YEAR;
       const filterCollege = req.query.college_name as string | undefined;
       const filterCollegeCode = req.query.college_code as string | undefined;
-      const filterBranches: string[] = req.query.branch
-        ? ((Array.isArray(req.query.branch)
-            ? req.query.branch
-            : [req.query.branch]) as string[])
-        : [];
-      const filterCities: string[] = req.query.city
-        ? ((Array.isArray(req.query.city)
-            ? req.query.city
-            : [req.query.city]) as string[])
-        : [];
+      const filterBranches = parseArrayParam(req.query.branch);
+      const filterCities = parseArrayParam(req.query.city);
 
       const metaData = await getOrLoadCutoffMeta(
         {
@@ -226,36 +223,20 @@ export class CutoffsController {
     try {
       const filters: CutoffFilters = {
         year: ACTIVE_CUTOFF_YEAR,
-        branches: req.query.branch
-          ? ((Array.isArray(req.query.branch)
-              ? req.query.branch
-              : [req.query.branch]) as string[])
-          : undefined,
+        branches: parseArrayParam(req.query.branch).length > 0 ? parseArrayParam(req.query.branch) : undefined,
         category: req.query.category as string | undefined,
         include_tfws:
           req.query.include_tfws === 'true' || req.query.include_tfws === '1',
         gender: req.query.gender as string | undefined,
-        minority_types: req.query.minority_type
-          ? ((Array.isArray(req.query.minority_type)
-              ? req.query.minority_type
-              : [req.query.minority_type]) as string[])
-          : undefined,
-        minority_groups: req.query.minority_group
-          ? ((Array.isArray(req.query.minority_group)
-              ? req.query.minority_group
-              : [req.query.minority_group]) as string[])
-          : undefined,
+        minority_types: parseArrayParam(req.query.minority_type).length > 0 ? parseArrayParam(req.query.minority_type) : undefined,
+        minority_groups: parseArrayParam(req.query.minority_group).length > 0 ? parseArrayParam(req.query.minority_group) : undefined,
         home_university: req.query.home_university as string | undefined,
         college_name: req.query.college_name as string | undefined,
         college_code: req.query.college_code as string | undefined,
         branch_code: req.query.branch_code as string | undefined,
         stage: req.query.stage as string | undefined,
         level: req.query.level as string | undefined,
-        cities: req.query.city
-          ? ((Array.isArray(req.query.city)
-              ? req.query.city
-              : [req.query.city]) as string[])
-          : undefined,
+        cities: parseArrayParam(req.query.city).length > 0 ? parseArrayParam(req.query.city) : undefined,
       };
 
       const { rows, total } = await cutoffsService.getCutoffs(filters);

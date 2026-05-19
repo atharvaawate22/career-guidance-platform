@@ -4,9 +4,9 @@ import {
   PredictorResponse,
   CollegeOption,
 } from './predictor.types';
+import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
 
 const predictorRepository = new PredictorRepository();
-const PREDICTOR_YEAR = 2025;
 
 /**
  * Rank-only windowing (Formula A): h = 50 * sqrt(rank)
@@ -71,7 +71,7 @@ export class PredictorService {
     } else {
       const estimatedRank =
         await predictorRepository.estimateRankFromPercentile(
-          PREDICTOR_YEAR,
+          ACTIVE_CUTOFF_YEAR,
           Number(request.percentile),
         );
       if (!estimatedRank) {
@@ -88,7 +88,7 @@ export class PredictorService {
     // Apply relevance window in SQL to avoid scanning and transferring rows
     // that will be discarded during post-processing.
     const colleges = await predictorRepository.getEligibleColleges({
-      year: PREDICTOR_YEAR,
+      year: ACTIVE_CUTOFF_YEAR,
       category: request.category,
       gender: request.gender,
       minority_types: request.minority_types,

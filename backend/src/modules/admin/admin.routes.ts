@@ -13,6 +13,7 @@ import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
 import * as faqsController from '../faqs/faqs.controller';
 import * as bookingRepository from '../booking/booking.repository';
+import { query as dbQuery } from '../../config/database';
 
 const router = Router();
 const updatesController = new UpdatesController();
@@ -139,7 +140,6 @@ router.delete(
         return;
       }
 
-      const { query: dbQuery } = await import('../../config/database');
       const result = await dbQuery(
         'DELETE FROM cutoff_data WHERE year = $1',
         [parsedYear],

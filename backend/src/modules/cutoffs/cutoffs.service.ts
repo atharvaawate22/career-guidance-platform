@@ -1,8 +1,8 @@
 import { CutoffData, CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { CutoffsRepository } from './cutoffs.repository';
+import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
 
 const cutoffsRepository = new CutoffsRepository();
-const ACTIVE_CUTOFF_YEAR = 2025;
 
 export class CutoffsService {
   async getCutoffs(

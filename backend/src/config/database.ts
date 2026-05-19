@@ -29,10 +29,19 @@ const resolveSslRejectUnauthorized = (): boolean => {
 const compactSql = (text: string): string =>
   text.replace(/\s+/g, ' ').trim().slice(0, 240);
 
+const POOL_MAX = Number(process.env.DB_POOL_MAX || '20');
+const POOL_IDLE_TIMEOUT_MS = Number(process.env.DB_POOL_IDLE_TIMEOUT_MS || '30000');
+const POOL_CONNECTION_TIMEOUT_MS = Number(process.env.DB_POOL_CONNECTION_TIMEOUT_MS || '5000');
+const STATEMENT_TIMEOUT_MS = Number(process.env.DB_STATEMENT_TIMEOUT_MS || '10000');
+
 const pool = process.env.DATABASE_URL
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: resolveSslRejectUnauthorized() },
+      max: POOL_MAX,
+      idleTimeoutMillis: POOL_IDLE_TIMEOUT_MS,
+      connectionTimeoutMillis: POOL_CONNECTION_TIMEOUT_MS,
+      statement_timeout: STATEMENT_TIMEOUT_MS,
     })
   : new Pool({
       user: 'postgres',
@@ -40,6 +49,10 @@ const pool = process.env.DATABASE_URL
       database: 'career_guidance',
       password: String(process.env.DB_PASSWORD || ''),
       port: 5432,
+      max: POOL_MAX,
+      idleTimeoutMillis: POOL_IDLE_TIMEOUT_MS,
+      connectionTimeoutMillis: POOL_CONNECTION_TIMEOUT_MS,
+      statement_timeout: STATEMENT_TIMEOUT_MS,
     });
 
 export const query = async (

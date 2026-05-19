@@ -261,11 +261,16 @@ async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
 }
 
 /**
- * Send email via SMTP
+ * Send email via SMTP — uses a lazy-initialised transporter singleton
+ * so we don't pay TLS/connection overhead on every send.
  */
-async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
-  try {
-    const transporter = nodemailer.createTransport({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let smtpTransporter: any = null;
+let smtpVerified = false;
+
+function getSmtpTransporter() {
+  if (!smtpTransporter) {
+    smtpTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false, // Use TLS
@@ -273,13 +278,24 @@ async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      pool: true,
+      maxConnections: 3,
     });
+  }
+  return smtpTransporter;
+}
+
+async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
+  try {
+    const transporter = getSmtpTransporter();
+
+    if (!smtpVerified) {
+      await transporter.verify();
+      smtpVerified = true;
+      logger.info('SMTP connection verified successfully');
+    }
 
     const mailContent = formatEmailContent(booking);
-
-    // Verify connection before sending
-    await transporter.verify();
-    logger.info('SMTP connection verified successfully');
 
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
@@ -292,6 +308,8 @@ async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
     logger.info(`✓ Email sent successfully to ${booking.email} via SMTP`);
     return true;
   } catch (error) {
+    // Reset verified flag so next attempt re-verifies
+    smtpVerified = false;
     logger.error(`✗ SMTP email failed to ${booking.email}:`, {
       message: ((error ?? {}) as ErrorDetails).message,
       code: ((error ?? {}) as ErrorDetails).code,
