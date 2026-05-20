@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { PredictorService } from './predictor.service';
 import { PredictorRequest } from './predictor.types';
 import { predictorRequestSchema } from './predictor.schemas';
+import { sanitizeText } from '../../utils/sanitize';
 
 const predictorService = new PredictorService();
 
@@ -29,7 +30,17 @@ export class PredictorController {
         return;
       }
 
-      const body = parsed.data as PredictorRequest;
+      const body = {
+        ...parsed.data,
+        preferred_branches: parsed.data.preferred_branches?.map(sanitizeText),
+        cities: parsed.data.cities?.map(sanitizeText),
+        homeUniversity: parsed.data.homeUniversity
+          ? sanitizeText(parsed.data.homeUniversity)
+          : parsed.data.homeUniversity,
+        branch: parsed.data.branch
+          ? sanitizeText(parsed.data.branch)
+          : parsed.data.branch,
+      } as PredictorRequest;
       const predictions = await predictorService.predictColleges(body);
 
       res.status(200).json({

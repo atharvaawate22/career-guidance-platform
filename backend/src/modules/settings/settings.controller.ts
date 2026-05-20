@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as settingsRepository from './settings.repository';
 import { z } from 'zod';
+import { sanitizeText } from '../../utils/sanitize';
 
 // ── Validation schemas for each settings key ──────────────────────────────────
 
@@ -129,9 +130,14 @@ export async function updateSetting(
       return;
     }
 
+    const value =
+      key === 'announcement'
+        ? { ...parse.data as Record<string, unknown>, text: sanitizeText((parse.data as { text: string }).text) }
+        : parse.data;
+
     const updated = await settingsRepository.upsertSetting(
       key,
-      parse.data as Record<string, unknown>,
+      value as Record<string, unknown>,
     );
 
     res.json({

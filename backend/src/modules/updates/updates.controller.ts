@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { UpdatesService } from './updates.service';
 import logger from '../../utils/logger';
+import { sanitizeText } from '../../utils/sanitize';
 
 const updatesService = new UpdatesService();
 
@@ -71,8 +72,8 @@ export class UpdatesController {
 
       const { title, content, published_date } = parse.data;
       const newUpdate = await updatesService.createUpdate({
-        title,
-        content,
+        title: sanitizeText(title),
+        content: sanitizeText(content),
         published_date: published_date || '',
       });
 
@@ -109,8 +110,8 @@ export class UpdatesController {
 
       const { title, content, published_date } = parse.data;
       const updatedUpdate = await updatesService.updateUpdate(String(id), {
-        title,
-        content,
+        title: title ? sanitizeText(title) : title,
+        content: content ? sanitizeText(content) : content,
         published_date,
       });
 

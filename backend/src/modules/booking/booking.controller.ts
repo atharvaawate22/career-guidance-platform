@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as bookingService from './booking.service';
 import * as bookingRepository from './booking.repository';
 import { CreateBookingRequest } from './booking.types';
+import { sanitizeText } from '../../utils/sanitize';
 
 function bookingErrorStatus(code?: string): number {
   switch (code) {
@@ -27,13 +28,13 @@ export async function createBooking(
 ) {
   try {
     const bookingRequest: CreateBookingRequest = {
-      student_name: req.body.student_name,
+      student_name: sanitizeText(req.body.student_name),
       email: req.body.email,
       phone: req.body.phone,
       percentile: req.body.percentile,
       category: req.body.category,
-      branch_preference: req.body.branch_preference,
-      meeting_purpose: req.body.meeting_purpose,
+      branch_preference: sanitizeText(req.body.branch_preference),
+      meeting_purpose: sanitizeText(req.body.meeting_purpose),
       meeting_time: req.body.meeting_time,
     };
 

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as resourcesService from './resources.service';
 import { CreateResourceRequest } from './resources.types';
+import { sanitizeText } from '../../utils/sanitize';
 
 export async function getResources(
   req: Request,
@@ -38,10 +39,16 @@ export async function createResource(
 ) {
   try {
     const resourceRequest: CreateResourceRequest = {
-      title: req.body.title,
-      description: req.body.description,
+      title: typeof req.body.title === 'string' ? sanitizeText(req.body.title) : req.body.title,
+      description:
+        typeof req.body.description === 'string'
+          ? sanitizeText(req.body.description)
+          : req.body.description,
       file_url: req.body.file_url,
-      category: req.body.category,
+      category:
+        typeof req.body.category === 'string'
+          ? sanitizeText(req.body.category)
+          : req.body.category,
     };
     const resource = await resourcesService.createResource(resourceRequest);
     res.status(201).json({ success: true, data: resource });

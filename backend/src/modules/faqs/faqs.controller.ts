@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import * as faqService from './faqs.service';
+import { sanitizeText } from '../../utils/sanitize';
 
 const createFaqSchema = z.object({
   question: z
@@ -69,7 +70,11 @@ export async function createFaq(
       return;
     }
 
-    const faq = await faqService.createFaq(parse.data);
+    const faq = await faqService.createFaq({
+      ...parse.data,
+      question: sanitizeText(parse.data.question),
+      answer: sanitizeText(parse.data.answer),
+    });
     res.status(201).json({ success: true, data: faq });
   } catch (error) {
     next(error);
@@ -98,7 +103,11 @@ export async function updateFaq(
       return;
     }
 
-    const faq = await faqService.updateFaq(String(id), parse.data);
+    const faq = await faqService.updateFaq(String(id), {
+      ...parse.data,
+      question: parse.data.question ? sanitizeText(parse.data.question) : undefined,
+      answer: parse.data.answer ? sanitizeText(parse.data.answer) : undefined,
+    });
     if (!faq) {
       res.status(404).json({
         success: false,

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as guidesService from './guides.service';
 import { GuideDownloadRequest, CreateGuideRequest } from './guides.types';
+import { sanitizeText } from '../../utils/sanitize';
 
 export async function getGuides(
   req: Request,
@@ -27,7 +28,7 @@ export async function downloadGuide(
   try {
     const downloadRequest: GuideDownloadRequest = {
       guide_id: req.body.guide_id,
-      name: req.body.name,
+      name: typeof req.body.name === 'string' ? sanitizeText(req.body.name) : req.body.name,
       email: req.body.email,
       percentile: req.body.percentile,
     };
@@ -52,8 +53,11 @@ export async function createGuide(
 ) {
   try {
     const guideRequest: CreateGuideRequest = {
-      title: req.body.title,
-      description: req.body.description,
+      title: typeof req.body.title === 'string' ? sanitizeText(req.body.title) : req.body.title,
+      description:
+        typeof req.body.description === 'string'
+          ? sanitizeText(req.body.description)
+          : req.body.description,
       file_url: req.body.file_url,
     };
 
