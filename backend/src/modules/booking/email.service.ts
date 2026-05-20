@@ -1,6 +1,7 @@
 import logger from '../../utils/logger';
 import nodemailer from 'nodemailer';
 import { google } from 'googleapis';
+import { BookingEmailTemplate } from './booking.emails';
 
 interface BookingConfirmation {
   studentName: string;
@@ -64,6 +65,37 @@ export async function sendBookingConfirmation(
     return true;
   } catch (error) {
     logger.error('Failed to send booking confirmation email', error);
+    return false;
+  }
+}
+
+export async function sendBookingStatusEmail(
+  to: string,
+  template: BookingEmailTemplate,
+): Promise<boolean> {
+  try {
+    const emailProvider = process.env.EMAIL_PROVIDER || 'mock';
+    logger.info(`Sending booking status email to ${to} via ${emailProvider}`);
+
+    if (emailProvider === 'mock') {
+      logger.info('EMAIL_PROVIDER not configured, using mock email service');
+      logger.info(`Mock email sent to ${to}:`);
+      logger.info(`  Subject: ${template.subject}`);
+      return true;
+    }
+
+    if (emailProvider === 'gmail') {
+      return await sendTemplateViaGmailAPI(to, template);
+    }
+
+    if (emailProvider === 'smtp') {
+      return await sendTemplateViaSMTP(to, template);
+    }
+
+    logger.warn(`Unknown EMAIL_PROVIDER: ${emailProvider}, using mock instead`);
+    return true;
+  } catch (error) {
+    logger.error('Failed to send booking status email', error);
     return false;
   }
 }
@@ -260,6 +292,61 @@ async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
   }
 }
 
+async function sendTemplateViaGmailAPI(
+  to: string,
+  template: BookingEmailTemplate,
+): Promise<boolean> {
+  try {
+    const auth = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI,
+    );
+    auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+
+    const gmail = google.gmail({ version: 'v1', auth });
+    const from =
+      process.env.SMTP_FROM ||
+      process.env.SMTP_USER ||
+      process.env.GOOGLE_CALENDAR_ID ||
+      '';
+    const encodedSubject = `=?UTF-8?B?${Buffer.from(template.subject).toString('base64')}?=`;
+
+    const messageParts = [
+      `From: MHT CET Guidance <${from}>`,
+      `To: ${to}`,
+      `Subject: ${encodedSubject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: multipart/alternative; boundary="boundary"',
+      '',
+      '--boundary',
+      'Content-Type: text/plain; charset=UTF-8',
+      '',
+      template.text,
+      '--boundary',
+      'Content-Type: text/html; charset=UTF-8',
+      '',
+      template.html,
+      '--boundary--',
+    ];
+    const raw = Buffer.from(messageParts.join('\r\n'))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
+    logger.info(`Email sent successfully to ${to} via Gmail API`);
+    return true;
+  } catch (error) {
+    logger.error(`Gmail API status email failed to ${to}:`, {
+      message: ((error ?? {}) as ErrorDetails).message,
+      code: ((error ?? {}) as ErrorDetails).code,
+    });
+    return false;
+  }
+}
+
 /**
  * Send email via SMTP — uses a lazy-initialised transporter singleton
  * so we don't pay TLS/connection overhead on every send.
@@ -311,6 +398,41 @@ async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
     // Reset verified flag so next attempt re-verifies
     smtpVerified = false;
     logger.error(`✗ SMTP email failed to ${booking.email}:`, {
+      message: ((error ?? {}) as ErrorDetails).message,
+      code: ((error ?? {}) as ErrorDetails).code,
+      response: ((error ?? {}) as ErrorDetails).response,
+      responseCode: ((error ?? {}) as ErrorDetails).responseCode,
+    });
+    return false;
+  }
+}
+
+async function sendTemplateViaSMTP(
+  to: string,
+  template: BookingEmailTemplate,
+): Promise<boolean> {
+  try {
+    const transporter = getSmtpTransporter();
+
+    if (!smtpVerified) {
+      await transporter.verify();
+      smtpVerified = true;
+      logger.info('SMTP connection verified successfully');
+    }
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+
+    logger.info(`Email sent successfully to ${to} via SMTP`);
+    return true;
+  } catch (error) {
+    smtpVerified = false;
+    logger.error(`SMTP status email failed to ${to}:`, {
       message: ((error ?? {}) as ErrorDetails).message,
       code: ((error ?? {}) as ErrorDetails).code,
       response: ((error ?? {}) as ErrorDetails).response,

@@ -77,15 +77,30 @@ export async function getAllBookings(
   };
 }
 
+export async function getBookingById(
+  bookingId: string,
+): Promise<Booking | null> {
+  const result = await query(
+    `SELECT id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at
+     FROM bookings
+     WHERE id = $1`,
+    [bookingId],
+  );
+  return result.rows[0] ?? null;
+}
+
 export async function updateBookingStatus(
   bookingId: string,
   status: string,
-): Promise<boolean> {
+): Promise<Booking | null> {
   const result = await query(
-    'UPDATE bookings SET booking_status = $1 WHERE id = $2 RETURNING id',
+    `UPDATE bookings
+     SET booking_status = $1
+     WHERE id = $2
+     RETURNING id, student_name, email, phone, percentile, category, branch_preference, meeting_purpose, meeting_time, meet_link, booking_status, email_status, created_at`,
     [status, bookingId],
   );
-  return result.rows.length > 0;
+  return result.rows[0] ?? null;
 }
 
 export async function deleteBooking(bookingId: string): Promise<boolean> {
