@@ -108,9 +108,20 @@ npm start
 For process manager example with PM2:
 
 ```bash
-pm2 start dist/server.js --name career-guidance-api
+pm2 start ecosystem.config.js --env production
+pm2 restart cethub-api
+pm2 logs cethub-api
+pm2 status
 pm2 save
+pm2 startup
 ```
+
+PM2 runs `dist/server.js` in cluster mode using `backend/ecosystem.config.js`.
+On first deploy, run `pm2 start ecosystem.config.js --env production` from the
+`backend` directory after `npm run build`. For routine operations use
+`pm2 restart cethub-api`, `pm2 logs cethub-api`, and `pm2 status`. Run
+`pm2 save` after the process is healthy, then follow the command printed by
+`pm2 startup` so the API restarts after server reboot.
 
 4. Verify health
 

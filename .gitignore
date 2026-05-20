@@ -19,6 +19,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+backend/logs/*.log
 
 # Build outputs
 dist/
