@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PredictorService } from './predictor.service';
 import { PredictorRequest } from './predictor.types';
+import { predictorRequestSchema } from './predictor.schemas';
 
 const predictorService = new PredictorService();
 
@@ -11,23 +12,24 @@ export class PredictorController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const body = req.body as PredictorRequest;
-
-      // Validate required fields
-      if (
-        (body.rank === undefined || body.rank === null) &&
-        (body.percentile === undefined || body.percentile === null)
-      ) {
+      const parsed = predictorRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        const firstIssue = parsed.error.issues[0];
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Either rank or percentile is required',
+            message: firstIssue?.message || 'Invalid request payload',
+            details: parsed.error.issues.map((issue) => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            })),
           },
         });
         return;
       }
 
+      const body = parsed.data as PredictorRequest;
       const predictions = await predictorService.predictColleges(body);
 
       res.status(200).json({
