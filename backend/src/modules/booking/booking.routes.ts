@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as bookingController from './booking.controller';
 import { validateBody } from '../../middleware/validateRequest';
 import { createBookingSchema } from './booking.schemas';
+import { bookingLimiter } from '../../middleware/rateLimiter';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.get('/', (_req, res) => {
 // Public route for creating bookings
 router.post(
   '/',
+  bookingLimiter,
   validateBody(createBookingSchema),
   bookingController.createBooking,
 );

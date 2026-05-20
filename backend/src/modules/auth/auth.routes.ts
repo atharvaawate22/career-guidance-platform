@@ -5,10 +5,9 @@ import {
   requireAdminRole,
 } from '../../middleware/authMiddleware';
 import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
-import { createAdminLoginLimiter } from '../../middleware/rateLimit';
+import { authLimiter } from '../../middleware/rateLimiter';
 
 const router = Router();
-const adminLoginLimiter = createAdminLoginLimiter();
 
 router.get('/login', (_req, res) => {
   res.json({
@@ -26,7 +25,7 @@ router.get('/login', (_req, res) => {
   });
 });
 
-router.post('/login', adminLoginLimiter, authController.loginController);
+router.post('/login', authLimiter, authController.loginController);
 router.get(
   '/session',
   authMiddleware,

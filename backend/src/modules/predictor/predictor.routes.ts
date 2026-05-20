@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { PredictorController } from './predictor.controller';
 import { validateBody } from '../../middleware/validateRequest';
 import { predictorRequestSchema } from './predictor.schemas';
+import { predictorLimiter } from '../../middleware/rateLimiter';
 
 const router = Router();
 const predictorController = new PredictorController();
@@ -26,6 +27,7 @@ router.get('/', (_req, res) => {
 
 router.post(
   '/',
+  predictorLimiter,
   validateBody(predictorRequestSchema),
   predictorController.predict.bind(predictorController),
 );
