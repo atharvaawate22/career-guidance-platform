@@ -193,6 +193,13 @@ router.patch(
 );
 
 // Protected routes for resources management
+router.get(
+  '/resources',
+  authMiddleware,
+  requireAdminRole,
+  resourcesController.getAllResources,
+);
+
 router.post(
   '/resources',
   authMiddleware,
@@ -307,7 +314,18 @@ router.patch(
         return;
       }
 
-      await bookingRepository.updateBookingStatus(String(id), status);
+      const updated = await bookingRepository.updateBookingStatus(String(id), status);
+      if (!updated) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Booking not found',
+          },
+        });
+        return;
+      }
+
       res.json({
         success: true,
         message: 'Booking status updated',

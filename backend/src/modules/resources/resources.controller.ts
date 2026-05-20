@@ -18,6 +18,19 @@ export async function getResources(
   }
 }
 
+export async function getAllResources(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const resources = await resourcesService.getAllResources();
+    res.json({ success: true, data: resources });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function createResource(
   req: Request,
   res: Response,

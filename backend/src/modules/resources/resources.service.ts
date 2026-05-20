@@ -5,6 +5,10 @@ export async function getActiveResources(category?: string): Promise<Resource[]>
   return await resourcesRepository.getActiveResources(category);
 }
 
+export async function getAllResources(): Promise<Resource[]> {
+  return await resourcesRepository.getAllResources();
+}
+
 export async function createResource(resource: CreateResourceRequest): Promise<Resource> {
   if (!resource.title?.trim() || !resource.description?.trim() || !resource.file_url?.trim() || !resource.category?.trim()) {
     throw new Error('title, description, file_url, and category are all required');

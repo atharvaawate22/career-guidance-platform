@@ -80,11 +80,12 @@ export async function getAllBookings(
 export async function updateBookingStatus(
   bookingId: string,
   status: string,
-): Promise<void> {
-  await query('UPDATE bookings SET booking_status = $1 WHERE id = $2', [
-    status,
-    bookingId,
-  ]);
+): Promise<boolean> {
+  const result = await query(
+    'UPDATE bookings SET booking_status = $1 WHERE id = $2 RETURNING id',
+    [status, bookingId],
+  );
+  return result.rows.length > 0;
 }
 
 export async function deleteBooking(bookingId: string): Promise<boolean> {

@@ -13,13 +13,13 @@ const createFaqSchema = z.object({
     .trim()
     .min(5, 'Answer must be at least 5 characters')
     .max(3000, 'Answer must be under 3,000 characters'),
-  display_order: z.number().int().min(1).optional(),
+  display_order: z.number().int().min(0).optional(),
 });
 
 const updateFaqSchema = z.object({
   question: z.string().trim().min(5).max(500).optional(),
   answer: z.string().trim().min(5).max(3000).optional(),
-  display_order: z.number().int().min(1).optional(),
+  display_order: z.number().int().min(0).optional(),
 });
 
 export async function getFaqs(

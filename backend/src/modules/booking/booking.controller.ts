@@ -3,6 +3,23 @@ import * as bookingService from './booking.service';
 import * as bookingRepository from './booking.repository';
 import { CreateBookingRequest } from './booking.types';
 
+function bookingErrorStatus(code?: string): number {
+  switch (code) {
+    case 'VALIDATION_ERROR':
+      return 400;
+    case 'BOOKINGS_DISABLED':
+      return 403;
+    case 'SLOT_UNAVAILABLE':
+    case 'SLOT_TAKEN':
+    case 'DUPLICATE_BOOKING':
+      return 409;
+    case 'CALENDAR_ERROR':
+      return 503;
+    default:
+      return 500;
+  }
+}
+
 export async function createBooking(
   req: Request,
   res: Response,
@@ -23,15 +40,7 @@ export async function createBooking(
     const result = await bookingService.createBooking(bookingRequest);
 
     if (!result.success) {
-      const code = result.error?.code;
-      // Distinguish between client validation errors and server-side failures
-      const status =
-        code === 'VALIDATION_ERROR'
-          ? 400
-          : code === 'CALENDAR_ERROR'
-            ? 503
-            : 500;
-      res.status(status).json(result);
+      res.status(bookingErrorStatus(result.error?.code)).json(result);
       return;
     }
 

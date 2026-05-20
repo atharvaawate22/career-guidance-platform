@@ -110,10 +110,12 @@ export default function AdminPage() {
   }, [adminFetch, handleSessionExpired]);
 
   const fetchResources = useCallback(async () => {
-    try { setResourcesLoading(true); const r = await fetch(`${API_BASE_URL}/api/v1/resources`); const d = await r.json();
+    try { setResourcesLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/resources`);
+      if (r.status === 401) { handleSessionExpired(); return; }
+      const d = await r.json();
       if (d.success) setResources(Array.isArray(d.data) ? d.data : d.data?.data || []);
     } catch {} finally { setResourcesLoading(false); }
-  }, []);
+  }, [adminFetch, handleSessionExpired]);
 
   const fetchGuides = useCallback(async () => {
     try { setGuidesLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/guides`);

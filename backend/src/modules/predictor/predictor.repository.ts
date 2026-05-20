@@ -1,7 +1,6 @@
 import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
 import {
-  CITY_NORMALIZED_SQL,
   CITY_FILTER_SQL,
 } from '../../utils/cityNormalization';
 import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';

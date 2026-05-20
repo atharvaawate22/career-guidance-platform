@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { UpdatesService } from './updates.service';
-import { Update } from './updates.types';
 import logger from '../../utils/logger';
 
 const updatesService = new UpdatesService();

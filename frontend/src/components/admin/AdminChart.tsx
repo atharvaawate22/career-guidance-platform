@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -92,16 +91,6 @@ const defaultBarOptions: ChartOptions<"bar"> = {
 };
 
 export default function AdminChart(props: AdminChartProps) {
-  const chartRef = useRef<ChartJS | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-      }
-    };
-  }, []);
-
   return (
     <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-sm p-6">
       <div className="mb-4">

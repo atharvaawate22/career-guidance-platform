@@ -102,11 +102,15 @@ export default function GuidesPage() {
   useEffect(() => {
     if (!showModal) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleCloseModal();
+      if (e.key === "Escape") {
+        setShowModal(false);
+        setSelectedGuide(null);
+        setDownloadForm({ name: "", email: "", percentile: "" });
+        setDownloadError("");
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showModal]);
 
   // Validation handlers for download form

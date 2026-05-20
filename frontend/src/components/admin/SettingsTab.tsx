@@ -17,9 +17,7 @@ function formatSlot(s: string) {
   return `${d}:${String(m).padStart(2, "0")} ${p}`;
 }
 
-interface SettingsTabProps extends AdminTabProps {}
-
-export default function SettingsTab({ adminFetch, adminWriteFetch, API_BASE_URL }: SettingsTabProps) {
+export default function SettingsTab({ adminFetch, adminWriteFetch, API_BASE_URL }: AdminTabProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [success, setSuccess] = useState("");

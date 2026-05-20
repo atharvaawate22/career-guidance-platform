@@ -6,10 +6,10 @@ test("home page renders and navigation to predictor works", async ({
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: "MHT-CET Career Hub" })
+    page.getByRole("heading", { name: "Navigate Your Engineering Future" })
   ).toBeVisible();
 
-  await page.getByRole("link", { name: "Predict College" }).click();
+  await page.getByRole("link", { name: "Predict My College" }).click();
 
   await expect(page).toHaveURL(/\/predictor$/);
   await expect(

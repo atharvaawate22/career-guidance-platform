@@ -57,6 +57,21 @@ export async function createGuide(
       file_url: req.body.file_url,
     };
 
+    if (
+      !guideRequest.title?.trim() ||
+      !guideRequest.description?.trim() ||
+      !guideRequest.file_url?.trim()
+    ) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Title, description, and file_url are required',
+        },
+      });
+      return;
+    }
+
     const guide = await guidesService.createGuide(guideRequest);
     res.status(201).json({
       success: true,
@@ -109,9 +124,20 @@ export async function toggleGuide(
   try {
     const { id } = req.params;
     const { is_active } = req.body;
+    if (typeof is_active !== 'boolean') {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'is_active must be a boolean',
+        },
+      });
+      return;
+    }
+
     const guide = await guidesService.toggleGuide(
       String(id),
-      Boolean(is_active),
+      is_active,
     );
     if (!guide) {
       res.status(404).json({

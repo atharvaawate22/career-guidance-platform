@@ -15,6 +15,13 @@ export async function getActiveResources(category?: string): Promise<Resource[]>
   return result.rows;
 }
 
+export async function getAllResources(): Promise<Resource[]> {
+  const result = await query(
+    'SELECT id, title, description, file_url, category, is_active, created_at FROM resources ORDER BY created_at DESC',
+  );
+  return result.rows;
+}
+
 export async function getResourceById(id: string): Promise<Resource | null> {
   const result = await query(
     'SELECT id, title, description, file_url, category, is_active, created_at FROM resources WHERE id = $1',

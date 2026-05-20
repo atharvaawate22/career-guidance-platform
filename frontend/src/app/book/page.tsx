@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
@@ -11,6 +11,7 @@ const DEFAULT_TIME_SLOTS = [
   "17:00", "17:30",
 ];
 const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface SlotConfig {
   enabled: boolean;
@@ -44,12 +45,59 @@ function getNowIST() {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000);
 }
 
+function pad2(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function parseDateString(dateStr: string) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return { year, month, day };
+}
+
+function formatDateString(year: number, month: number, day: number) {
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
+function addDays(dateStr: string, days: number) {
+  const { year, month, day } = parseDateString(dateStr);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return formatDateString(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDate()
+  );
+}
+
+function getDayOfWeek(dateStr: string) {
+  const { year, month, day } = parseDateString(dateStr);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function getMonthKey(dateStr: string) {
+  const { year, month } = parseDateString(dateStr);
+  return `${year}-${pad2(month)}`;
+}
+
+function shiftMonth(monthKey: string, delta: number) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1 + delta, 1));
+  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}`;
+}
+
+function getMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-IN", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
 /** Returns true if the given YYYY-MM-DD string is NOT a working day (based on config). */
 function isNonWorkingDay(dateStr: string, config: SlotConfig): boolean {
   // Force-closed dates always block
   if (config.special_closed_dates.includes(dateStr)) return true;
-  const d = new Date(`${dateStr}T00:00:00+05:30`);
-  const day = d.getDay(); // 0=Sun, 6=Sat
+  const day = getDayOfWeek(dateStr); // 0=Sun, 6=Sat
   // If it's a special open date, it's always working
   if (config.special_open_dates.includes(dateStr)) return false;
   return !config.working_days.includes(day);
@@ -57,13 +105,13 @@ function isNonWorkingDay(dateStr: string, config: SlotConfig): boolean {
 
 /** Next working date string on/after `date`. */
 function nextWorkingDay(dateStr: string, config: SlotConfig): string {
-  let d = new Date(`${dateStr}T00:00:00+05:30`);
+  let candidate = dateStr;
   let attempts = 0;
-  while (isNonWorkingDay(d.toISOString().slice(0, 10), config) && attempts < 30) {
-    d = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+  while (isNonWorkingDay(candidate, config) && attempts < 30) {
+    candidate = addDays(candidate, 1);
     attempts++;
   }
-  return d.toISOString().slice(0, 10);
+  return candidate;
 }
 
 function getMinDate(config: SlotConfig) {
@@ -76,7 +124,7 @@ function getMinDate(config: SlotConfig) {
   const [lastH, lastM] = lastSlot.split(":").map(Number);
   const baseDate =
     nowMinutes + 60 > lastH * 60 + lastM
-      ? new Date(nowIST.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      ? addDays(todayIST, 1)
       : todayIST;
   return nextWorkingDay(baseDate, config);
 }
@@ -92,6 +140,20 @@ function getAvailableSlots(dateStr: string, config: SlotConfig) {
   });
 }
 
+function getMonthDates(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const cells: Array<string | null> = Array.from({ length: firstDay }, () => null);
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(formatDateString(year, month, day));
+  }
+
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
 export default function BookPage() {
   const errorRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
@@ -105,6 +167,15 @@ export default function BookPage() {
     bookedDateTime: string;
   } | null>(null);
   const [selectedDate, setSelectedDate] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    getMonthKey(getMinDate({
+      enabled: true,
+      slots: DEFAULT_TIME_SLOTS,
+      working_days: DEFAULT_WORKING_DAYS,
+      special_open_dates: [],
+      special_closed_dates: [],
+    }))
+  );
   const [selectedTime, setSelectedTime] = useState("");
   const [slotError, setSlotError] = useState("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
@@ -125,6 +196,7 @@ export default function BookPage() {
       .then((d) => {
         if (d.success && d.data) {
           setSlotConfig(d.data);
+          setCalendarMonth(getMonthKey(getMinDate(d.data)));
         }
       })
       .catch(() => { /* fallback to defaults */ });
@@ -159,6 +231,7 @@ export default function BookPage() {
     e.preventDefault();
     const newFieldErrors: Record<string, string> = {};
 
+    if (!slotConfig.enabled) newFieldErrors.meeting_date = "Booking sessions are currently closed.";
     if (!formData.category) newFieldErrors.category = "Please select your reservation category.";
     if (!meetingPurposeOption) newFieldErrors.meeting_purpose = "Please select the purpose of your session.";
     if (meetingPurposeOption === "Other" && !formData.meeting_purpose.trim())
@@ -216,6 +289,7 @@ export default function BookPage() {
         setSuccess(true);
         setFormData({ student_name: "", email: "", phone: "", percentile: "", category: "", branch_preference: "", meeting_purpose: "", meeting_time: "" });
         setMeetingPurposeOption(""); setSelectedDate(""); setSelectedTime("");
+        setCalendarMonth(getMonthKey(getMinDate(slotConfig)));
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         if (data.error?.code === "SLOT_TAKEN") {
@@ -288,9 +362,13 @@ export default function BookPage() {
     });
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const date = e.target.value;
+  const handleDateSelect = (date: string) => {
+    if (date < getMinDate(slotConfig) || isNonWorkingDay(date, slotConfig)) {
+      return;
+    }
+
     setSelectedDate(date);
+    setCalendarMonth(getMonthKey(date));
     clearError("meeting_date");
     clearError("meeting_time");
     setSlotError("");
@@ -304,6 +382,11 @@ export default function BookPage() {
     }
     fetchSlotsForDate(date);
   };
+
+  const minDate = getMinDate(slotConfig);
+  const calendarDates = getMonthDates(calendarMonth);
+  const minMonth = getMonthKey(minDate);
+  const canGoToPreviousMonth = calendarMonth > minMonth;
 
   if (success && successData) {
     return (
@@ -576,20 +659,88 @@ export default function BookPage() {
                 </div>
               )}
 
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-gray-700 font-medium mb-2">
                   Meeting Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  name="meeting_date"
-                  required
-                  value={selectedDate}
-                  onChange={handleDateChange}
-                  min={getMinDate(slotConfig)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-400 mt-1">Check availability in the calendar.</p>
+                {!slotConfig.enabled && (
+                  <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    Booking sessions are currently closed.
+                  </div>
+                )}
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <button
+                      type="button"
+                      disabled={!canGoToPreviousMonth}
+                      onClick={() => setCalendarMonth((month) => shiftMonth(month, -1))}
+                      className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Previous month"
+                    >
+                      &lt;
+                    </button>
+                    <p className="font-semibold text-gray-800">{getMonthLabel(calendarMonth)}</p>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMonth((month) => shiftMonth(month, 1))}
+                      className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                      aria-label="Next month"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 mb-1">
+                    {WEEKDAY_LABELS.map((day) => (
+                      <span key={day} className="py-1">{day}</span>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {calendarDates.map((date, index) => {
+                      if (!date) {
+                        return <div key={`blank-${index}`} className="aspect-square" />;
+                      }
+
+                      const { day } = parseDateString(date);
+                      const isSelected = selectedDate === date;
+                      const isBeforeMin = date < minDate;
+                      const isClosed = slotConfig.special_closed_dates.includes(date);
+                      const isUnavailableDay = isNonWorkingDay(date, slotConfig);
+                      const isDisabled = !slotConfig.enabled || isBeforeMin || isUnavailableDay;
+                      const isToday = date === getNowIST().toISOString().slice(0, 10);
+                      let dateClass =
+                        "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500";
+
+                      if (isDisabled) {
+                        dateClass = isClosed || isUnavailableDay
+                          ? "bg-red-50 text-red-300 border-red-100 cursor-not-allowed"
+                          : "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed";
+                      }
+                      if (isSelected) {
+                        dateClass = "bg-purple-600 text-white border-purple-600 shadow-md";
+                      }
+
+                      return (
+                        <button
+                          key={date}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => handleDateSelect(date)}
+                          className={`aspect-square rounded-lg border text-sm font-semibold transition-all ${dateClass}`}
+                          aria-label={`${date}${isDisabled ? " unavailable" : " available"}`}
+                        >
+                          <span>{day}</span>
+                          {isToday && <span className="block text-[9px] font-medium leading-none">Today</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs mt-3">
+                    <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-emerald-400" />Available</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-red-100 border border-red-200" />Closed</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-gray-200" />Unavailable</span>
+                  </div>
+                </div>
+                <input type="hidden" name="meeting_date" value={selectedDate} />
                 {fieldErrors.meeting_date && (
                   <p className="text-xs text-red-600 mt-1">{fieldErrors.meeting_date}</p>
                 )}
@@ -685,7 +836,7 @@ export default function BookPage() {
             <div className="mt-8">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !slotConfig.enabled}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-6 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading && (
@@ -694,7 +845,7 @@ export default function BookPage() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                   </svg>
                 )}
-                {loading ? "Scheduling…" : "Book Session"}
+                {!slotConfig.enabled ? "Bookings Closed" : loading ? "Scheduling…" : "Book Session"}
               </button>
             </div>
           </form>
