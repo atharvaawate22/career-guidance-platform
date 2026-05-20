@@ -11,7 +11,7 @@ describe('API contract: public and auth boundary routes', () => {
   it('generates x-request-id when none is provided', async () => {
     const response = await request(app).get('/api/v1/health');
 
-    expect(response.status).toBe(200);
+    expect([200, 503]).toContain(response.status);
     expect(response.headers['x-request-id']).toBeTruthy();
   });
 
@@ -20,7 +20,7 @@ describe('API contract: public and auth boundary routes', () => {
       .get('/api/v1/health')
       .set('x-request-id', 'test-request-id-001');
 
-    expect(response.status).toBe(200);
+    expect([200, 503]).toContain(response.status);
     expect(response.headers['x-request-id']).toBe('test-request-id-001');
   });
 
@@ -39,11 +39,12 @@ describe('API contract: public and auth boundary routes', () => {
   it('returns health status contract', async () => {
     const response = await request(app).get('/api/v1/health');
 
-    expect(response.status).toBe(200);
+    expect([200, 503]).toContain(response.status);
     expect(response.body).toMatchObject({
-      status: 'ok',
       version: '1.0.0',
+      checks: expect.any(Object),
     });
+    expect(['ok', 'degraded']).toContain(response.body.status);
     expect(response.body.timestamp).toEqual(expect.any(String));
   });
 

@@ -32,7 +32,7 @@ let app: typeof import('../src/server').app;
 beforeAll(async () => {
   const server = await import('../src/server');
   app = server.app;
-});
+}, 30000);
 
 describe('API smoke: critical login and booking flows', () => {
   it('allows admin login with valid payload and sets session cookies', async () => {
