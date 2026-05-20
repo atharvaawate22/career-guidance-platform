@@ -1,23 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MainContent from "@/components/MainContent";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-});
+import { inter, playfairDisplay as playfair } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "MHT-CET Career Hub — College Predictor, Cutoffs & Guidance",
