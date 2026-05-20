@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { query } from './database';
+import pool, { query } from './database';
 import logger from '../utils/logger';
 
 /**
@@ -45,4 +45,17 @@ export async function runMigrations(): Promise<void> {
     );
     logger.info(`Migration ${file} applied successfully`);
   }
+}
+
+if (require.main === module) {
+  runMigrations()
+    .then(async () => {
+      await pool.end();
+      logger.info('All migrations completed successfully');
+    })
+    .catch(async (error) => {
+      logger.error('Migration run failed', error);
+      await pool.end();
+      process.exit(1);
+    });
 }
