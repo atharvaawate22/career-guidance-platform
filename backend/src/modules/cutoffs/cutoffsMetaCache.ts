@@ -1,3 +1,5 @@
+import { cacheGet, cacheSet } from '../../config/redis';
+
 export interface CollegeMetaOption {
   code: string | null;
   name: string;
@@ -23,6 +25,7 @@ interface CacheEntry {
 }
 
 const META_CACHE_TTL_MS = 15 * 60 * 1000;
+const META_REDIS_TTL_SECONDS = 24 * 60 * 60;
 const META_CACHE_MAX_ENTRIES = 200;
 
 const metaCache = new Map<string, CacheEntry>();
@@ -71,9 +74,19 @@ export const getOrLoadCutoffMeta = async (
   trimExpiredEntries();
 
   const cacheKey = buildCutoffMetaCacheKey(keyInput);
+  const redisKey = `cutoffs:meta:${cacheKey}`;
   const cached = metaCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
+  }
+
+  const cachedRedis = await cacheGet<CutoffMetaPayload>(redisKey);
+  if (cachedRedis) {
+    metaCache.set(cacheKey, {
+      value: cachedRedis,
+      expiresAt: Date.now() + META_CACHE_TTL_MS,
+    });
+    return cachedRedis;
   }
 
   const existingLoad = inflightLoads.get(cacheKey);
@@ -87,6 +100,7 @@ export const getOrLoadCutoffMeta = async (
         value,
         expiresAt: Date.now() + META_CACHE_TTL_MS,
       });
+      void cacheSet(redisKey, value, META_REDIS_TTL_SECONDS);
       trimExpiredEntries();
       return value;
     })

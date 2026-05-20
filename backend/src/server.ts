@@ -4,7 +4,7 @@ initSentry();
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
 import cookieParser from 'cookie-parser';
 import errorHandler from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
@@ -19,11 +19,12 @@ import resourcesRoutes from './modules/resources/resources.routes';
 import faqsRoutes from './modules/faqs/faqs.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import settingsRoutes from './modules/settings/settings.routes';
-import { testConnection, query } from './config/database';
+import db, { testConnection, query } from './config/database';
+import { getRedis } from './config/redis';
 import { runMigrations } from './config/migrations';
 import { runSampleSeed, bootstrapAdmin } from './config/seed';
 import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
-import logger from './utils/logger';
+import logger, { pinoLogger } from './utils/logger';
 
 // Global error logging for diagnosis — registered after logger is imported
 process.on('uncaughtException', (err) => {
@@ -84,7 +85,7 @@ app.use(
   }),
 );
 app.use(helmet());
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(pinoHttp({ logger: pinoLogger }));
 app.use(cookieParser());
 app.use(requestLogger);
 
@@ -114,11 +115,37 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.get('/api/v1/health', (_req, res) => {
-  res.json({
-    status: 'ok',
+app.get('/api/v1/health', async (_req, res) => {
+  const checks: Record<string, string> = {};
+
+  try {
+    await query('SELECT 1');
+    checks.database = 'ok';
+  } catch {
+    checks.database = 'error';
+  }
+
+  try {
+    const redisClient = getRedis();
+    if (redisClient) {
+      await redisClient.ping();
+      checks.redis = 'ok';
+    } else {
+      checks.redis = 'not configured';
+    }
+  } catch {
+    checks.redis = 'error';
+  }
+
+  const allOk = Object.values(checks).every(
+    (value) => value === 'ok' || value === 'not configured',
+  );
+
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
+    checks,
   });
 });
 
@@ -127,18 +154,35 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/v1/ready', async (_req, res) => {
+  const issues: string[] = [];
+  const required = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'];
+
+  required.forEach((key) => {
+    if (!process.env[key]) issues.push(`Missing env: ${key}`);
+  });
+
   try {
-    await testConnection();
-    res.status(200).json({ status: 'ready' });
+    await query('SELECT 1');
   } catch {
-    res.status(503).json({
-      status: 'not_ready',
-      error: {
-        code: 'DB_UNAVAILABLE',
-        message: 'Database is not ready',
-      },
-    });
+    issues.push('Database unreachable');
   }
+
+  try {
+    const result = await query('SELECT COUNT(*) FROM schema_migrations');
+    const count = parseInt(String(result.rows[0].count), 10);
+    if (count < 10) {
+      issues.push(`Only ${count}/10 migrations applied`);
+    }
+  } catch {
+    issues.push('Cannot verify migration state');
+  }
+
+  if (issues.length > 0) {
+    res.status(503).json({ ready: false, issues });
+    return;
+  }
+
+  res.json({ ready: true, timestamp: new Date().toISOString() });
 });
 
 app.use(/^\/api\/(?!v1(?:\/|$)).+/, (req, res) => {
@@ -235,12 +279,36 @@ export const startServer = async () => {
 
   const dbReady = migrationsReady ? await initializeDatabase() : false;
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
     if (!dbReady) {
       logger.info('Server started in degraded mode: database is not ready');
     }
   });
+
+  const shutdown = async (signal: string) => {
+    logger.info(`[shutdown] received ${signal}, draining connections`);
+    server.close(async () => {
+      try {
+        await db.end();
+        const redisClient = getRedis();
+        if (redisClient) await redisClient.quit();
+        logger.info('[shutdown] clean exit');
+        process.exit(0);
+      } catch (err) {
+        logger.error('[shutdown] error during cleanup', err);
+        process.exit(1);
+      }
+    });
+
+    setTimeout(() => {
+      logger.error('[shutdown] forced exit after timeout');
+      process.exit(1);
+    }, 15000).unref();
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 };
 
 

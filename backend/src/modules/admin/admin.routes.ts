@@ -9,10 +9,16 @@ import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
 import { UpdatesController } from '../updates/updates.controller';
 import { CutoffsController } from '../cutoffs/cutoffs.controller';
 import { invalidateCutoffMetaCache } from '../cutoffs/cutoffsMetaCache';
+import { cacheDelete } from '../../config/redis';
 import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
 import * as faqsController from '../faqs/faqs.controller';
 import * as bookingRepository from '../booking/booking.repository';
+import * as emailService from '../booking/email.service';
+import {
+  bookingCancellationEmail,
+  bookingRescheduledEmail,
+} from '../booking/booking.emails';
 import * as settingsController from '../settings/settings.controller';
 import { query as dbQuery } from '../../config/database';
 
@@ -146,6 +152,9 @@ router.delete(
         [parsedYear],
       );
       invalidateCutoffMetaCache();
+      await cacheDelete('predictor:*');
+      await cacheDelete('cutoffs:*');
+      await cacheDelete('cutoffs:meta:*');
       res.json({
         success: true,
         deleted: result.rowCount,
@@ -284,7 +293,7 @@ router.patch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, reason } = req.body;
 
       if (!status) {
         res.status(400).json({
@@ -301,6 +310,8 @@ router.patch(
         'scheduled',
         'confirmed',
         'cancelled',
+        'rescheduled',
+        'no_show',
         'completed',
       ];
       if (!ALLOWED_STATUSES.includes(status)) {
@@ -324,6 +335,31 @@ router.patch(
           },
         });
         return;
+      }
+
+      if (status === 'cancelled') {
+        void emailService
+          .sendBookingStatusEmail(
+            updated.email,
+            bookingCancellationEmail(
+              updated,
+              typeof reason === 'string' ? reason : undefined,
+            ),
+          )
+          .catch((error) =>
+            req.log?.error({ error }, 'Cancellation email failed'),
+          );
+      }
+
+      if (status === 'rescheduled') {
+        void emailService
+          .sendBookingStatusEmail(
+            updated.email,
+            bookingRescheduledEmail(updated),
+          )
+          .catch((error) =>
+            req.log?.error({ error }, 'Reschedule email failed'),
+          );
       }
 
       res.json({

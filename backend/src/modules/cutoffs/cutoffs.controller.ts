@@ -3,6 +3,7 @@ import { CutoffsService } from './cutoffs.service';
 import { CutoffFilters, BulkCutoffInsert } from './cutoffs.types';
 import { query } from '../../config/database';
 import { ACTIVE_CUTOFF_YEAR, MAX_FILTER_ARRAY_LENGTH } from '../../config/constants';
+import { cacheDelete } from '../../config/redis';
 import { CITY_FILTER_SQL } from '../../utils/cityNormalization';
 import {
   getOrLoadCutoffMeta,
@@ -272,6 +273,9 @@ export class CutoffsController {
 
       const insertedCutoffs = await cutoffsService.bulkInsertCutoffs(cutoffs);
       invalidateCutoffMetaCache();
+      await cacheDelete('predictor:*');
+      await cacheDelete('cutoffs:*');
+      await cacheDelete('cutoffs:meta:*');
 
       res.status(201).json({
         success: true,

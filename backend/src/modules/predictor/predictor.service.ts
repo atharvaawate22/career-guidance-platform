@@ -5,8 +5,24 @@ import {
   CollegeOption,
 } from './predictor.types';
 import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
+import { cacheGet, cacheSet } from '../../config/redis';
 
 const predictorRepository = new PredictorRepository();
+const PREDICTOR_CACHE_TTL_SECONDS = 6 * 60 * 60;
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
 
 /**
  * Rank-only windowing (Formula A): h = 50 * sqrt(rank)
@@ -59,6 +75,10 @@ export class PredictorService {
     ) {
       throw new Error('Percentile must be between 0 and 100');
     }
+
+    const cacheKey = `predictor:${stableStringify(request)}`;
+    const cached = await cacheGet<PredictorResponse>(cacheKey);
+    if (cached) return cached;
 
     const inputMode: 'rank' | 'percentile' =
       request.rank !== undefined && request.rank !== null
@@ -138,7 +158,7 @@ export class PredictorService {
     target.sort((a, b) => Number(a.cutoff_rank) - Number(b.cutoff_rank));
     dream.sort((a, b) => Number(b.cutoff_rank) - Number(a.cutoff_rank));
 
-    return {
+    const response = {
       safe,
       target,
       dream,
@@ -149,5 +169,7 @@ export class PredictorService {
           inputMode === 'percentile' ? Number(request.percentile) : undefined,
       },
     };
+    await cacheSet(cacheKey, response, PREDICTOR_CACHE_TTL_SECONDS);
+    return response;
   }
 }
