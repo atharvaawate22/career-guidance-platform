@@ -13,11 +13,6 @@ import {
   MINORITY_TYPE_OPTIONS,
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
-import {
-  STATIC_CUTOFF_COLLEGES,
-  STATIC_CUTOFF_RELATIONS,
-  normalizeStaticCityLabel,
-} from "@/lib/cutoffStaticMeta";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 const DEFAULT_META_YEAR = "2025";
@@ -32,6 +27,11 @@ interface CutoffData {
 }
 
 interface CollegeOption { code: string | null; name: string; }
+interface CutoffMeta {
+  colleges: CollegeOption[];
+  branches: string[];
+  cities: string[];
+}
 
 type SortOption = "percentile-desc" | "percentile-asc" | "rank-asc" | "rank-desc" | "college-asc" | "branch-asc" | "round-asc";
 
@@ -71,46 +71,46 @@ export default function CutoffsPage() {
   const [stage, setStage] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [includeTfws, setIncludeTfws] = useState(false);
+  const [meta, setMeta] = useState<CutoffMeta>({
+    colleges: [],
+    branches: [],
+    cities: [],
+  });
 
   const collegeMapByName = useMemo(
-    () => new Map(STATIC_CUTOFF_COLLEGES.map(c => [c.name, c])), []
+    () => new Map(meta.colleges.map(c => [c.name, c])), [meta.colleges]
   );
 
-  const collegeOptions: CollegeOption[] = useMemo(() => {
-    const citySet = selectedCities.length ? new Set(selectedCities) : null;
-    const branchSet = selectedBranches.length ? new Set(selectedBranches) : null;
-    const names = new Set<string>();
-    for (const r of STATIC_CUTOFF_RELATIONS) {
-      if (citySet && !citySet.has(normalizeStaticCityLabel(r.city))) continue;
-      if (branchSet && !branchSet.has(r.branch)) continue;
-      names.add(r.collegeName);
-    }
-    return Array.from(names).map(n => collegeMapByName.get(n))
-      .filter((c): c is CollegeOption => Boolean(c))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [collegeMapByName, selectedBranches, selectedCities]);
+  const collegeOptions = meta.colleges;
+  const branchOptions = meta.branches;
+  const cityOptions = meta.cities;
 
-  const branchOptions: string[] = useMemo(() => {
-    const citySet = selectedCities.length ? new Set(selectedCities) : null;
-    const set = new Set<string>();
-    for (const r of STATIC_CUTOFF_RELATIONS) {
-      if (collegeName && r.collegeName !== collegeName) continue;
-      if (citySet && !citySet.has(normalizeStaticCityLabel(r.city))) continue;
-      set.add(r.branch);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [collegeName, selectedCities]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    params.append("year", DEFAULT_META_YEAR);
+    selectedBranches.forEach(b => params.append("branch", b));
+    selectedCities.forEach(c => params.append("city", c));
+    if (collegeCode) params.append("college_code", collegeCode);
+    else if (collegeName) params.append("college_name", collegeName);
 
-  const cityOptions: string[] = useMemo(() => {
-    const branchSet = selectedBranches.length ? new Set(selectedBranches) : null;
-    const set = new Set<string>();
-    for (const r of STATIC_CUTOFF_RELATIONS) {
-      if (collegeName && r.collegeName !== collegeName) continue;
-      if (branchSet && !branchSet.has(r.branch)) continue;
-      set.add(normalizeStaticCityLabel(r.city));
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [collegeName, selectedBranches]);
+    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) setMeta(data.data);
+      })
+      .catch(err => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "Failed to load filters");
+      });
+
+    return () => controller.abort();
+  }, [collegeCode, collegeName, selectedBranches, selectedCities]);
 
   useEffect(() => {
     if (collegeCode && collegeName && !collegeOptions.some(c => c.name === collegeName)) {

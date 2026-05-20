@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import PredictorResultCard from "@/components/PredictorResultCard";
@@ -12,10 +12,6 @@ import {
   MINORITY_TYPE_OPTIONS,
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
-import {
-  STATIC_CUTOFF_BRANCHES,
-  STATIC_CUTOFF_CITIES_CLEAN,
-} from "@/lib/cutoffStaticMeta";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 const PREDICTOR_YEAR = parseInt(
@@ -81,9 +77,30 @@ export default function PredictorPage() {
   const [selectedMinorityGroups, setSelectedMinorityGroups] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [branchOptions, setBranchOptions] = useState<string[]>([]);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
 
-  const branchOptions = STATIC_CUTOFF_BRANCHES;
-  const cityOptions = STATIC_CUTOFF_CITIES_CLEAN;
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?year=${PREDICTOR_YEAR}`, {
+      signal: controller.signal,
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          setBranchOptions(data.data.branches ?? []);
+          setCityOptions(data.data.cities ?? []);
+        }
+      })
+      .catch(err => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "Failed to load filters");
+      });
+    return () => controller.abort();
+  }, []);
 
   // When minority types are cleared, also clear the minority groups.
   // This is handled directly in the onChange for selectedMinorityTypes rather
