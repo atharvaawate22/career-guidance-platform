@@ -58,6 +58,8 @@ frontend/playwright-report/
 
 # Large data files — should live in cloud storage, not in git
 backup.sql
+*.csv
+*.dump.sql
 cutoffs_*.csv
 city_aliases_*.csv
 cutoff_pdfs/
