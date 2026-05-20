@@ -120,7 +120,7 @@ app.get('/', (_req, res) => {
     version: '1.0.0',
     status: 'running',
     endpoints: {
-      health: '/api/health',
+      health: '/api/v1/health',
       updates: '/api/v1/updates',
       cutoffs: '/api/v1/cutoffs',
       predict: '/api/v1/predict',
@@ -132,8 +132,16 @@ app.get('/', (_req, res) => {
   });
 });
 
+app.get('/api/v1/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+  });
+});
+
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  res.redirect(301, '/api/v1/health');
 });
 
 app.get('/api/v1/ready', async (_req, res) => {

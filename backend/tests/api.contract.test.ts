@@ -7,7 +7,7 @@ import { app } from '../src/server';
 
 describe('API contract: public and auth boundary routes', () => {
   it('generates x-request-id when none is provided', async () => {
-    const response = await request(app).get('/api/health');
+    const response = await request(app).get('/api/v1/health');
 
     expect(response.status).toBe(200);
     expect(response.headers['x-request-id']).toBeTruthy();
@@ -15,7 +15,7 @@ describe('API contract: public and auth boundary routes', () => {
 
   it('echoes provided x-request-id header', async () => {
     const response = await request(app)
-      .get('/api/health')
+      .get('/api/v1/health')
       .set('x-request-id', 'test-request-id-001');
 
     expect(response.status).toBe(200);
@@ -35,10 +35,21 @@ describe('API contract: public and auth boundary routes', () => {
   });
 
   it('returns health status contract', async () => {
-    const response = await request(app).get('/api/health');
+    const response = await request(app).get('/api/v1/health');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ status: 'ok' });
+    expect(response.body).toMatchObject({
+      status: 'ok',
+      version: '1.0.0',
+    });
+    expect(response.body.timestamp).toEqual(expect.any(String));
+  });
+
+  it('redirects legacy health endpoint to versioned health endpoint', async () => {
+    const response = await request(app).get('/api/health');
+
+    expect(response.status).toBe(301);
+    expect(response.headers.location).toBe('/api/v1/health');
   });
 
   it('returns admin login endpoint description', async () => {
