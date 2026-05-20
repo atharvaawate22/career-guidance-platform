@@ -39,7 +39,7 @@ export default function BookingsTab({
 
   const handleStatusChange = async (id: string, status: string) => {
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/bookings/${id}/status`, {
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/bookings/${id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
       });
       const d = await r.json();
@@ -51,7 +51,7 @@ export default function BookingsTab({
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this booking?")) return;
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/bookings/${id}`, { method: "DELETE" });
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/bookings/${id}`, { method: "DELETE" });
       const d = await r.json();
       if (d.success) { setSuccess("Deleted!"); fetchBookings(); }
       else setError(d.error?.message || "Failed");

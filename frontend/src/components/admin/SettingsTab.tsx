@@ -38,7 +38,7 @@ export default function SettingsTab({ adminFetch, adminWriteFetch, API_BASE_URL 
   useEffect(() => {
     const load = async () => {
       try {
-        const r = await adminFetch(`${API_BASE_URL}/api/admin/settings`);
+        const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/settings`);
         const d = await r.json();
         if (d.success && d.data) {
           if (d.data.booking_slots) setBookingSlots(d.data.booking_slots);
@@ -54,7 +54,7 @@ export default function SettingsTab({ adminFetch, adminWriteFetch, API_BASE_URL 
   const save = async (key: string, value: unknown) => {
     setSaving(key); setError(""); setSuccess("");
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/settings/${key}`, {
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/settings/${key}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value),
       });
       const d = await r.json();

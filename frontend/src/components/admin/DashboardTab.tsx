@@ -40,7 +40,7 @@ export default function DashboardTab({
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await adminFetch(`${API_BASE_URL}/api/admin/analytics`);
+        const res = await adminFetch(`${API_BASE_URL}/api/v1/admin/analytics`);
         const data = await res.json();
         if (data.success) setAnalytics(data.data);
       } catch {

@@ -16,7 +16,7 @@ beforeAll(async () => {
 
 describe('API validation boundaries', () => {
   it('rejects invalid predictor payload', async () => {
-    const response = await request(app).post('/api/predict').send({
+    const response = await request(app).post('/api/v1/predict').send({
       percentile: 120,
     });
 
@@ -26,7 +26,7 @@ describe('API validation boundaries', () => {
   });
 
   it('rejects invalid booking payload', async () => {
-    const response = await request(app).post('/api/bookings').send({
+    const response = await request(app).post('/api/v1/bookings').send({
       student_name: 'A',
       email: 'bad-email',
       phone: '123',
@@ -43,7 +43,7 @@ describe('API validation boundaries', () => {
   });
 
   it('rejects invalid admin login payload', async () => {
-    const response = await request(app).post('/api/admin/login').send({
+    const response = await request(app).post('/api/v1/admin/login').send({
       email: 'not-an-email',
       password: '',
     });

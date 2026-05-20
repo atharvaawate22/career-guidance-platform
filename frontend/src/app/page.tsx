@@ -67,7 +67,7 @@ export default function Home() {
   const [backendStatus, setBackendStatus] = useState<"loading" | "connected" | "disconnected">("loading");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/health`)
+    fetch(`${API_BASE_URL}/api/v1/health`)
       .then(r => r.ok ? r.json() : Promise.reject())
       .then((d: { status: string }) => setBackendStatus(d.status === "ok" ? "connected" : "disconnected"))
       .catch(() => setBackendStatus("disconnected"));

@@ -150,7 +150,7 @@ export default function Sidebar() {
   useEffect(() => {
     const check = async () => {
       try {
-        const r = await fetch(`${API_BASE_URL}/api/admin/session`, { credentials: "include" });
+        const r = await fetch(`${API_BASE_URL}/api/v1/admin/session`, { credentials: "include" });
         setIsAdmin(r.ok);
       } catch { setIsAdmin(false); }
     };

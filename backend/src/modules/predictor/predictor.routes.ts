@@ -8,7 +8,7 @@ const predictorController = new PredictorController();
 
 router.get('/', (_req, res) => {
   res.json({
-    endpoint: '/api/predict',
+    endpoint: '/api/v1/predict',
     method: 'POST',
     description:
       'Predict college admission chances based on percentile and preferences',

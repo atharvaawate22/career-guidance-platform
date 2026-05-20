@@ -76,7 +76,7 @@ app.use(
   // The global 50 kb parser below would reject a full-year import (~6–7 MB) with 413.
   // body-parser sets req._body = true after parsing, so the global parser below
   // skips re-parsing for requests already handled here.
-  '/api/admin/cutoffs',
+  '/api/v1/admin/cutoffs',
   express.json({ limit: '20mb' }),
 );
 app.use(express.json({ limit: '50kb' }));
@@ -121,13 +121,13 @@ app.get('/', (_req, res) => {
     status: 'running',
     endpoints: {
       health: '/api/health',
-      updates: '/api/updates',
-      cutoffs: '/api/cutoffs',
-      predict: '/api/predict',
-      guides: '/api/guides',
-      faqs: '/api/faqs',
-      bookings: '/api/bookings',
-      adminLogin: '/api/admin/login',
+      updates: '/api/v1/updates',
+      cutoffs: '/api/v1/cutoffs',
+      predict: '/api/v1/predict',
+      guides: '/api/v1/guides',
+      faqs: '/api/v1/faqs',
+      bookings: '/api/v1/bookings',
+      adminLogin: '/api/v1/admin/login',
     },
   });
 });
@@ -136,7 +136,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/api/ready', async (_req, res) => {
+app.get('/api/v1/ready', async (_req, res) => {
   try {
     await testConnection();
     res.status(200).json({ status: 'ready' });
@@ -151,19 +151,23 @@ app.get('/api/ready', async (_req, res) => {
   }
 });
 
+app.use(/^\/api\/(?!v1(?:\/|$)).+/, (req, res) => {
+  res.redirect(301, req.originalUrl.replace('/api/', '/api/v1/'));
+});
+
 // Register module routes
-app.use('/api/updates', updatesRoutes);
-app.use('/api/cutoffs', cutoffsRoutes);
-app.use('/api/predict', publicPredictLimiter, predictorRoutes);
-app.use('/api/guides/download', publicGuideDownloadLimiter);
-app.use('/api/guides', guidesRoutes);
-app.use('/api/resources', resourcesRoutes);
-app.use('/api/faqs', faqsRoutes);
-app.use('/api/bookings/slots', publicBookingSlotsGetLimiter);
-app.use('/api/bookings', publicBookingLimiter, bookingRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/admin', authRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/v1/updates', updatesRoutes);
+app.use('/api/v1/cutoffs', cutoffsRoutes);
+app.use('/api/v1/predict', publicPredictLimiter, predictorRoutes);
+app.use('/api/v1/guides/download', publicGuideDownloadLimiter);
+app.use('/api/v1/guides', guidesRoutes);
+app.use('/api/v1/resources', resourcesRoutes);
+app.use('/api/v1/faqs', faqsRoutes);
+app.use('/api/v1/bookings/slots', publicBookingSlotsGetLimiter);
+app.use('/api/v1/bookings', publicBookingLimiter, bookingRoutes);
+app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/admin', authRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // Register error handler after all routes
 app.use(errorHandler);

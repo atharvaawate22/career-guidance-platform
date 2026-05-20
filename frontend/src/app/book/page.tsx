@@ -120,7 +120,7 @@ export default function BookPage() {
   });
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/settings/booking-slots`)
+    fetch(`${API_BASE_URL}/api/v1/settings/booking-slots`)
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data) {
@@ -148,7 +148,7 @@ export default function BookPage() {
   const fetchSlotsForDate = (date: string) => {
     if (!date) { setBookedSlots([]); return; }
     setSlotsLoading(true);
-    fetch(`${API_BASE_URL}/api/bookings/slots?date=${date}`)
+    fetch(`${API_BASE_URL}/api/v1/bookings/slots?date=${date}`)
       .then((r) => r.json())
       .then((data) => setBookedSlots(data.booked ?? []))
       .catch(() => setBookedSlots([]))
@@ -184,7 +184,7 @@ export default function BookPage() {
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

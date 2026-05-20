@@ -42,11 +42,11 @@ describe('API contract: public and auth boundary routes', () => {
   });
 
   it('returns admin login endpoint description', async () => {
-    const response = await request(app).get('/api/admin/login');
+    const response = await request(app).get('/api/v1/admin/login');
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
-      endpoint: '/api/admin/login',
+      endpoint: '/api/v1/admin/login',
       method: 'POST',
       requiredFields: {
         email: 'string',
@@ -56,7 +56,7 @@ describe('API contract: public and auth boundary routes', () => {
   });
 
   it('protects admin session endpoint when unauthenticated', async () => {
-    const response = await request(app).get('/api/admin/session');
+    const response = await request(app).get('/api/v1/admin/session');
 
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
@@ -64,7 +64,7 @@ describe('API contract: public and auth boundary routes', () => {
   });
 
   it('protects admin csrf endpoint when unauthenticated', async () => {
-    const response = await request(app).get('/api/admin/csrf');
+    const response = await request(app).get('/api/v1/admin/csrf');
 
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
@@ -72,7 +72,7 @@ describe('API contract: public and auth boundary routes', () => {
   });
 
   it('protects admin logout endpoint when unauthenticated', async () => {
-    const response = await request(app).post('/api/admin/logout');
+    const response = await request(app).post('/api/v1/admin/logout');
 
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
@@ -81,7 +81,7 @@ describe('API contract: public and auth boundary routes', () => {
 
   it('protects admin update creation when unauthenticated', async () => {
     const response = await request(app)
-      .post('/api/admin/updates')
+      .post('/api/v1/admin/updates')
       .send({ title: 't', content: 'c' });
 
     expect(response.status).toBe(401);

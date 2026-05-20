@@ -22,7 +22,7 @@ export function useAdminSession() {
 
   const fetchCsrfToken = useCallback(async (): Promise<string | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/csrf`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/admin/csrf`, {
         credentials: "include",
       });
       if (!response.ok) return null;

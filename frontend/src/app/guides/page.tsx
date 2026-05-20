@@ -35,7 +35,7 @@ export default function GuidesPage() {
     try {
       if (showLoader) setLoading(true);
       setError("");
-      const response = await fetch(`${API_BASE_URL}/api/guides`);
+      const response = await fetch(`${API_BASE_URL}/api/v1/guides`);
       const data = await response.json();
 
       if (data.success) {
@@ -138,7 +138,7 @@ export default function GuidesPage() {
     setDownloadError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/guides/download`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/guides/download`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

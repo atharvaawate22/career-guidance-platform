@@ -19,7 +19,7 @@ export default function UpdatesPage() {
   useEffect(() => {
     const fetchUpdates = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/updates`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/updates`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

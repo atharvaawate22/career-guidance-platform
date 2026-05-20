@@ -25,7 +25,7 @@ export default function GuidesTab({ adminWriteFetch, API_BASE_URL, guides, downl
     e.preventDefault();
     setError(""); setSuccess(""); setSubmitting(true);
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/guides`, {
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/guides`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
       });
       const d = await r.json();
@@ -37,7 +37,7 @@ export default function GuidesTab({ adminWriteFetch, API_BASE_URL, guides, downl
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this guide?")) return;
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/guides/${id}`, { method: "DELETE" });
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/guides/${id}`, { method: "DELETE" });
       const d = await r.json();
       if (d.success) { setSuccess("Deleted."); fetchGuides(); } else setError(d.error?.message || "Failed");
     } catch { setError("Connection failed"); }
@@ -45,7 +45,7 @@ export default function GuidesTab({ adminWriteFetch, API_BASE_URL, guides, downl
 
   const handleToggle = async (id: string, current: boolean) => {
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/guides/${id}/toggle`, {
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/guides/${id}/toggle`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_active: !current }),
       });
       if (r.status === 401) { handleSessionExpired(); return; }

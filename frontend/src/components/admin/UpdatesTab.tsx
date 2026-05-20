@@ -32,8 +32,8 @@ export default function UpdatesTab({
     setSuccess("");
 
     const url = editingId
-      ? `${API_BASE_URL}/api/admin/updates/${editingId}`
-      : `${API_BASE_URL}/api/admin/updates`;
+      ? `${API_BASE_URL}/api/v1/admin/updates/${editingId}`
+      : `${API_BASE_URL}/api/v1/admin/updates`;
 
     const body: Record<string, string> = { title, content };
     if (useCustomDate && customDate) {
@@ -81,7 +81,7 @@ export default function UpdatesTab({
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this update?")) return;
     try {
-      const response = await adminWriteFetch(`${API_BASE_URL}/api/admin/updates/${id}`, { method: "DELETE" });
+      const response = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/updates/${id}`, { method: "DELETE" });
       const data = await response.json();
       if (data.success) {
         setSuccess("Update deleted successfully!");

@@ -20,7 +20,7 @@ export default function FaqsTab({ adminWriteFetch, API_BASE_URL, faqs, loading, 
     e.preventDefault();
     setError(""); setSuccess(""); setSubmitting(true);
     try {
-      const url = editingId ? `${API_BASE_URL}/api/admin/faqs/${editingId}` : `${API_BASE_URL}/api/admin/faqs`;
+      const url = editingId ? `${API_BASE_URL}/api/v1/admin/faqs/${editingId}` : `${API_BASE_URL}/api/v1/admin/faqs`;
       const r = await adminWriteFetch(url, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,7 +39,7 @@ export default function FaqsTab({ adminWriteFetch, API_BASE_URL, faqs, loading, 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this FAQ?")) return;
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/faqs/${id}`, { method: "DELETE" });
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/faqs/${id}`, { method: "DELETE" });
       if (r.status === 401) { handleSessionExpired(); return; }
       const d = await r.json();
       if (d.success) { setSuccess("FAQ deleted."); fetchFaqs(); } else setError(d.error?.message || "Failed");
@@ -48,7 +48,7 @@ export default function FaqsTab({ adminWriteFetch, API_BASE_URL, faqs, loading, 
 
   const handleToggle = async (id: string, current: boolean) => {
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/faqs/${id}/toggle`, {
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/faqs/${id}/toggle`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_active: !current }),
       });
       if (r.status === 401) { handleSessionExpired(); return; }

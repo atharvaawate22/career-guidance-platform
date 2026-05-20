@@ -57,7 +57,7 @@ export default function ResourcesPage() {
     try {
       if (showLoader) setLoading(true);
       setError("");
-      const response = await fetch(`${API_BASE_URL}/api/resources`);
+      const response = await fetch(`${API_BASE_URL}/api/v1/resources`);
       const data = await response.json();
       if (data.success) {
         setResources(data.data);

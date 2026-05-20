@@ -24,7 +24,7 @@ export default function ResourcesTab({ adminWriteFetch, API_BASE_URL, resources,
     e.preventDefault();
     setError(""); setSuccess(""); setSubmitting(true);
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/resources`, {
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/resources`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
       });
       const d = await r.json();
@@ -36,7 +36,7 @@ export default function ResourcesTab({ adminWriteFetch, API_BASE_URL, resources,
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this resource?")) return;
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/resources/${id}`, { method: "DELETE" });
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/resources/${id}`, { method: "DELETE" });
       const d = await r.json();
       if (d.success) { setSuccess("Deleted."); fetchResources(); } else setError(d.error?.message || "Failed");
     } catch { setError("Connection failed"); }
@@ -44,7 +44,7 @@ export default function ResourcesTab({ adminWriteFetch, API_BASE_URL, resources,
 
   const handleToggle = async (id: string, current: boolean) => {
     try {
-      const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/resources/${id}/toggle`, {
+      const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/resources/${id}/toggle`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_active: !current }),
       });
       const d = await r.json();

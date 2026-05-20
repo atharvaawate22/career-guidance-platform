@@ -7,7 +7,7 @@ const router = Router();
 
 router.get('/', (_req, res) => {
   res.json({
-    endpoint: '/api/bookings',
+    endpoint: '/api/v1/bookings',
     method: 'POST',
     description: 'Book a counseling session with admission experts',
     requiredFields: {

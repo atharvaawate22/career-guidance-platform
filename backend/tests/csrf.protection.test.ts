@@ -21,7 +21,7 @@ const buildAdminSessionCookie = () => {
 describe('CSRF protection for admin mutating routes', () => {
   it('returns 403 when CSRF header is missing', async () => {
     const response = await request(app)
-      .post('/api/admin/updates')
+      .post('/api/v1/admin/updates')
       .set('Cookie', [buildAdminSessionCookie()])
       .send({ title: 'Test update', content: 'Test content' });
 
@@ -32,7 +32,7 @@ describe('CSRF protection for admin mutating routes', () => {
 
   it('returns 403 when CSRF header and cookie do not match', async () => {
     const response = await request(app)
-      .post('/api/admin/updates')
+      .post('/api/v1/admin/updates')
       .set('Cookie', [
         buildAdminSessionCookie(),
         'cgp_admin_csrf=csrf-cookie-token',

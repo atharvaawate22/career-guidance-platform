@@ -65,7 +65,7 @@ export default function AdminPage() {
 
   const fetchCsrfToken = useCallback(async (): Promise<string | null> => {
     try {
-      const r = await fetch(`${API_BASE_URL}/api/admin/csrf`, { credentials: "include" });
+      const r = await fetch(`${API_BASE_URL}/api/v1/admin/csrf`, { credentials: "include" });
       if (!r.ok) return null;
       const d = await r.json();
       const t = d?.data?.csrfToken as string | undefined;
@@ -88,13 +88,13 @@ export default function AdminPage() {
   // ── Data fetchers ─────────────────────────────────────────────────────
 
   const fetchUpdates = useCallback(async () => {
-    try { setUpdatesLoading(true); const r = await fetch(`${API_BASE_URL}/api/updates`); const d = await r.json();
+    try { setUpdatesLoading(true); const r = await fetch(`${API_BASE_URL}/api/v1/updates`); const d = await r.json();
       if (d.success) setUpdates(Array.isArray(d.data) ? d.data : d.data?.data || []);
     } catch {} finally { setUpdatesLoading(false); }
   }, []);
 
   const fetchBookings = useCallback(async () => {
-    try { setBookingsLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/admin/bookings`);
+    try { setBookingsLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/bookings`);
       if (r.status === 401) { handleSessionExpired(); return; }
       const d = await r.json();
       if (d.success) setBookings(Array.isArray(d.data) ? d.data : d.data?.data || []);
@@ -102,7 +102,7 @@ export default function AdminPage() {
   }, [adminFetch, handleSessionExpired]);
 
   const fetchFaqs = useCallback(async () => {
-    try { setFaqsLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/admin/faqs`);
+    try { setFaqsLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/faqs`);
       if (r.status === 401) { handleSessionExpired(); return; }
       const d = await r.json();
       if (d.success) setFaqs(Array.isArray(d.data) ? d.data : d.data?.data || []);
@@ -110,13 +110,13 @@ export default function AdminPage() {
   }, [adminFetch, handleSessionExpired]);
 
   const fetchResources = useCallback(async () => {
-    try { setResourcesLoading(true); const r = await fetch(`${API_BASE_URL}/api/resources`); const d = await r.json();
+    try { setResourcesLoading(true); const r = await fetch(`${API_BASE_URL}/api/v1/resources`); const d = await r.json();
       if (d.success) setResources(Array.isArray(d.data) ? d.data : d.data?.data || []);
     } catch {} finally { setResourcesLoading(false); }
   }, []);
 
   const fetchGuides = useCallback(async () => {
-    try { setGuidesLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/admin/guides`);
+    try { setGuidesLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/guides`);
       if (r.status === 401) { handleSessionExpired(); return; }
       const d = await r.json();
       if (d.success) setGuides(Array.isArray(d.data) ? d.data : d.data?.data || []);
@@ -124,7 +124,7 @@ export default function AdminPage() {
   }, [adminFetch, handleSessionExpired]);
 
   const fetchDownloads = useCallback(async () => {
-    try { setDownloadsLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/admin/guides/downloads`);
+    try { setDownloadsLoading(true); const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/guides/downloads`);
       if (r.status === 401) { handleSessionExpired(); return; }
       const d = await r.json();
       if (d.success) setDownloads(Array.isArray(d.data) ? d.data : d.data?.data || []);
@@ -136,7 +136,7 @@ export default function AdminPage() {
     if (!["pdf", "doc", "docx"].includes(ext)) throw new Error("Only PDF and Word documents are allowed");
     if (file.size > 20 * 1024 * 1024) throw new Error("File size must be under 20 MB");
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const r = await adminWriteFetch(`${API_BASE_URL}/api/admin/upload?bucket=${encodeURIComponent(bucket)}&filename=${encodeURIComponent(filename)}`, {
+    const r = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/upload?bucket=${encodeURIComponent(bucket)}&filename=${encodeURIComponent(filename)}`, {
       method: "POST", headers: { "Content-Type": file.type || "application/octet-stream", "x-file-content-type": file.type || "application/octet-stream" }, body: file,
     });
     const text = await r.text();
@@ -151,7 +151,7 @@ export default function AdminPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const r = await adminFetch(`${API_BASE_URL}/api/admin/session`);
+        const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/session`);
         if (!r.ok) { setIsLoggedIn(false); return; }
         const t = await fetchCsrfToken();
         if (!t) { setIsLoggedIn(false); return; }
@@ -168,7 +168,7 @@ export default function AdminPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); setLoginError("");
     try {
-      const r = await adminFetch(`${API_BASE_URL}/api/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+      const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
       const d = await r.json() as ApiErrorPayload;
       if (d.success) {
         const t = await fetchCsrfToken();
@@ -180,7 +180,7 @@ export default function AdminPage() {
   };
 
   const handleLogout = async () => {
-    try { await adminWriteFetch(`${API_BASE_URL}/api/admin/logout`, { method: "POST" }); } catch {}
+    try { await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/logout`, { method: "POST" }); } catch {}
     setIsLoggedIn(false); setCsrfToken(""); setActiveTab("dashboard");
     window.dispatchEvent(new Event("adminAuthChange"));
   };

@@ -36,7 +36,7 @@ beforeAll(async () => {
 
 describe('API smoke: critical login and booking flows', () => {
   it('allows admin login with valid payload and sets session cookies', async () => {
-    const response = await request(app).post('/api/admin/login').send({
+    const response = await request(app).post('/api/v1/admin/login').send({
       email: 'admin@example.com',
       password: 'StrongPass#123',
     });
@@ -77,7 +77,7 @@ describe('API smoke: critical login and booking flows', () => {
     const dd = String(target.getDate()).padStart(2, '0');
     const meetingTime = `${yyyy}-${mm}-${dd}T10:00:00+05:30`;
 
-    const response = await request(app).post('/api/bookings').send({
+    const response = await request(app).post('/api/v1/bookings').send({
       student_name: 'Aarav Kulkarni',
       email: 'aarav@example.com',
       phone: '9876543210',

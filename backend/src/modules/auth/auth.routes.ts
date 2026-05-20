@@ -12,7 +12,7 @@ const adminLoginLimiter = createAdminLoginLimiter();
 
 router.get('/login', (_req, res) => {
   res.json({
-    endpoint: '/api/admin/login',
+    endpoint: '/api/v1/admin/login',
     method: 'POST',
     description: 'Admin authentication endpoint',
     requiredFields: {

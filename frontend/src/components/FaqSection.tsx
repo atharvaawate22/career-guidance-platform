@@ -15,7 +15,7 @@ export default function FaqSection() {
     const fetch_ = async () => {
       try {
         setIsLoading(true); setLoadError("");
-        const r = await fetch(`${API_BASE_URL}/api/faqs`, { cache: "no-store" });
+        const r = await fetch(`${API_BASE_URL}/api/v1/faqs`, { cache: "no-store" });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
         if (d.success && Array.isArray(d.data)) {

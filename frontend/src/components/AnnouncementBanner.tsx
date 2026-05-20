@@ -14,7 +14,7 @@ export default function AnnouncementBanner() {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/settings/announcement`)
+    fetch(`${API_BASE_URL}/api/v1/settings/announcement`)
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data) {
