@@ -1,6 +1,5 @@
-// Load environment variables FIRST - before any other imports
-import dotenv from 'dotenv';
-dotenv.config();
+import { initSentry, Sentry } from './config/sentry';
+initSentry();
 
 import express from 'express';
 import cors from 'cors';
@@ -161,6 +160,7 @@ app.use('/api/v1/admin', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
 // Register error handler after all routes
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 const initializeDatabase = async (): Promise<boolean> => {
