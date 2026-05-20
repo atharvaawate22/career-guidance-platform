@@ -83,65 +83,80 @@ export const loginController = async (
 export const sessionController = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  res.status(200).json({
-    success: true,
-    data: {
-      authenticated: true,
-      user: req.user,
-    },
-  });
+  try {
+    res.status(200).json({
+      success: true,
+      data: {
+        authenticated: true,
+        user: req.user,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const csrfController = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  const existing = req.cookies?.[ADMIN_CSRF_COOKIE] as string | undefined;
-  const csrfToken = existing || crypto.randomBytes(24).toString('hex');
+  try {
+    const existing = req.cookies?.[ADMIN_CSRF_COOKIE] as string | undefined;
+    const csrfToken = existing || crypto.randomBytes(24).toString('hex');
 
-  if (!existing) {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const sameSite = resolveSameSiteMode();
-    const secure = isProduction || sameSite === 'none';
-    const maxAge = getSessionCookieMaxAgeMs(process.env.JWT_EXPIRES_IN);
-    res.cookie(ADMIN_CSRF_COOKIE, csrfToken, {
-      httpOnly: false,
-      secure,
-      sameSite,
-      path: '/',
-      maxAge,
+    if (!existing) {
+      const isProduction = process.env.NODE_ENV === 'production';
+      const sameSite = resolveSameSiteMode();
+      const secure = isProduction || sameSite === 'none';
+      const maxAge = getSessionCookieMaxAgeMs(process.env.JWT_EXPIRES_IN);
+      res.cookie(ADMIN_CSRF_COOKIE, csrfToken, {
+        httpOnly: false,
+        secure,
+        sameSite,
+        path: '/',
+        maxAge,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { csrfToken },
     });
+  } catch (error) {
+    next(error);
   }
-
-  res.status(200).json({
-    success: true,
-    data: { csrfToken },
-  });
 };
 
 export const logoutController = async (
   _req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite = resolveSameSiteMode();
-  const secure = isProduction || sameSite === 'none';
-  res.clearCookie(ADMIN_AUTH_COOKIE, {
-    httpOnly: true,
-    secure,
-    sameSite,
-    path: '/',
-  });
-  res.clearCookie(ADMIN_CSRF_COOKIE, {
-    httpOnly: false,
-    secure,
-    sameSite,
-    path: '/',
-  });
+  try {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const sameSite = resolveSameSiteMode();
+    const secure = isProduction || sameSite === 'none';
+    res.clearCookie(ADMIN_AUTH_COOKIE, {
+      httpOnly: true,
+      secure,
+      sameSite,
+      path: '/',
+    });
+    res.clearCookie(ADMIN_CSRF_COOKIE, {
+      httpOnly: false,
+      secure,
+      sameSite,
+      path: '/',
+    });
 
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully',
-  });
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
