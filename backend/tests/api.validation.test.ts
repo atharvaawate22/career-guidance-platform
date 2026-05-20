@@ -1,18 +1,9 @@
 import request from 'supertest';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import type { Express } from 'express';
+process.env.NODE_ENV = 'test';
 
-let app: Express;
-
-beforeAll(() => {
-  process.env.NODE_ENV = 'test';
-});
-
-beforeAll(async () => {
-  const server = await import('../src/server');
-  app = server.app;
-});
+import { app } from '../src/server';
 
 describe('API validation boundaries', () => {
   it('rejects invalid predictor payload', async () => {
