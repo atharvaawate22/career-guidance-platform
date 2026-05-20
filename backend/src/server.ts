@@ -5,6 +5,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import errorHandler from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
@@ -103,6 +104,7 @@ app.use(
   }),
 );
 app.use(helmet());
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(cookieParser());
 app.use(requestLogger);
 
