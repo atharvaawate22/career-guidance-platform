@@ -18,6 +18,21 @@ vi.mock('../src/modules/predictor/predictor.repository', () => {
 
 import { PredictorService } from '../src/modules/predictor/predictor.service';
 
+const makeCollege = (id: string, cutoff_rank: number) => ({
+  id,
+  college_code: `C${id}`,
+  college_name: `College ${id}`,
+  branch: 'CE',
+  category: 'OPEN',
+  gender: null,
+  college_status: null,
+  level: 'State Level',
+  stage: 'I',
+  cutoff_rank,
+  cutoff_percentile: 90,
+  year: 2025,
+});
+
 describe('predictor.service predictColleges', () => {
   const service = new PredictorService();
 
@@ -95,6 +110,81 @@ describe('predictor.service predictColleges', () => {
 
     await expect(service.predictColleges({ percentile: 88.2 })).rejects.toThrow(
       'Unable to estimate rank from percentile for the selected year',
+    );
+  });
+
+  it('rank=1 classifies most colleges as safe', async () => {
+    const rank = 1;
+    getEligibleCollegesMock.mockResolvedValueOnce([
+      makeCollege('1', 40),
+      makeCollege('2', 1),
+    ]);
+
+    const result = await service.predictColleges({ rank });
+    expect(result.meta.effectiveRank).toBe(1);
+    expect(result.meta.inputMode).toBe('rank');
+    expect(result.safe.length).toBeGreaterThan(0);
+    expect(result.dream).toHaveLength(0);
+  });
+
+  it('rank=200000 classifies most colleges as dream', async () => {
+    const rank = 200000;
+    getEligibleCollegesMock.mockResolvedValueOnce([
+      makeCollege('1', 185000),
+      makeCollege('2', rank),
+    ]);
+
+    const result = await service.predictColleges({ rank });
+    expect(result.meta.effectiveRank).toBe(rank);
+    expect(result.dream.length).toBeGreaterThan(0);
+  });
+
+  it('returns empty results when no colleges match', async () => {
+    getEligibleCollegesMock.mockResolvedValueOnce([]);
+
+    const result = await service.predictColleges({ rank: 5000 });
+    expect(result.safe).toHaveLength(0);
+    expect(result.target).toHaveLength(0);
+    expect(result.dream).toHaveLength(0);
+  });
+
+  it('college exactly at rank - targetAbove is classified as target not dream', async () => {
+    const rank = 10000;
+    getEligibleCollegesMock.mockResolvedValueOnce([makeCollege('1', 7500)]);
+
+    const result = await service.predictColleges({ rank });
+    expect(result.target).toHaveLength(1);
+    expect(result.dream).toHaveLength(0);
+  });
+
+  it('college exactly at rank + targetBelow is classified as target not safe', async () => {
+    const rank = 10000;
+    getEligibleCollegesMock.mockResolvedValueOnce([makeCollege('1', 11500)]);
+
+    const result = await service.predictColleges({ rank });
+    expect(result.target).toHaveLength(1);
+    expect(result.safe).toHaveLength(0);
+  });
+
+  it('include_tfws=true path passes the flag through to repository', async () => {
+    getEligibleCollegesMock.mockResolvedValueOnce([makeCollege('1', 5000)]);
+
+    await service.predictColleges({ rank: 5000, include_tfws: true });
+
+    expect(getEligibleCollegesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ include_tfws: true }),
+    );
+  });
+
+  it('throws on invalid rank < 1', async () => {
+    await expect(service.predictColleges({ rank: 0 })).rejects.toThrow(
+      'Rank must be a positive number',
+    );
+  });
+
+  it('throws on percentile > 100', async () => {
+    await expect(service.predictColleges({ percentile: 101 })).rejects.toThrow(
+      'Percentile must be between 0 and 100',
     );
   });
 });
