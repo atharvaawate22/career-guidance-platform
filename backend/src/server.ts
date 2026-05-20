@@ -35,24 +35,6 @@ process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Rejection', { reason });
 });
 
-const normalizeOrigin = (value: string) => value.trim().replace(/\/+$/, '');
-const allowedOrigins = Array.from(
-  new Set([
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    ...(
-      process.env.FRONTEND_URL ||
-      'https://career-guidance-platform-gilt.vercel.app'
-    )
-      .split(',')
-      .map(normalizeOrigin)
-      .filter(Boolean),
-  ]),
-);
-
-const isAllowedOrigin = (origin: string): boolean =>
-  allowedOrigins.includes(origin);
-
 export const app = express();
 
 function resolveTrustProxy(): boolean | number | string {
@@ -87,16 +69,15 @@ app.use(
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      // Allow requests with no origin (e.g. server-to-server, curl)
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-      const requestOrigin = normalizeOrigin(origin);
-      if (isAllowedOrigin(requestOrigin)) {
+      const allowed = (process.env.FRONTEND_URL ?? '')
+        .split(',')
+        .map((url) => url.trim())
+        .filter(Boolean);
+
+      if (!origin || allowed.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`CORS: origin '${requestOrigin}' is not allowed`));
+        callback(new Error(`CORS: origin ${origin} not allowed`));
       }
     },
     credentials: true,
