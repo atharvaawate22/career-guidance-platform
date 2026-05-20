@@ -279,6 +279,14 @@ export default function Sidebar() {
           <div className="px-4 py-3 text-xs" style={{ borderTop: "1px solid var(--navy-border)", color: "var(--slate-light)" }}>
             <p className="font-semibold" style={{ color: "var(--white)" }}>© 2026 CETHub</p>
             <p className="mt-0.5">v1.0.0 · Data: 2025 CAP</p>
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+              <Link href="/privacy" style={{ color: "var(--slate-light)" }}>
+                Privacy Policy
+              </Link>
+              <Link href="/terms" style={{ color: "var(--slate-light)" }}>
+                Terms of Service
+              </Link>
+            </div>
           </div>
         )}
       </aside>

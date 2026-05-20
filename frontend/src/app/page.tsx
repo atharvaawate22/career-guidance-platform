@@ -259,7 +259,7 @@ export default function Home() {
               { heading: "Tools", links: [{ label: "College Predictor", href: "/predictor" }, { label: "Cutoff Explorer", href: "/cutoffs" }] },
               { heading: "Learn",   links: [{ label: "Admission Guides", href: "/guides" }, { label: "Resources", href: "/resources" }] },
               { heading: "Connect", links: [{ label: "Book a Session", href: "/book" }, { label: "Latest Updates", href: "/updates" }] },
-              { heading: "About",   links: [] },
+              { heading: "About",   links: [{ label: "Privacy Policy", href: "/privacy" }, { label: "Terms of Service", href: "/terms" }] },
             ].map(col => (
               <div key={col.heading}>
                 <h4 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "var(--slate-light)" }}>{col.heading}</h4>
