@@ -1,3 +1,23 @@
+# CET Hub — MHT-CET Admission Guidance Platform
+
+**Live:** [cethub.in](https://cethub.in) &nbsp;|&nbsp; 
+**Built by:** [Atharva Awate](https://github.com/atharvaawate22)
+
+A full-stack web platform helping Maharashtra engineering students navigate 
+MHT-CET CAP admissions. Features a percentile-based college predictor, 
+historical cutoff explorer (2022–2025), consultation booking with Google Meet, 
+CET update tracking, and a role-protected admin dashboard.
+
+**Stack:** Next.js · TypeScript · Node.js · Express · PostgreSQL · Zod · 
+Vercel
+
+**Key engineering decisions documented in [`/docs`](/docs).**
+
+> ⚠️ This project is under a source-available license. Viewing and evaluation 
+> are welcome. Redistribution or redeployment is not permitted.
+
+---
+
 # MHT CET Admission Guidance Platform
 
 A modular and scalable web platform focused on MHT CET engineering admissions. The system provides structured admission guidance, CET updates tracking, cutoff exploration, a college predictor engine, downloadable guides, and automated consultation booking.
