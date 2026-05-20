@@ -1,11 +1,9 @@
 import { z } from 'zod';
 import * as settingsRepository from '../settings/settings.repository';
+import { VALID_PREDICTOR_CATEGORIES } from '../predictor/predictor.schemas';
 
 // Valid booking categories matching Maharashtra MHT-CET reservation structure
-export const VALID_BOOKING_CATEGORIES = [
-  'OPEN', 'SC', 'ST', 'VJ', 'NT1', 'NT2', 'NT3',
-  'OBC', 'EWS', 'TFWS', 'DEF_OPEN', 'DEF_OBC', 'PWD_OPEN',
-] as const;
+export const VALID_BOOKING_CATEGORIES = VALID_PREDICTOR_CATEGORIES;
 
 // Default time slots — used as fallback if DB config is unavailable
 const DEFAULT_TIME_SLOTS = [
