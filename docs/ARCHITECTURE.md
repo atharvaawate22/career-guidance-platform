@@ -317,3 +317,51 @@ Planned expansion modules:
 - Reporting and Data Intelligence Dashboard
 
 New modules must follow the same architecture pattern and isolation principles.
+
+---
+
+## 13. Observability, Performance Baselines, and SLOs
+
+### 13.1 Performance Baseline profiling
+The project maintains a lightweight backend API latency profiling workflow inside CI for trend visibility. When `DATABASE_URL` is configured:
+1. Backend app is built and started.
+2. Endpoint profiler runs against:
+   - `GET /api/v1/cutoffs` (filtered)
+   - `POST /api/v1/predict`
+   - `GET /api/v1/cutoffs/meta`
+3. Latency benchmarks (avg, p50, p95, min, max) are captured as the `backend-profile-baseline` artifact.
+4. Developers can analyze changes in p95 values release-to-release to identify performance regressions before merging.
+5. Local profiling can be executed from the backend directory using:
+   ```bash
+   npm run profile:endpoints
+   ```
+
+### 13.2 Service Level Objectives (SLOs) & Alert Thresholds
+Pragmatic service-level goals suitable for student-project production deployment:
+
+#### Availability Targets
+*   **API Liveness (`GET /api/v1/health`):** 99.9% monthly availability target.
+*   **API Readiness (`GET /api/v1/ready`):** 99.5% monthly availability target.
+*   *Alert Thresholds:*
+    *   **Critical:** 3 consecutive readiness failures (2-minute interval).
+    *   **Warning:** Readiness error rate > 5% over 15 minutes.
+
+#### Latency Targets (p95)
+*   `GET /api/v1/cutoffs`: $\le$ 700ms
+*   `POST /api/v1/predict`: $\le$ 900ms
+*   `GET /api/v1/cutoffs/meta`: $\le$ 500ms
+*   *Alert Thresholds:*
+    *   **Warning:** p95 exceeds target for 3 consecutive measurement windows.
+    *   **Critical:** p95 exceeds 1.5x target for any 2 consecutive windows.
+
+#### Error Rate & Booking Flow Goals
+*   **Public/Admin 5xx Rate:** < 1% over 15-minute rolling window.
+*   **Booking Success Rate (`POST /api/v1/bookings`):** $\ge$ 98% success (excluding validation errors).
+*   *Alert Thresholds:*
+    *   **Critical:** 5xx $\ge$ 3% over 10 minutes, or booking success rate < 95% over 15 minutes.
+
+#### Incident Webhook Integration
+Use these optional environment variables to automatically stream logs/errors to external monitoring channels:
+*   **Backend:** `ERROR_WEBHOOK_URL` (non-blocking)
+*   **Frontend:** `NEXT_PUBLIC_CLIENT_ERROR_WEBHOOK_URL` (non-blocking)
+
