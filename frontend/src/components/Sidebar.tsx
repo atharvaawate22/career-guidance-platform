@@ -121,11 +121,16 @@ const navItems: NavItem[] = [
 /* ─── Sidebar ─────────────────────────────────────────────────────── */
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
-    const sync = () => setIsCollapsed(window.innerWidth < 1024);
+    const sync = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      setIsCollapsed(mobile);
+    };
     sync();
     window.addEventListener("resize", sync);
     return () => window.removeEventListener("resize", sync);
@@ -170,22 +175,25 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile toggle */}
-      <button
-        onClick={() => setIsCollapsed(false)}
-        className="lg:hidden fixed top-4 left-4 z-50 flex items-center justify-center w-10 h-10 rounded-lg shadow-lg"
-        style={{ background: "var(--navy)", color: "var(--white)" }}
-        aria-label="Open menu"
-      >
-        <IconMenu />
-      </button>
+      {isCollapsed && (
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="lg:hidden fixed top-4 left-4 z-50 flex items-center justify-center w-10 h-10 rounded-lg shadow-lg"
+          style={{ background: "var(--navy)", color: "var(--white)" }}
+          aria-label="Open menu"
+        >
+          <IconMenu />
+        </button>
+      )}
 
       {/* Sidebar */}
       <aside
         style={{
-          width: w,
+          width: isMobile ? "240px" : (isCollapsed ? "64px" : "240px"),
+          transform: isMobile && isCollapsed ? "translateX(-100%)" : "none",
           background: "var(--navy)",
           borderRight: "1px solid var(--navy-border)",
-          transition: "width .28s cubic-bezier(.4,0,.2,1)",
+          transition: "width .28s cubic-bezier(.4,0,.2,1), transform .28s cubic-bezier(.4,0,.2,1)",
         }}
         className="fixed top-0 left-0 h-screen z-40 flex flex-col overflow-hidden shadow-2xl"
         data-collapsed={isCollapsed}

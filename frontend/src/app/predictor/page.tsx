@@ -139,7 +139,7 @@ export default function PredictorPage() {
       if (inputMode === "rank") body.rank = Number(rank);
       if (selectedBranches.length > 0) body.preferred_branches = selectedBranches;
       if (selectedCities.length > 0) body.cities = selectedCities;
-      const res = await fetch(`${API_BASE_URL}/api/v1/predict`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch(`${API_BASE_URL}/api/v1/predict/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
       if (data.success) setResults(data.data);
       else setError(data.error?.message || "Failed to get predictions");
