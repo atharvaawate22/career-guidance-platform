@@ -7,6 +7,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { inter, playfairDisplay as playfair } from "@/lib/fonts";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://cethub.in"),
   title: "MHT-CET Career Hub — College Predictor, Cutoffs & Guidance",
   description:
     "All-in-one MHT-CET career guidance platform — predict colleges based on your percentile, explore 2025 cutoff data, book expert counseling sessions, and plan your engineering admission in Maharashtra.",
@@ -20,6 +21,9 @@ export const metadata: Metadata = {
     description:
       "Predict colleges, explore cutoffs, and get expert guidance for MHT-CET engineering admissions in Maharashtra.",
     type: "website",
+  },
+  alternates: {
+    canonical: "/",
   },
 };
 

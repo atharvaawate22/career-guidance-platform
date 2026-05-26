@@ -8,9 +8,9 @@ export const metadata: Metadata = {
     title: "MHT-CET 2025 Cutoff Explorer",
     description:
       "Search cutoff data by college, branch, category, and round for MHT-CET 2025.",
-    url: "https://mhtcetcareer.in/cutoffs",
+    url: "https://cethub.in/cutoffs",
   },
-  alternates: { canonical: "https://mhtcetcareer.in/cutoffs" },
+  alternates: { canonical: "https://cethub.in/cutoffs" },
 };
 
 export default function CutoffsLayout({

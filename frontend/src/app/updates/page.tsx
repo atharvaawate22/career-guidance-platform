@@ -129,6 +129,44 @@ export default function UpdatesPage() {
           </div>
         )}
       </div>
+      {/* Schema.org NewsArticle ItemList structured markup for Google News and AI search ingestion */}
+      {updates.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ItemList",
+              "itemListElement": updates.map((update, index) => ({
+                "@type": "ListItem",
+                "position": index + 1,
+                "item": {
+                  "@type": "NewsArticle",
+                  "headline": update.title,
+                  "description": update.content.substring(0, 160) + (update.content.length > 160 ? "..." : ""),
+                  "datePublished": update.published_date,
+                  "dateModified": update.edited_at || update.published_date,
+                  "author": {
+                    "@type": "Organization",
+                    "name": "CETHub",
+                    "url": "https://cethub.in"
+                  },
+                  "publisher": {
+                    "@type": "Organization",
+                    "name": "CETHub",
+                    "url": "https://cethub.in",
+                    "logo": {
+                      "@type": "ImageObject",
+                      "url": "https://cethub.in/favicon.ico"
+                    }
+                  },
+                  "mainEntityOfPage": "https://cethub.in/updates"
+                }
+              }))
+            })
+          }}
+        />
+      )}
     </div>
   );
 }

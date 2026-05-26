@@ -385,6 +385,40 @@ export default function CutoffsPage() {
           </div>
         </div>
       </div>
+      {/* Schema.org Dataset structured markup for GEO and Google Dataset Search */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Dataset",
+            "name": "MHT-CET 2025 CAP Round Engineering Cutoff Dataset",
+            "description": "Structured historical cutoff dataset containing 33,000+ percentile and rank admission records across engineering colleges, branches, categories, and rounds in Maharashtra.",
+            "url": "https://cethub.in/cutoffs",
+            "keywords": [
+              "MHT-CET cutoffs",
+              "engineering admission cutoffs Maharashtra",
+              "CAP round",
+              "CET percentile",
+              "CET rank"
+            ],
+            "creator": {
+              "@type": "Organization",
+              "name": "CETHub",
+              "url": "https://cethub.in"
+            },
+            "distribution": [
+              {
+                "@type": "DataDownload",
+                "encodingFormat": "application/json",
+                "contentUrl": "https://cethub.in/api/v1/cutoffs"
+              }
+            ],
+            "temporalCoverage": "2025",
+            "spatialCoverage": "Maharashtra, India"
+          })
+        }}
+      />
     </div>
   );
 }

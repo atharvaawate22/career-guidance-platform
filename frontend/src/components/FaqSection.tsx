@@ -75,9 +75,9 @@ export default function FaqSection() {
                     </div>
                     <span className="flex items-center justify-center w-6 h-6 rounded-full shrink-0 text-base transition-transform duration-200 mt-0.5"
                       style={{
-                        background: isOpen ? "var(--gold)" : "var(--ice-mid)",
-                        color: isOpen ? "var(--navy)" : "var(--slate)",
-                        transform: isOpen ? "rotate(45deg)" : "none",
+                         background: isOpen ? "var(--gold)" : "var(--ice-mid)",
+                         color: isOpen ? "var(--navy)" : "var(--slate)",
+                         transform: isOpen ? "rotate(45deg)" : "none",
                       }}>
                       +
                     </span>
@@ -97,6 +97,27 @@ export default function FaqSection() {
           </div>
         )}
       </div>
+
+      {/* Dynamic AEO/GEO FAQPage Schema Markup */}
+      {faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": faqs.map(faq => ({
+                "@type": "Question",
+                "name": faq.question,
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": faq.answer
+                }
+              }))
+            })
+          }}
+        />
+      )}
     </section>
   );
 }

@@ -8,9 +8,9 @@ export const metadata: Metadata = {
     title: "MHT-CET 2025 Updates & Announcements",
     description:
       "Latest MHT-CET 2025 news, CAP round schedules, and admission announcements.",
-    url: "https://mhtcetcareer.in/updates",
+    url: "https://cethub.in/updates",
   },
-  alternates: { canonical: "https://mhtcetcareer.in/updates" },
+  alternates: { canonical: "https://cethub.in/updates" },
 };
 
 export default function UpdatesLayout({
