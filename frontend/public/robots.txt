@@ -2,11 +2,9 @@
 User-agent: *
 Allow: /
 
+# Disallow admin panel and API routes from being indexed
+Disallow: /admin
+Disallow: /api/
+
 # Sitemap
 Sitemap: https://cethub.in/sitemap.xml
-
-# Crawl-delay to be polite (optional — most major crawlers ignore this)
-Crawl-delay: 1
-
-# Disallow admin panel from being indexed
-Disallow: /admin
