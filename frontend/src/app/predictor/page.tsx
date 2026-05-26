@@ -269,7 +269,7 @@ export default function PredictorPage() {
                     <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Category <span style={{ color: "#EF4444" }}>*</span></label>
                     <CustomSelect id="category" value={category}
                       onChange={v => { setCategory(v); setCategoryError(""); if (v === "TFWS") setIncludeTfws(false); }}
-                      options={[{ value: "", label: "Select Category" }, ...CANDIDATE_GENDER_OPTIONS, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))].filter(o => o.value !== "Male" && o.value !== "Female")}
+                      options={[{ value: "", label: "Select Category" }, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))]}
                       placeholder="Select Category" />
                     {categoryError && (
                       <p className="text-xs mt-1.5 font-medium" style={{ color: "#DC2626" }}>{categoryError}</p>

@@ -1,6 +1,7 @@
 -- Database Schema for MHT CET Career Guidance Platform
--- Version: 1.1.0
--- Updated: 2026-05-19
+-- Version: 1.2.0
+-- Updated: 2026-05-26
+-- Purpose: Complete, production-ready schema definitions with high precision and optimized indexes.
 
 -- Enable UUID extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -22,10 +23,6 @@ CREATE TABLE IF NOT EXISTS updates (
 CREATE INDEX IF NOT EXISTS idx_updates_published_date 
 ON updates(published_date DESC);
 
--- Index for edited updates
-CREATE INDEX IF NOT EXISTS idx_updates_edited_at 
-ON updates(edited_at DESC);
-
 -- ============================================================================
 -- TABLE: admin_users
 -- Purpose: Stores authorized admin accounts
@@ -35,7 +32,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Index for login queries
@@ -49,37 +46,36 @@ ON admin_users(email);
 CREATE TABLE IF NOT EXISTS cutoff_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   year INTEGER NOT NULL,
+  college_code TEXT,
   college_name TEXT NOT NULL,
+  branch_code TEXT,
   branch TEXT NOT NULL,
+  college_status TEXT,
+  stage TEXT,
+  level TEXT,
   category TEXT NOT NULL,
   gender TEXT,
-  home_university TEXT NOT NULL,
-  percentile DECIMAL(5,2) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
+  home_university TEXT NOT NULL DEFAULT 'All',
+  percentile DECIMAL(10,7) NOT NULL,
+  cutoff_rank INTEGER,
+  city_normalized TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes for filtering and performance
-CREATE INDEX IF NOT EXISTS idx_cutoff_year 
-ON cutoff_data(year);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_category 
-ON cutoff_data(category);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_branch 
-ON cutoff_data(branch);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_percentile 
-ON cutoff_data(percentile);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_home_university 
-ON cutoff_data(home_university);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_college_name 
-ON cutoff_data(college_name);
-
--- Composite index for common query patterns
+-- Optimized composite and covering performance indexes
 CREATE INDEX IF NOT EXISTS idx_cutoff_composite 
 ON cutoff_data(year, category, branch);
+
+CREATE INDEX IF NOT EXISTS idx_cutoff_predictor_filters
+ON cutoff_data(year, stage, category, level, cutoff_rank)
+INCLUDE (percentile);
+
+CREATE INDEX IF NOT EXISTS idx_cutoff_year_stage_category_city_home
+ON cutoff_data(year, stage, category, city_normalized, home_university)
+INCLUDE (cutoff_rank, percentile);
+
+CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_college_code_name
+ON cutoff_data(year, college_code, college_name);
 
 -- ============================================================================
 -- TABLE: resources
@@ -92,7 +88,7 @@ CREATE TABLE IF NOT EXISTS resources (
   file_url TEXT NOT NULL,
   category TEXT NOT NULL DEFAULT 'Others',
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Index for active resources listing
@@ -109,7 +105,7 @@ CREATE TABLE IF NOT EXISTS guides (
   description TEXT NOT NULL,
   file_url TEXT NOT NULL,
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Index for active guides query
@@ -122,17 +118,14 @@ ON guides(is_active);
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS guide_downloads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  guide_id UUID NOT NULL REFERENCES guides(id),
+  guide_id UUID NOT NULL REFERENCES guides(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
-  percentile DECIMAL(5,2),
-  downloaded_at TIMESTAMP DEFAULT NOW()
+  percentile DECIMAL(10,7),
+  downloaded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes for analytics and lead tracking
-CREATE INDEX IF NOT EXISTS idx_guide_downloads_email 
-ON guide_downloads(email);
-
+-- Index for analytics and lead tracking
 CREATE INDEX IF NOT EXISTS idx_guide_downloads_guide_id 
 ON guide_downloads(guide_id);
 
@@ -149,8 +142,8 @@ CREATE TABLE IF NOT EXISTS faqs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_faqs_active_display_order
-ON faqs(is_active, display_order, created_at);
+CREATE INDEX IF NOT EXISTS idx_faqs_display_order
+ON faqs(display_order);
 
 -- ============================================================================
 -- TABLE: bookings
@@ -161,23 +154,20 @@ CREATE TABLE IF NOT EXISTS bookings (
   student_name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT NOT NULL,
-  percentile DECIMAL(5,2) NOT NULL,
+  percentile DECIMAL(10,7) NOT NULL,
   category TEXT NOT NULL,
   branch_preference TEXT NOT NULL,
   meeting_purpose TEXT NOT NULL DEFAULT 'General admission guidance',
-  meeting_time TIMESTAMP NOT NULL,
+  meeting_time TIMESTAMPTZ NOT NULL,
   meet_link TEXT NOT NULL,
   booking_status TEXT DEFAULT 'scheduled',
   email_status TEXT DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Indexes for booking management
 CREATE INDEX IF NOT EXISTS idx_bookings_meeting_time 
 ON bookings(meeting_time);
-
-CREATE INDEX IF NOT EXISTS idx_bookings_email 
-ON bookings(email);
 
 CREATE INDEX IF NOT EXISTS idx_bookings_status 
 ON bookings(booking_status);
