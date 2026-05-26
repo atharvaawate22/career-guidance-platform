@@ -69,12 +69,12 @@ describe('API contract: public and auth boundary routes', () => {
     });
   });
 
-  it('protects admin session endpoint when unauthenticated', async () => {
+  it('returns authenticated false for session endpoint when unauthenticated', async () => {
     const response = await request(app).get('/api/v1/admin/session');
 
-    expect(response.status).toBe(401);
-    expect(response.body.success).toBe(false);
-    expect(response.body.error.code).toBe('MISSING_TOKEN');
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.authenticated).toBe(false);
   });
 
   it('protects admin csrf endpoint when unauthenticated', async () => {

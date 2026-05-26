@@ -26,18 +26,17 @@ router.get('/login', (_req, res) => {
 });
 
 router.post('/login', authLimiter, authController.loginController);
-router.get(
-  '/session',
-  authMiddleware,
-  requireAdminRole,
-  authController.sessionController,
-);
+
+// Session check is public so it doesn't throw 401 warnings in visitor consoles
+router.get('/session', authController.sessionController);
+
 router.get(
   '/csrf',
   authMiddleware,
   requireAdminRole,
   authController.csrfController,
 );
+
 router.post(
   '/logout',
   authMiddleware,

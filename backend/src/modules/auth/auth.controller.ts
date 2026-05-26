@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import * as authService from './auth.service';
-import { LoginRequest } from './auth.types';
+import { LoginRequest, JWTPayload } from './auth.types';
 import { loginSchema } from './auth.schemas';
 import {
   ADMIN_AUTH_COOKIE,
@@ -86,13 +87,50 @@ export const sessionController = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    res.status(200).json({
-      success: true,
-      data: {
-        authenticated: true,
-        user: req.user,
-      },
-    });
+    // Read the HttpOnly cookie token or Bearer authorization header
+    const cookieToken = req.cookies?.[ADMIN_AUTH_COOKIE] as string | undefined;
+    const authHeader = req.headers.authorization;
+    const headerToken =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : undefined;
+
+    const token = cookieToken || headerToken;
+
+    if (!token) {
+      res.status(200).json({
+        success: true,
+        data: {
+          authenticated: false,
+        },
+      });
+      return;
+    }
+
+    // Verify token
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET is not defined in environment variables');
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+      res.status(200).json({
+        success: true,
+        data: {
+          authenticated: true,
+          user: decoded,
+        },
+      });
+    } catch {
+      // In case of expired or invalid tokens, return authenticated: false cleanly with 200 OK
+      res.status(200).json({
+        success: true,
+        data: {
+          authenticated: false,
+        },
+      });
+    }
   } catch (error) {
     next(error);
   }

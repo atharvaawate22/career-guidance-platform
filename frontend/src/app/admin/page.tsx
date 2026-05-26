@@ -155,6 +155,8 @@ export default function AdminPage() {
       try {
         const r = await adminFetch(`${API_BASE_URL}/api/v1/admin/session`);
         if (!r.ok) { setIsLoggedIn(false); return; }
+        const d = await r.json();
+        if (!d.success || d.data?.authenticated !== true) { setIsLoggedIn(false); return; }
         const t = await fetchCsrfToken();
         if (!t) { setIsLoggedIn(false); return; }
         setIsLoggedIn(true);

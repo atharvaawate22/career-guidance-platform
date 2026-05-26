@@ -143,15 +143,13 @@ export default function Sidebar() {
     window.dispatchEvent(new CustomEvent("sidebarToggle", { detail: { collapsed: isCollapsed, offset: applied, visible } }));
   }, [isCollapsed, isAdmin, pathname]);
 
-  // The first useLayoutEffect above already handles the admin route case
-  // by setting --sidebar-offset to "0px" when pathname === "/admin" && !isAdmin.
-  // A separate effect is not needed.
-
   useEffect(() => {
     const check = async () => {
       try {
         const r = await fetch(`${API_BASE_URL}/api/v1/admin/session`, { credentials: "include" });
-        setIsAdmin(r.ok);
+        if (!r.ok) { setIsAdmin(false); return; }
+        const d = await r.json();
+        setIsAdmin(d.success && d.data?.authenticated === true);
       } catch { setIsAdmin(false); }
     };
     void check();
@@ -160,8 +158,6 @@ export default function Sidebar() {
   }, []);
 
   if (pathname === "/admin" && !isAdmin) {
-    // The useLayoutEffect above already sets --sidebar-offset to "0px".
-    // Do not mutate DOM here during render; effects handle it.
     return null;
   }
 
