@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import AdminShell from "@/components/admin/AdminShell";
 
 export const metadata: Metadata = {
-  title: "Admin Panel - MHT-CET Career Guidance",
-  description: "Admin dashboard for managing content and bookings",
+  title: "Admin Dashboard — CETHub",
+  description: "CETHub administration panel for managing the MHT-CET career guidance platform.",
+  robots: "noindex, nofollow",
 };
 
 export default function AdminLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  return <>{children}</>;
+}) {
+  return <AdminShell>{children}</AdminShell>;
 }
