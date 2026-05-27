@@ -414,6 +414,7 @@ input, select, textarea { font-family: inherit; }
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   color: white;
+  color-scheme: dark;
   transition: border-color .2s var(--ease-default), box-shadow .2s var(--ease-default);
   outline: none;
 }
