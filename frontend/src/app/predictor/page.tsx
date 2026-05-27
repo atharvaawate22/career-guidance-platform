@@ -49,12 +49,12 @@ interface PredictionResults {
 function SectionLabel({ n, label, optional }: { n: number; label: string; optional?: boolean }) {
   return (
     <div className="flex items-center gap-3 mb-5">
-      <span className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0"
-        style={{ background: "var(--gold)", color: "var(--navy)" }}>
+      <span className="flex items-center justify-center w-7 h-7 rounded-xl text-xs font-bold shrink-0"
+        style={{ background: "var(--primary-600)", color: "#ffffff" }}>
         {n}
       </span>
-      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--slate)" }}>
-        {label}{optional && <span className="ml-1.5 normal-case font-normal tracking-normal" style={{ color: "var(--slate-light)" }}>— optional</span>}
+      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--slate-600)" }}>
+        {label}{optional && <span className="ml-1.5 normal-case font-normal tracking-normal" style={{ color: "var(--slate-400)" }}>— optional</span>}
       </span>
     </div>
   );
@@ -150,16 +150,16 @@ export default function PredictorPage() {
   const totalResults = results ? results.safe.length + results.target.length + results.dream.length : 0;
 
   const renderSection = (colleges: CollegeOption[], tier: "safe" | "target" | "dream", title: string) => {
-    const colors = { safe: "var(--gold)", target: "#F59E0B", dream: "#3B82F6" };
+    const colors = { safe: "var(--success-600)", target: "var(--warning-500)", dream: "var(--primary-500)" };
     return (
       <div className="mb-10">
         <div className="flex items-center gap-3 mb-4">
           <span className="w-2 h-6 rounded-full shrink-0" style={{ background: colors[tier] }} />
-          <h3 className="text-xl font-bold" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>{title}</h3>
-          <span className="text-sm ml-1" style={{ color: "var(--slate)" }}>({colleges.length})</span>
+          <h3 className="text-xl font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>{title}</h3>
+          <span className="text-sm ml-1" style={{ color: "var(--slate-500)" }}>({colleges.length})</span>
         </div>
         {colleges.length === 0 ? (
-          <div className="card p-6 text-center text-sm" style={{ color: "var(--slate)" }}>
+          <div className="card p-6 text-center text-sm" style={{ color: "var(--slate-500)" }}>
             No {title.toLowerCase()} found with these filters.
           </div>
         ) : (
@@ -168,7 +168,7 @@ export default function PredictorPage() {
               {colleges.slice(0, 100).map(c => <PredictorResultCard key={c.id} college={c} tier={tier} />)}
             </div>
             {colleges.length > 100 && (
-              <p className="mt-3 text-xs text-center px-4 py-2 rounded-lg" style={{ background: "var(--ice-mid)", color: "var(--slate)" }}>
+              <p className="mt-3 text-xs text-center px-4 py-2 rounded-lg" style={{ background: "var(--slate-100)", color: "var(--slate-500)" }}>
                 Showing top 100 of {colleges.length} — add more filters to narrow down
               </p>
             )}
@@ -179,23 +179,23 @@ export default function PredictorPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--ice)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-secondary)" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
 
         {/* Page header */}
         <div className="mb-8">
           <p className="section-label mb-2">MHT-CET 2025</p>
-          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
             College Predictor
           </h1>
-          <p className="text-sm" style={{ color: "var(--slate)" }}>
+          <p className="text-sm" style={{ color: "var(--slate-500)" }}>
             Based on 2025 CAP Round I cutoffs. Enter your percentile or rank to see eligible colleges.
             Results are indicative, not guaranteed.
           </p>
         </div>
 
         {/* Form card */}
-        <div className="card mb-8" style={{ borderRadius: "1rem", overflow: "hidden" }}>
+        <div className="card mb-8" style={{ borderRadius: "1rem", overflow: "hidden", borderColor: "var(--slate-200)" }}>
           {/* Step header strip */}
           <div className="step-indicator">
             {["Your Score", "Candidate Profile", "Preferences"].map((s, i) => (
@@ -217,14 +217,14 @@ export default function PredictorPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 {/* Toggle */}
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Input Type</label>
-                  <div className="flex rounded-lg p-1 gap-1" style={{ background: "var(--ice-mid)", border: "1px solid var(--border)" }}>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Input Type</label>
+                  <div className="flex rounded-lg p-1 gap-1" style={{ background: "var(--slate-100)", border: "1px solid var(--slate-200)" }}>
                     {(["percentile", "rank"] as const).map(m => (
                       <button key={m} type="button" onClick={() => { setInputMode(m); setError(""); }}
                         className="flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all"
                         style={{
-                          background: inputMode === m ? "var(--white)" : "transparent",
-                          color: inputMode === m ? "var(--ink)" : "var(--slate)",
+                          background: inputMode === m ? "var(--bg-primary)" : "transparent",
+                          color: inputMode === m ? "var(--slate-900)" : "var(--slate-500)",
                           boxShadow: inputMode === m ? "var(--shadow-sm)" : "none",
                         }}>
                         {m === "percentile" ? "Percentile" : <>Rank <span className="text-xs font-normal" style={{ color: "#22C55E" }}>(accurate)</span></>}
@@ -236,37 +236,37 @@ export default function PredictorPage() {
                 {/* Score input */}
                 {inputMode === "percentile" ? (
                   <div>
-                    <label htmlFor="percentile" className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>
-                      Percentile <span style={{ color: "#EF4444" }}>*</span>
+                    <label htmlFor="percentile" className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>
+                      Percentile <span style={{ color: "var(--danger-500)" }}>*</span>
                     </label>
                     <input id="percentile" type="number" value={percentile} onChange={e => setPercentile(e.target.value)}
                       min="0" max="100" step="0.0001" required={inputMode === "percentile"}
                       placeholder="e.g. 96.5000" className="input-base" />
-                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-light)" }}>Rank is estimated from percentile data</p>
+                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-400)" }}>Rank is estimated from percentile data</p>
                   </div>
                 ) : (
                   <div>
-                    <label htmlFor="rank" className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>
-                      Rank <span style={{ color: "#EF4444" }}>*</span>
+                    <label htmlFor="rank" className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>
+                      Rank <span style={{ color: "var(--danger-500)" }}>*</span>
                     </label>
                     <input id="rank" type="number" value={rank} onChange={e => setRank(e.target.value)}
                       min="1" max="500000" step="1" required={inputMode === "rank"}
                       placeholder="e.g. 5000" className="input-base" />
-                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-light)" }}>Best once your official rank is published</p>
+                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-400)" }}>Best once your official rank is published</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div style={{ borderTop: "1px dashed var(--border)" }} />
+            <div style={{ borderTop: "1px dashed var(--slate-200)" }} />
 
             {/* Step 2 */}
             <div>
               <SectionLabel n={2} label="Candidate Profile" />
-              <div className="rounded-xl p-5" style={{ background: "var(--ice)", border: "1px solid var(--border)" }}>
+              <div className="rounded-xl p-5" style={{ background: "var(--bg-secondary)", border: "1px solid var(--slate-200)" }}>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
                   <div className="xl:col-span-4">
-                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Category <span style={{ color: "#EF4444" }}>*</span></label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Category <span style={{ color: "var(--danger-500)" }}>*</span></label>
                     <CustomSelect id="category" value={category}
                       onChange={v => { setCategory(v); setCategoryError(""); if (v === "TFWS") setIncludeTfws(false); }}
                       options={[{ value: "", label: "Select Category" }, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))]}
@@ -276,7 +276,7 @@ export default function PredictorPage() {
                     )}
                   </div>
                   <div className="xl:col-span-4">
-                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Gender <span style={{ color: "#EF4444" }}>*</span></label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Gender <span style={{ color: "var(--danger-500)" }}>*</span></label>
                     <CustomSelect id="gender" value={gender} onChange={(v) => { setGender(v); setGenderError(""); }}
                       options={[...CANDIDATE_GENDER_OPTIONS]} placeholder="Select Gender" />
                     {genderError && (
@@ -284,28 +284,28 @@ export default function PredictorPage() {
                     )}
                   </div>
                   <div className="xl:col-span-4">
-                    <span className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Seat Options</span>
+                    <span className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Seat Options</span>
                     {category !== "TFWS" ? (
                       <label className={`flex h-11 items-center gap-3 rounded-lg px-4 cursor-pointer select-none transition-all`}
                         style={{
-                          border: `1px solid ${includeTfws ? "var(--gold)" : "var(--border)"}`,
-                          background: includeTfws ? "rgb(201 168 76 / .07)" : "var(--white)",
+                          border: `1px solid ${includeTfws ? "var(--primary-400)" : "var(--slate-200)"}`,
+                          background: includeTfws ? "var(--primary-50)" : "var(--bg-primary)",
                         }}>
                         <input type="checkbox" checked={includeTfws} onChange={e => setIncludeTfws(e.target.checked)}
-                          className="h-4 w-4 shrink-0 rounded" style={{ accentColor: "var(--gold)" }} />
-                        <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>
-                          Include <span style={{ color: "var(--gold)", fontWeight: 700 }}>TFWS</span> seats
+                          className="h-4 w-4 shrink-0 rounded" style={{ accentColor: "var(--primary-600)" }} />
+                        <span className="text-sm font-medium" style={{ color: "var(--slate-900)" }}>
+                          Include <span style={{ color: "var(--primary-600)", fontWeight: 700 }}>TFWS</span> seats
                         </span>
                       </label>
                     ) : (
-                      <div className="flex h-11 items-center rounded-lg px-4 text-sm" style={{ border: "1px solid var(--border)", color: "var(--slate)" }}>
+                      <div className="flex h-11 items-center rounded-lg px-4 text-sm" style={{ border: "1px solid var(--slate-200)", color: "var(--slate-500)" }}>
                         TFWS already selected
                       </div>
                     )}
                   </div>
 
                   <div className="xl:col-span-6">
-                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Minority Type</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Minority Type</label>
                     <MultiSelect id="minorityType" value={selectedMinorityTypes} onChange={values => {
                         setSelectedMinorityTypes(values);
                         // Clear groups whenever types are cleared, inline rather than
@@ -315,7 +315,7 @@ export default function PredictorPage() {
                       options={MINORITY_TYPE_OPTIONS} placeholder="All Minority Types" />
                   </div>
                   <div className="xl:col-span-6">
-                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Minority Group</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Minority Group</label>
                     <MultiSelect id="minorityGroup" value={selectedMinorityGroups}
                       onChange={values => {
                         if (selectedMinorityTypes.length === 0) return;
@@ -329,12 +329,12 @@ export default function PredictorPage() {
                 </div>
 
                 <div className="mt-4 grid sm:grid-cols-2 gap-3">
-                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "rgb(201 168 76 / .08)", border: "1px solid rgb(201 168 76 / .2)", color: "var(--ink-mid)" }}>
-                    <span className="font-semibold" style={{ color: "var(--gold)" }}>Seat rule:</span>{" "}
+                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--primary-50)", border: "1px solid var(--primary-200)", color: "var(--slate-700)" }}>
+                    <span className="font-semibold" style={{ color: "var(--primary-600)" }}>Seat rule:</span>{" "}
                     Male → gender-neutral seats only. Female → gender-neutral + ladies seats.
                   </div>
-                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--ice)", border: "1px solid var(--border)", color: "var(--slate)" }}>
-                    <span className="font-semibold" style={{ color: "var(--ink-mid)" }}>Minority:</span>{" "}
+                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--slate-50)", border: "1px solid var(--slate-200)", color: "var(--slate-500)" }}>
+                    <span className="font-semibold" style={{ color: "var(--slate-700)" }}>Minority:</span>{" "}
                     Add type/group only if applicable. Groups require a type selection first.
                   </div>
                 </div>
@@ -348,12 +348,12 @@ export default function PredictorPage() {
               <SectionLabel n={3} label="Preferences" optional />
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Preferred Branches</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Preferred Branches</label>
                   <MultiSelect id="branches" value={selectedBranches} onChange={setSelectedBranches}
                     options={branchOptions} placeholder="All Branches" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--ink-mid)" }}>Preferred Cities</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Preferred Cities</label>
                   <MultiSelect id="cities" value={selectedCities} onChange={setSelectedCities}
                     options={cityOptions} placeholder="All Cities" />
                 </div>
@@ -369,14 +369,14 @@ export default function PredictorPage() {
             )}
 
             {/* Guidance banner */}
-            <div className="rounded-lg p-4 flex flex-wrap items-center justify-between gap-3"
-              style={{ background: "var(--navy)", border: "1px solid var(--navy-border)" }}>
-              <p className="text-sm" style={{ color: "var(--slate-light)" }}>
+            <div className="rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"
+              style={{ background: "linear-gradient(135deg, var(--primary-950), var(--slate-900))", border: "1px solid var(--slate-700)" }}>
+              <p className="text-sm" style={{ color: "var(--slate-300)" }}>
                 For in-depth personalised guidance, book a free counseling session.
               </p>
               <Link href="/book"
                 className="text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                style={{ background: "var(--gold)", color: "var(--navy)" }}>
+                style={{ background: "var(--primary-500)", color: "#ffffff" }}>
                 Book Free Session
               </Link>
             </div>
@@ -403,8 +403,8 @@ export default function PredictorPage() {
         {loading && (
           <div className="card flex flex-col items-center justify-center py-20">
             <div className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin mb-4"
-              style={{ borderColor: "var(--border)", borderTopColor: "var(--gold)" }} />
-            <p className="text-base font-medium" style={{ color: "var(--slate)" }}>Analysing 2025 cutoffs…</p>
+              style={{ borderColor: "var(--slate-200)", borderTopColor: "var(--primary-600)" }} />
+            <p className="text-base font-medium" style={{ color: "var(--slate-500)" }}>Analysing 2025 cutoffs…</p>
           </div>
         )}
 
@@ -414,14 +414,14 @@ export default function PredictorPage() {
             {/* Summary */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
               {[
-                { val: totalResults, label: "Total Options", accent: "var(--ink)" },
-                { val: results.safe.length, label: "Safe Colleges", accent: "#16A34A" },
-                { val: results.target.length, label: "Target Colleges", accent: "#D97706" },
-                { val: results.dream.length, label: "Dream Colleges", accent: "#2563EB" },
+                { val: totalResults, label: "Total Options", accent: "var(--slate-900)" },
+                { val: results.safe.length, label: "Safe Colleges", accent: "var(--success-600)" },
+                { val: results.target.length, label: "Target Colleges", accent: "var(--warning-500)" },
+                { val: results.dream.length, label: "Dream Colleges", accent: "var(--primary-500)" },
               ].map(s => (
                 <div key={s.label} className="card p-4 sm:p-5 text-center">
-                  <div className="text-3xl font-bold" style={{ color: s.accent, fontFamily: "var(--font-playfair)" }}>{s.val}</div>
-                  <div className="text-xs mt-1" style={{ color: "var(--slate)" }}>{s.label}</div>
+                  <div className="text-3xl font-bold" style={{ color: s.accent, fontFamily: "var(--font-mono)" }}>{s.val}</div>
+                  <div className="text-xs mt-1" style={{ color: "var(--slate-500)" }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -430,20 +430,20 @@ export default function PredictorPage() {
             {results.meta?.windowFloor != null && (
               <div className="card p-4 mb-8">
                 {results.meta.inputMode === "percentile" && (
-                  <p className="text-sm mb-2" style={{ color: "var(--ink-mid)" }}>
+                  <p className="text-sm mb-2" style={{ color: "var(--slate-700)" }}>
                     Estimated rank for your percentile:{" "}
-                    <strong style={{ color: "var(--gold)" }}>{results.meta.effectiveRank.toLocaleString()}</strong>
+                    <strong style={{ color: "var(--primary-600)" }}>{results.meta.effectiveRank.toLocaleString()}</strong>
                     {results.meta.inputPercentile !== undefined && (
-                      <span style={{ color: "var(--slate)" }}> (from {results.meta.inputPercentile.toFixed(4)} percentile)</span>
+                      <span style={{ color: "var(--slate-500)" }}> (from {results.meta.inputPercentile.toFixed(4)} percentile)</span>
                     )}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-4 text-sm mb-3">
-                  <span><strong style={{ color: "#16A34A" }}>Safe</strong> — comfortably competitive</span>
-                  <span><strong style={{ color: "#D97706" }}>Target</strong> — realistic, worth considering</span>
-                  <span><strong style={{ color: "#2563EB" }}>Dream</strong> — competitive but worth a try</span>
+                  <span><strong style={{ color: "var(--success-600)" }}>Safe</strong> — comfortably competitive</span>
+                  <span><strong style={{ color: "var(--warning-500)" }}>Target</strong> — realistic, worth considering</span>
+                  <span><strong style={{ color: "var(--primary-500)" }}>Dream</strong> — competitive but worth a try</span>
                 </div>
-                <p className="text-xs" style={{ color: "var(--slate-light)", borderTop: "1px solid var(--border)", paddingTop: ".5rem" }}>
+                <p className="text-xs" style={{ color: "var(--slate-400)", borderTop: "1px solid var(--slate-200)", paddingTop: ".5rem" }}>
                   Showing colleges with cutoff ranks between{" "}
                   <strong>{results.meta.windowFloor.toLocaleString()}</strong> and{" "}
                   <strong>{results.meta.windowCeil.toLocaleString()}</strong>
@@ -457,7 +457,7 @@ export default function PredictorPage() {
 
             {totalResults === 0 && (
               <div className="card py-14 text-center">
-                <p className="text-base" style={{ color: "var(--slate)" }}>No colleges found. Try adjusting category or branch filters.</p>
+                <p className="text-base" style={{ color: "var(--slate-500)" }}>No colleges found. Try adjusting category or branch filters.</p>
               </div>
             )}
           </div>

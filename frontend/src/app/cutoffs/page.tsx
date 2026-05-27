@@ -45,11 +45,11 @@ function formatRound(stage: string | null) {
 }
 
 function FilterLabel({ children }: { children: React.ReactNode }) {
-  return <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--slate)" }}>{children}</label>;
+  return <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--slate-600)" }}>{children}</label>;
 }
 
 function Divider() {
-  return <div style={{ borderTop: "1px dashed var(--border)", margin: "1.25rem 0" }} />;
+  return <div style={{ borderTop: "1px dashed var(--slate-200)", margin: "1.25rem 0" }} />;
 }
 
 export default function CutoffsPage() {
@@ -195,16 +195,16 @@ export default function CutoffsPage() {
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--ice)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-secondary)" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
 
         {/* Header */}
         <div className="mb-8">
           <p className="section-label mb-2">MHT-CET 2025</p>
-          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
             Cutoff Explorer
           </h1>
-          <p className="text-sm" style={{ color: "var(--slate)" }}>
+          <p className="text-sm" style={{ color: "var(--slate-500)" }}>
             Search MHT-CET cutoff data — ranks and percentiles by college, branch & category.
           </p>
         </div>
@@ -212,10 +212,10 @@ export default function CutoffsPage() {
         <div className="lg:grid lg:grid-cols-[280px_1fr] gap-6 items-start">
 
           {/* ── Filter panel ── */}
-          <div className="card mb-6 lg:mb-0 lg:sticky lg:top-4" style={{ borderRadius: "1rem", overflow: "hidden" }}>
-            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border)", background: "var(--ice)" }}>
-              <h2 className="text-sm font-bold" style={{ color: "var(--ink)" }}>Filters</h2>
-              <p className="text-xs mt-0.5" style={{ color: "var(--slate)" }}>2025 cutoff data only</p>
+          <div className="card mb-6 lg:mb-0 lg:sticky lg:top-4" style={{ borderRadius: "1rem", overflow: "hidden", borderColor: "var(--slate-200)" }}>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--slate-200)", background: "var(--bg-secondary)" }}>
+              <h2 className="text-sm font-bold" style={{ color: "var(--slate-900)" }}>Filters</h2>
+              <p className="text-xs mt-0.5" style={{ color: "var(--slate-500)" }}>2025 cutoff data only</p>
             </div>
             <div className="p-5 space-y-0">
 
@@ -288,14 +288,14 @@ export default function CutoffsPage() {
 
                 {category !== "TFWS" && (
                   <label className="flex items-start gap-3 rounded-lg px-3 py-3 cursor-pointer select-none transition-all"
-                    style={{ border: `1px solid ${includeTfws ? "var(--gold)" : "var(--border)"}`, background: includeTfws ? "rgb(201 168 76 / .07)" : "var(--white)" }}>
+                    style={{ border: `1px solid ${includeTfws ? "var(--primary-400)" : "var(--slate-200)"}`, background: includeTfws ? "var(--primary-50)" : "var(--bg-primary)" }}>
                     <input type="checkbox" checked={includeTfws} onChange={e => setIncludeTfws(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 shrink-0" style={{ accentColor: "var(--gold)" }} />
+                      className="mt-0.5 h-4 w-4 shrink-0" style={{ accentColor: "var(--primary-600)" }} />
                     <div>
-                      <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>
-                        Include <span style={{ color: "var(--gold)", fontWeight: 700 }}>TFWS</span> seats
+                      <span className="text-sm font-medium" style={{ color: "var(--slate-900)" }}>
+                        Include <span style={{ color: "var(--primary-600)", fontWeight: 700 }}>TFWS</span> seats
                       </span>
-                      <p className="text-xs mt-0.5" style={{ color: "var(--slate)" }}>Tuition Fee Waiver Scheme seats</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--slate-500)" }}>Tuition Fee Waiver Scheme seats</p>
                     </div>
                   </label>
                 )}
@@ -314,9 +314,9 @@ export default function CutoffsPage() {
                 </button>
               </div>
 
-              <p className="text-xs mt-3 text-center" style={{ color: "var(--slate-light)" }}>
+              <p className="text-xs mt-3 text-center" style={{ color: "var(--slate-400)" }}>
                 Previous year data?{" "}
-                <Link href="/resources" style={{ color: "var(--gold)" }}>Resources →</Link>
+                <Link href="/resources" style={{ color: "var(--primary-600)" }}>Resources →</Link>
               </p>
             </div>
           </div>
@@ -326,37 +326,37 @@ export default function CutoffsPage() {
             {loading ? (
               <div className="card flex flex-col items-center justify-center py-20">
                 <div className="w-12 h-12 rounded-full border-4 animate-spin mb-4"
-                  style={{ borderColor: "var(--border)", borderTopColor: "var(--gold)" }} />
-                <p className="text-sm" style={{ color: "var(--slate)" }}>Loading cutoffs…</p>
+                  style={{ borderColor: "var(--slate-200)", borderTopColor: "var(--primary-600)" }} />
+                <p className="text-sm" style={{ color: "var(--slate-500)" }}>Loading cutoffs…</p>
               </div>
             ) : error ? (
               <div className="rounded-xl p-4 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }}>{error}</div>
             ) : !hasSearched ? (
               <div className="card py-20 text-center">
                 <div className="text-5xl mb-4">🔍</div>
-                <p className="text-lg font-semibold mb-1" style={{ color: "var(--ink)" }}>Set filters and search</p>
-                <p className="text-sm" style={{ color: "var(--slate)" }}>Search across 2025 CAP Rounds 1–4</p>
+                <p className="text-lg font-semibold mb-1" style={{ color: "var(--slate-900)" }}>Set filters and search</p>
+                <p className="text-sm" style={{ color: "var(--slate-500)" }}>Search across 2025 CAP Rounds 1–4</p>
               </div>
             ) : cutoffs.length === 0 ? (
               <div className="card py-20 text-center">
                 <div className="text-5xl mb-4">📭</div>
-                <p className="text-base" style={{ color: "var(--slate)" }}>No results found. Try different filters.</p>
+                <p className="text-base" style={{ color: "var(--slate-500)" }}>No results found. Try different filters.</p>
               </div>
             ) : (
               <div className="card" style={{ overflow: "hidden" }}>
                 {/* Result bar */}
                 <div className="px-5 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
-                  style={{ borderBottom: "1px solid var(--border)", background: "var(--ice)" }}>
-                  <span className="text-sm" style={{ color: "var(--slate)" }}>
-                    Showing <strong style={{ color: "var(--ink)" }}>{cutoffs.length}</strong> of{" "}
-                    <strong style={{ color: "var(--ink)" }}>{total?.toLocaleString()}</strong> results
+                  style={{ borderBottom: "1px solid var(--slate-200)", background: "var(--bg-secondary)" }}>
+                  <span className="text-sm" style={{ color: "var(--slate-500)" }}>
+                    Showing <strong style={{ color: "var(--slate-900)" }}>{cutoffs.length}</strong> of{" "}
+                    <strong style={{ color: "var(--slate-900)" }}>{total?.toLocaleString()}</strong> results
                   </span>
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <label htmlFor="cutoff-sort" className="text-xs font-medium" style={{ color: "var(--slate)" }}>Sort</label>
+                      <label htmlFor="cutoff-sort" className="text-xs font-medium" style={{ color: "var(--slate-500)" }}>Sort</label>
                       <select id="cutoff-sort" value={sortBy} onChange={e => setSortBy(e.target.value as SortOption)}
                         className="text-xs rounded-lg px-2.5 py-1.5 pr-7"
-                        style={{ border: "1px solid var(--border)", background: "var(--white)", color: "var(--ink)", outline: "none" }}>
+                        style={{ border: "1px solid var(--slate-200)", background: "var(--bg-primary)", color: "var(--slate-900)", outline: "none" }}>
                         <option value="percentile-desc">Percentile: High → Low</option>
                         <option value="percentile-asc">Percentile: Low → High</option>
                         <option value="rank-asc">Rank: Low → High</option>

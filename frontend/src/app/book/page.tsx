@@ -391,7 +391,7 @@ export default function BookPage() {
   if (success && successData) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-200">
+        <div className="max-w-2xl w-full rounded-2xl p-8 border" style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-xl)" }}>
           <div className="text-center">
             <div className="mb-6">
               <div className={`mx-auto h-20 w-20 rounded-full flex items-center justify-center shadow-lg ${
@@ -404,14 +404,14 @@ export default function BookPage() {
                 </svg>
               </div>
             </div>
-            <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold mb-2" style={{ color: "var(--primary-600)" }}>
               {successData.isWarning ? "Session Booked!" : "Booking Confirmed!"}
             </h2>
             {/* Booking summary */}
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 text-left">
-              <p className="text-sm text-gray-500 mb-1">Booking Summary</p>
-              <p className="font-semibold text-gray-800">{successData.studentName}</p>
-              <p className="text-gray-600 text-sm mt-0.5">📅 {successData.bookedDateTime}</p>
+            <div className="rounded-xl border p-4 mb-5 text-left" style={{ background: "var(--slate-50)", borderColor: "var(--slate-200)" }}>
+              <p className="text-sm mb-1" style={{ color: "var(--slate-500)" }}>Booking Summary</p>
+              <p className="font-semibold" style={{ color: "var(--slate-900)" }}>{successData.studentName}</p>
+              <p className="text-sm mt-0.5" style={{ color: "var(--slate-600)" }}>📅 {successData.bookedDateTime}</p>
             </div>
             {successData.isWarning ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
@@ -421,33 +421,35 @@ export default function BookPage() {
                 </p>
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-5 mb-6">
-                <p className="text-sm text-gray-600 font-medium mb-2">Google Meet Link:</p>
+              <div className="rounded-xl p-5 mb-6" style={{ background: "var(--primary-50)", border: "1px solid var(--primary-200)" }}>
+                <p className="text-sm font-medium mb-2" style={{ color: "var(--slate-600)" }}>Google Meet Link:</p>
                 <a
                   href={successData.meetLink!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-purple-600 font-semibold hover:underline break-all"
+                  className="font-semibold hover:underline break-all" style={{ color: "var(--primary-600)" }}
                 >
                   {successData.meetLink}
                 </a>
               </div>
             )}
-            <p className="text-gray-500 text-sm mb-6">
+            <p className="text-sm mb-6" style={{ color: "var(--slate-500)" }}>
               A confirmation email will be sent to your inbox shortly. Check spam if you don&apos;t see it.
             </p>
             <div className="flex gap-4 justify-center">
               {!successData.isWarning && (
                 <button
                   onClick={() => window.open(successData.meetLink!, "_blank")}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-6 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                  className="text-white py-3 px-6 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg"
+                  style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
                 >
                   Open Meet Link
                 </button>
               )}
               <button
                 onClick={() => { setSuccess(false); setSuccessData(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold transition-colors"
+                className="py-3 px-6 rounded-xl font-semibold transition-colors"
+                style={{ background: "var(--slate-100)", color: "var(--slate-700)" }}
               >
                 Book Another Session
               </button>
@@ -459,13 +461,14 @@ export default function BookPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+    <div style={{ minHeight: "100vh", background: "var(--bg-secondary)" }} className="px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+          <p className="section-label mb-2">Guidance</p>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
             Book a Session
           </h1>
-          <p className="text-gray-600 text-base sm:text-lg">
+          <p className="text-sm" style={{ color: "var(--slate-500)" }}>
             Schedule a one-on-one career guidance session with our expert
             counselors. Get personalized advice on college selection and
             admission strategies.
@@ -473,7 +476,7 @@ export default function BookPage() {
         </div>
 
         {/* Info banner */}
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 mb-6 flex items-start gap-3">
+        <div className="rounded-xl border px-4 py-3 text-sm mb-6 flex items-start gap-3" style={{ background: "var(--success-50)", borderColor: "var(--success-200)", color: "var(--success-700)" }}>
           <span className="text-lg leading-none mt-0.5">🎥</span>
           <div>
             <span className="font-semibold">Free session via Google Meet.</span>{" "}
@@ -488,12 +491,12 @@ export default function BookPage() {
           </div>
         )}
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-gray-200">
+        <div className="rounded-2xl border p-8" style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-sm)" }}>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Full Name <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Full Name <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -504,14 +507,14 @@ export default function BookPage() {
                   autoComplete="name"
                   value={formData.student_name}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="input-base"
                   placeholder="Enter your full name"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Email <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Email <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 <input
                   type="email"
@@ -520,17 +523,17 @@ export default function BookPage() {
                   autoComplete="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="input-base"
                   placeholder="your.email@gmail.com"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Phone <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Phone <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 <div className="flex gap-2 items-stretch">
-                  <span className="inline-flex items-center px-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-600 text-sm font-medium select-none">
+                  <span className="inline-flex items-center px-3 rounded-lg text-sm font-medium select-none" style={{ border: "1px solid var(--slate-200)", background: "var(--slate-50)", color: "var(--slate-600)" }}>
                     🇮🇳 +91
                   </span>
                   <input
@@ -543,16 +546,16 @@ export default function BookPage() {
                     pattern="[0-9]{10}"
                     minLength={10}
                     maxLength={10}
-                    className="flex-1 min-w-0 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="flex-1 min-w-0 input-base"
                     placeholder="9876543210"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Enter 10-digit mobile number</p>
+                <p className="text-xs mt-1" style={{ color: "var(--slate-400)" }}>Enter 10-digit mobile number</p>
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Percentile <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Percentile <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -563,14 +566,14 @@ export default function BookPage() {
                   max="100"
                   value={formData.percentile}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="input-base"
                   placeholder="95.50"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Category <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Category <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 <CustomSelect
                   value={formData.category}
@@ -594,13 +597,13 @@ export default function BookPage() {
                   ]}
                 />
                 {fieldErrors.category && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.category}</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--danger-500)" }}>{fieldErrors.category}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Branch Preference <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Branch Preference <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -610,14 +613,14 @@ export default function BookPage() {
                   maxLength={100}
                   value={formData.branch_preference}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="input-base"
                   placeholder="Computer Engineering"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Purpose of Meeting <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Purpose of Meeting <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 <CustomSelect
                   value={meetingPurposeOption}
@@ -633,14 +636,14 @@ export default function BookPage() {
                   options={MEETING_PURPOSE_OPTIONS}
                 />
                 {fieldErrors.meeting_purpose && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.meeting_purpose}</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--danger-500)" }}>{fieldErrors.meeting_purpose}</p>
                 )}
               </div>
 
               {meetingPurposeOption === "Other" && (
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    Tell us your purpose <span className="text-red-500">*</span>
+                  <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                    Tell us your purpose <span style={{ color: "var(--danger-500)" }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -650,46 +653,48 @@ export default function BookPage() {
                     maxLength={150}
                     value={formData.meeting_purpose}
                     onChange={(e) => { handleInputChange(e); clearError("meeting_purpose_text"); }}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="input-base"
                     placeholder="Describe what you want help with"
                   />
                   {fieldErrors.meeting_purpose_text && (
-                    <p className="text-xs text-red-600 mt-1">{fieldErrors.meeting_purpose_text}</p>
+                    <p className="text-xs mt-1" style={{ color: "var(--danger-500)" }}>{fieldErrors.meeting_purpose_text}</p>
                   )}
                 </div>
               )}
 
               <div className="md:col-span-2">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Meeting Date <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Meeting Date <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 {!slotConfig.enabled && (
                   <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     Booking sessions are currently closed.
                   </div>
                 )}
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <div className="rounded-xl p-3" style={{ border: "1px solid var(--slate-200)", background: "var(--slate-50)" }}>
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <button
                       type="button"
                       disabled={!canGoToPreviousMonth}
                       onClick={() => setCalendarMonth((month) => shiftMonth(month, -1))}
-                      className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="h-9 w-9 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      style={{ border: "1px solid var(--slate-200)", background: "var(--bg-primary)", color: "var(--slate-700)" }}
                       aria-label="Previous month"
                     >
                       &lt;
                     </button>
-                    <p className="font-semibold text-gray-800">{getMonthLabel(calendarMonth)}</p>
+                    <p className="font-semibold" style={{ color: "var(--slate-900)" }}>{getMonthLabel(calendarMonth)}</p>
                     <button
                       type="button"
                       onClick={() => setCalendarMonth((month) => shiftMonth(month, 1))}
-                      className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                      className="h-9 w-9 rounded-lg text-sm font-medium transition-colors"
+                      style={{ border: "1px solid var(--slate-200)", background: "var(--bg-primary)", color: "var(--slate-700)" }}
                       aria-label="Next month"
                     >
                       &gt;
                     </button>
                   </div>
-                  <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 mb-1">
+                  <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold mb-1" style={{ color: "var(--slate-500)" }}>
                     {WEEKDAY_LABELS.map((day) => (
                       <span key={day} className="py-1">{day}</span>
                     ))}
@@ -716,7 +721,8 @@ export default function BookPage() {
                           : "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed";
                       }
                       if (isSelected) {
-                        dateClass = "bg-purple-600 text-white border-purple-600 shadow-md";
+                        dateClass = "text-white border-transparent shadow-md";
+                        // We'll add inline style for selected bg
                       }
 
                       return (
@@ -726,6 +732,7 @@ export default function BookPage() {
                           disabled={isDisabled}
                           onClick={() => handleDateSelect(date)}
                           className={`aspect-square rounded-lg border text-sm font-semibold transition-all ${dateClass}`}
+                          style={isSelected ? { background: "var(--primary-600)", borderColor: "var(--primary-600)" } : undefined}
                           aria-label={`${date}${isDisabled ? " unavailable" : " available"}`}
                         >
                           <span>{day}</span>
@@ -742,20 +749,20 @@ export default function BookPage() {
                 </div>
                 <input type="hidden" name="meeting_date" value={selectedDate} />
                 {fieldErrors.meeting_date && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.meeting_date}</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--danger-500)" }}>{fieldErrors.meeting_date}</p>
                 )}
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Meeting Time <span className="text-red-500">*</span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
+                  Meeting Time <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 {!selectedDate ? (
-                  <p className="text-sm text-gray-400 italic">
+                  <p className="text-sm italic" style={{ color: "var(--slate-400)" }}>
                     Please select a date first.
                   </p>
                 ) : slotsLoading ? (
-                  <p className="text-sm text-gray-400 italic">Loading slots…</p>
+                  <p className="text-sm italic" style={{ color: "var(--slate-400)" }}>Loading slots…</p>
                 ) : (
                   <>
                     <div className="flex gap-3 flex-wrap text-xs mb-2">
@@ -787,7 +794,8 @@ export default function BookPage() {
                             "bg-red-100 text-red-400 border-red-200 cursor-not-allowed line-through";
                         } else if (isSelected) {
                           cls =
-                            "bg-purple-600 text-white border-purple-600 shadow-md scale-105";
+                            "text-white border-transparent shadow-md scale-105";
+                          // inline style added below for primary bg
                         } else {
                           cls =
                             "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 cursor-pointer";
@@ -806,6 +814,7 @@ export default function BookPage() {
                               });
                             }}
                             className={`border rounded-lg py-2 px-1 text-xs font-medium text-center transition-all ${cls}`}
+                            style={isSelected ? { background: "var(--primary-600)", borderColor: "var(--primary-600)" } : undefined}
                           >
                             {formatTimeLabel(slot)}
                           </button>
@@ -813,13 +822,13 @@ export default function BookPage() {
                       })}
                     </div>
                     {!selectedTime && (
-                      <p className="text-xs text-gray-500 mt-2">Select a green slot to book.</p>
+                      <p className="text-xs mt-2" style={{ color: "var(--slate-500)" }}>Select a green slot to book.</p>
                     )}
                     {slotError && (
-                      <p className="text-xs text-red-600 mt-2 font-medium">{slotError}</p>
+                      <p className="text-xs mt-2 font-medium" style={{ color: "var(--danger-500)" }}>{slotError}</p>
                     )}
                     {fieldErrors.meeting_time && (
-                      <p className="text-xs text-red-600 mt-2">{fieldErrors.meeting_time}</p>
+                      <p className="text-xs mt-2" style={{ color: "var(--danger-500)" }}>{fieldErrors.meeting_time}</p>
                     )}
                   </>
                 )}
@@ -837,7 +846,8 @@ export default function BookPage() {
               <button
                 type="submit"
                 disabled={loading || !slotConfig.enabled}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-6 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full text-white py-3 px-6 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
               >
                 {loading && (
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
-import MainContent from "@/components/MainContent";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
-import { inter, playfairDisplay as playfair } from "@/lib/fonts";
+import PublicShell from "@/components/PublicShell";
+import { inter, dmSerif, jetbrainsMono } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://cethub.in"),
@@ -32,12 +30,8 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} antialiased`}>
-        <AnnouncementBanner />
-        <div className="flex min-h-screen" style={{ background: "var(--ice)" }}>
-          <Sidebar />
-          <MainContent>{children}</MainContent>
-        </div>
+      <body className={`${inter.variable} ${dmSerif.variable} ${jetbrainsMono.variable} antialiased`}>
+        <PublicShell>{children}</PublicShell>
         <ErrorTrackingBridge />
       </body>
     </html>
