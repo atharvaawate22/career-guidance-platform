@@ -13,9 +13,9 @@ interface Props {
 }
 
 const TIER = {
-  safe:   { bar: "#16A34A", badge: { bg: "#D1FAE5", color: "#065F46" }, label: "Safe" },
-  target: { bar: "#D97706", badge: { bg: "#FEF3C7", color: "#92400E" }, label: "Target" },
-  dream:  { bar: "#2563EB", badge: { bg: "#DBEAFE", color: "#1E40AF" }, label: "Dream" },
+  safe:   { bar: "var(--success-600)", badge: { bg: "var(--success-50)", color: "var(--success-700)" }, label: "Safe" },
+  target: { bar: "var(--warning-500)", badge: { bg: "var(--warning-50)", color: "var(--warning-700)" }, label: "Target" },
+  dream:  { bar: "var(--primary-500)", badge: { bg: "var(--primary-50)", color: "var(--primary-700)" }, label: "Dream" },
 } as const;
 
 function formatRound(stage: string | null) {
@@ -30,52 +30,73 @@ export default function PredictorResultCard({ college, tier }: Props) {
   const minority = getMinorityStatusLabel(college.college_status);
 
   return (
-    <article className="card card-hover relative overflow-hidden" style={{ borderRadius: ".75rem" }}>
+    <article
+      className="relative overflow-hidden rounded-2xl border transition-all duration-200"
+      style={{
+        background: "var(--bg-primary)",
+        borderColor: "var(--slate-200)",
+        boxShadow: "var(--shadow-xs)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "var(--shadow-md)";
+        e.currentTarget.style.borderColor = "var(--slate-300)";
+        e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "var(--shadow-xs)";
+        e.currentTarget.style.borderColor = "var(--slate-200)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
+    >
       {/* Tier bar */}
-      <span className="absolute left-0 top-0 bottom-0 w-1" style={{ background: t.bar }} />
+      <span className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl" style={{ background: t.bar }} />
 
-      <div className="pl-4 pr-4 py-4">
+      <div className="pl-5 pr-4 py-4">
         {/* Tags row */}
         <div className="flex flex-wrap items-center gap-1.5 mb-3">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide"
-            style={{ background: t.badge.bg, color: t.badge.color }}>
+          <span
+            className="text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wide"
+            style={{ background: t.badge.bg, color: t.badge.color }}
+          >
             {t.label}
           </span>
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${getCutoffCategoryColor(college.category)}`}>
+          <span className={`text-[10px] font-semibold px-2 py-1 rounded-lg ${getCutoffCategoryColor(college.category)}`}>
             {college.category}
           </span>
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
-            style={{ background: "var(--ice-mid)", color: "var(--slate)", border: "1px solid var(--border)" }}>
+          <span
+            className="text-[10px] font-medium px-2 py-1 rounded-lg"
+            style={{ background: "var(--slate-100)", color: "var(--slate-600)", border: "1px solid var(--slate-200)" }}
+          >
             {formatRound(college.stage)}
           </span>
           {minority && (
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
-              style={{ background: "#FDF4FF", color: "#7E22CE", border: "1px solid #E9D5FF" }}>
+            <span
+              className="text-[10px] font-medium px-2 py-1 rounded-lg"
+              style={{ background: "#FDF4FF", color: "#7E22CE", border: "1px solid #E9D5FF" }}
+            >
               {minority}
             </span>
           )}
         </div>
 
         {/* College name + branch */}
-        <h4 className="text-sm font-bold leading-snug mb-0.5" style={{ color: "var(--ink)" }}>
+        <h4 className="text-sm font-bold leading-snug mb-0.5" style={{ color: "var(--slate-900)" }}>
           {college.college_name}
         </h4>
-        <p className="text-xs mb-1" style={{ color: "var(--slate)" }}>{college.branch}</p>
-        <p className="text-[10px] mb-3" style={{ color: "var(--slate-light)" }}>Code: {college.college_code}</p>
+        <p className="text-xs mb-1" style={{ color: "var(--slate-600)" }}>{college.branch}</p>
+        <p className="text-[10px] mb-3" style={{ color: "var(--slate-400)" }}>Code: {college.college_code}</p>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="stat-box">
-            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate)" }}>Cutoff Rank</div>
-            <div className="text-lg font-bold" style={{ color: t.bar, fontFamily: "var(--font-playfair)" }}>
-            {/* Uses != null so that a rank of 0 is shown correctly rather
-                than being treated as falsy and displaying "—". */}
+          <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--slate-50)", border: "1px solid var(--slate-100)" }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate-500)" }}>Cutoff Rank</div>
+            <div className="text-lg font-bold" style={{ color: t.bar, fontFamily: "var(--font-mono)" }}>
               {college.cutoff_rank != null ? college.cutoff_rank.toLocaleString() : "—"}
             </div>
           </div>
-          <div className="stat-box">
-            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate)" }}>Percentile</div>
-            <div className="text-lg font-bold" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>
+          <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--slate-50)", border: "1px solid var(--slate-100)" }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate-500)" }}>Percentile</div>
+            <div className="text-lg font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-mono)" }}>
               {Number(college.cutoff_percentile).toFixed(2)}
             </div>
           </div>

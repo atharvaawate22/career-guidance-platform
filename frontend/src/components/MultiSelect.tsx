@@ -49,24 +49,24 @@ export default function MultiSelect({ id, value, onChange, options, placeholder 
       <div
         className="min-h-[2.5rem] w-full flex flex-wrap gap-1.5 items-center px-3 py-2 transition-all"
         style={{
-          background: disabled ? "var(--ice-mid)" : "var(--white)",
-          border: `1px solid ${open ? "var(--gold)" : "var(--border)"}`,
+          background: disabled ? "var(--slate-100)" : "var(--bg-primary)",
+          border: `1px solid ${open ? "var(--primary-400)" : "var(--slate-200)"}`,
           borderRadius: ".5rem",
           cursor: disabled ? "not-allowed" : "text",
-          boxShadow: open ? "var(--gold-ring)" : "none",
+          boxShadow: open ? "0 0 0 3px rgba(79,70,229,0.12)" : "none",
         }}
         onClick={() => { if (disabled) return; setOpen(true); inputRef.current?.focus(); }}>
 
         {value.map(v => (
           <span key={v} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold"
-            style={{ background: "rgb(201 168 76 / .12)", color: "var(--gold-dim)", border: "1px solid rgb(201 168 76 / .25)" }}>
+            style={{ background: "var(--primary-50)", color: "var(--primary-700)", border: "1px solid var(--primary-200)" }}>
             {labelByValue.get(v) ?? v}
             <button type="button"
               onMouseDown={e => { e.preventDefault(); e.stopPropagation(); remove(v); }}
               className="leading-none ml-0.5 text-sm transition-colors"
-              style={{ color: "var(--gold-dim)" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "var(--gold)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--gold-dim)")}
+              style={{ color: "var(--primary-500)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "var(--primary-700)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--primary-500)")}
               aria-label={`Remove ${v}`}>×</button>
           </span>
         ))}
@@ -78,18 +78,18 @@ export default function MultiSelect({ id, value, onChange, options, placeholder 
           onFocus={() => !disabled && setOpen(true)}
           disabled={disabled}
           className="flex-1 outline-none bg-transparent text-sm"
-          style={{ color: "var(--ink)", minWidth: "7rem", caretColor: "var(--gold)" }} />
+          style={{ color: "var(--slate-900)", minWidth: "7rem", caretColor: "var(--primary-600)" }} />
       </div>
 
       {open && !disabled && filtered.length > 0 && (
         <div className="absolute z-50 w-full mt-1 overflow-y-auto max-h-64"
-          style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: ".5rem", boxShadow: "var(--shadow-lg)" }}>
+          style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)", borderRadius: ".5rem", boxShadow: "var(--shadow-lg)" }}>
           {filtered.map(opt => (
             <div key={opt.value}
               onMouseDown={e => { e.preventDefault(); toggle(opt.value); setSearch(""); }}
               className="px-3.5 py-2.5 cursor-pointer text-sm transition-colors"
-              style={{ color: "var(--ink)" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--ice-mid)")}
+              style={{ color: "var(--slate-900)" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--slate-50)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
               {opt.label}
             </div>

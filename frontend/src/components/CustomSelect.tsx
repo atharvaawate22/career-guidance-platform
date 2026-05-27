@@ -72,16 +72,16 @@ export default function CustomSelect({
         onClick={() => { if (!open) computeDir(); setOpen(p => !p); }}
         className={`w-full flex items-center justify-between ${py} text-left text-sm transition-all cursor-pointer`}
         style={{
-          background: "var(--white)",
-          border: `1px solid ${open ? "var(--gold)" : "var(--border)"}`,
+          background: "var(--bg-primary)",
+          border: `1px solid ${open ? "var(--primary-400)" : "var(--slate-200)"}`,
           borderRadius: ".5rem",
           outline: "none",
-          boxShadow: open ? "var(--gold-ring)" : "none",
-          color: selected ? "var(--ink)" : "var(--slate-light)",
+          boxShadow: open ? "0 0 0 3px rgba(79,70,229,0.12)" : "none",
+          color: selected ? "var(--slate-900)" : "var(--slate-400)",
         }}>
         <span className="truncate">{selected ? selected.label : placeholder}</span>
         <svg className={`w-4 h-4 shrink-0 ml-2 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--slate-light)" }}>
+          fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--slate-400)" }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
@@ -89,7 +89,7 @@ export default function CustomSelect({
       {open && (
         <div role="listbox" ref={listRef}
           className={`absolute z-50 w-full overflow-y-auto max-h-64 ${openAbove ? "bottom-full mb-1" : "top-full mt-1"}`}
-          style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: ".5rem", boxShadow: "var(--shadow-lg)" }}>
+          style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)", borderRadius: ".5rem", boxShadow: "var(--shadow-lg)" }}>
           {options.map(opt => {
             const isSel = opt.value === value;
             return (
@@ -97,12 +97,12 @@ export default function CustomSelect({
                 onClick={() => { onChange(opt.value); setOpen(false); }}
                 className="px-3.5 py-2.5 cursor-pointer text-sm transition-colors"
                 style={{
-                  background: isSel ? "rgb(201 168 76 / .1)" : "transparent",
-                  color: isSel ? "var(--gold-dim)" : "var(--ink)",
+                  background: isSel ? "var(--primary-50)" : "transparent",
+                  color: isSel ? "var(--primary-700)" : "var(--slate-900)",
                   fontWeight: isSel ? 600 : 400,
                 }}
-                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = "var(--ice-mid)"; }}
-                onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = "transparent"; }}>
+                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = "var(--slate-50)"; }}
+                onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = isSel ? "var(--primary-50)" : "transparent"; }}>
                 {opt.label}
               </div>
             );

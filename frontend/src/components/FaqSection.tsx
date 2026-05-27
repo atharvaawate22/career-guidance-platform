@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import ScrollReveal from "@/components/ScrollReveal";
 
 interface Faq { id: string; question: string; answer: string; display_order: number; }
 
@@ -32,66 +33,96 @@ export default function FaqSection() {
   }, []);
 
   return (
-    <section className="py-20" style={{ background: "var(--ice)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+    <section className="py-20 lg:py-28" style={{ background: "var(--bg-secondary)", borderTop: "1px solid var(--slate-100)" }}>
       <div className="max-w-3xl mx-auto px-6 lg:px-8">
 
-        <div className="text-center mb-12">
-          <p className="section-label mb-3">FAQ</p>
-          <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ color: "var(--ink)", fontFamily: "var(--font-playfair)" }}>
-            Got questions? We&apos;ve got answers
-          </h2>
-          <p className="text-base" style={{ color: "var(--slate)" }}>
-            Quick answers for the most common doubts around predictions, cutoffs, CAP rounds, and planning your strategy.
-          </p>
-        </div>
+        <ScrollReveal>
+          <div className="text-center mb-14">
+            <p className="section-label mb-3">FAQ</p>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
+              Got questions? We&apos;ve got answers
+            </h2>
+            <p className="text-base" style={{ color: "var(--slate-500)" }}>
+              Quick answers for the most common doubts around predictions, cutoffs, CAP rounds, and planning your strategy.
+            </p>
+          </div>
+        </ScrollReveal>
 
         {isLoading ? (
-          <div className="card px-6 py-10 text-center">
-            <div className="inline-block animate-spin w-6 h-6 rounded-full border-2 border-t-transparent mr-2 align-middle"
-              style={{ borderColor: "var(--border)", borderTopColor: "var(--gold)" }} />
-            <span style={{ color: "var(--slate)" }}>Loading FAQs…</span>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="rounded-2xl border p-5" style={{ borderColor: "var(--slate-200)", background: "var(--bg-primary)" }}>
+                <div className="shimmer-light h-5 rounded-lg w-3/4 mb-2" />
+                <div className="shimmer-light h-3 rounded-lg w-1/2" />
+              </div>
+            ))}
           </div>
         ) : loadError ? (
-          <div className="card px-6 py-10 text-center text-sm" style={{ color: "#DC2626" }}>{loadError}</div>
+          <div className="rounded-2xl p-6 text-center text-sm border" style={{ background: "#FEF2F2", borderColor: "#FECACA", color: "#DC2626" }}>{loadError}</div>
         ) : faqs.length === 0 ? (
-          <div className="card px-6 py-10 text-center text-sm" style={{ color: "var(--slate)" }}>No FAQs available right now.</div>
+          <div className="rounded-2xl p-6 text-center text-sm border" style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: "var(--slate-500)" }}>No FAQs available right now.</div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {faqs.map((faq, idx) => {
               const isOpen = openId === faq.id;
               return (
-                <article key={faq.id} className="card transition-all duration-200"
-                  style={{ borderColor: isOpen ? "var(--gold)" : "var(--border)", borderRadius: ".75rem" }}>
-                  <button type="button" onClick={() => setOpenId(isOpen ? "" : faq.id)}
-                    className="w-full px-5 py-4 text-left flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <span className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 text-xs font-bold mt-0.5"
-                        style={{ background: isOpen ? "var(--gold)" : "var(--ice-mid)", color: isOpen ? "var(--navy)" : "var(--slate)" }}>
-                        {String(idx + 1).padStart(2, "0")}
+                <ScrollReveal key={faq.id} animation="fade-up" delay={idx * 60}>
+                  <article
+                    className="rounded-2xl border transition-all duration-300"
+                    style={{
+                      background: "var(--bg-primary)",
+                      borderColor: isOpen ? "var(--primary-200)" : "var(--slate-200)",
+                      boxShadow: isOpen ? "0 0 0 1px var(--primary-100), var(--shadow-sm)" : "var(--shadow-xs)",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(isOpen ? "" : faq.id)}
+                      className="w-full px-5 py-4 text-left flex items-start justify-between gap-4"
+                    >
+                      <div className="flex items-start gap-4">
+                        <span
+                          className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0 text-xs font-bold mt-0.5 transition-colors duration-200"
+                          style={{
+                            background: isOpen ? "var(--primary-600)" : "var(--slate-100)",
+                            color: isOpen ? "#ffffff" : "var(--slate-500)",
+                          }}
+                        >
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
+                        <h4 className="text-sm sm:text-[15px] font-semibold leading-snug pt-1" style={{ color: "var(--slate-900)" }}>
+                          {faq.question}
+                        </h4>
+                      </div>
+                      <span
+                        className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 text-base transition-all duration-300 mt-0.5"
+                        style={{
+                          background: isOpen ? "var(--primary-50)" : "var(--slate-100)",
+                          color: isOpen ? "var(--primary-600)" : "var(--slate-400)",
+                          transform: isOpen ? "rotate(45deg)" : "none",
+                        }}
+                      >
+                        +
                       </span>
-                      <h4 className="text-sm sm:text-base font-semibold leading-snug pt-0.5" style={{ color: "var(--ink)" }}>
-                        {faq.question}
-                      </h4>
-                    </div>
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full shrink-0 text-base transition-transform duration-200 mt-0.5"
-                      style={{
-                         background: isOpen ? "var(--gold)" : "var(--ice-mid)",
-                         color: isOpen ? "var(--navy)" : "var(--slate)",
-                         transform: isOpen ? "rotate(45deg)" : "none",
-                      }}>
-                      +
-                    </span>
-                  </button>
-                  <div className="faq-answer-grid" data-open={isOpen}>
-                    <div className="faq-answer-inner">
-                      <div className="px-5 pb-5 pl-16">
-                        <p className="text-sm leading-relaxed" style={{ color: "var(--slate)", borderLeft: "2px solid var(--gold)", paddingLeft: "1rem" }}>
-                          {faq.answer}
-                        </p>
+                    </button>
+                    <div className="faq-answer-grid" data-open={isOpen}>
+                      <div className="faq-answer-inner">
+                        <div className="px-5 pb-5 pl-[4.5rem]">
+                          <p
+                            className="text-sm leading-relaxed"
+                            style={{
+                              color: "var(--slate-500)",
+                              borderLeft: "2px solid var(--primary-300)",
+                              paddingLeft: "1rem",
+                            }}
+                          >
+                            {faq.answer}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
+                </ScrollReveal>
               );
             })}
           </div>

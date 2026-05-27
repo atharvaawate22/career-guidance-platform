@@ -26,14 +26,19 @@ export default function AnnouncementBanner() {
 
   if (!config || !config.enabled || !config.text || !visible) return null;
 
-  const bgColors = {
-    info: "bg-blue-600",
-    warning: "bg-amber-600",
-    success: "bg-emerald-600",
+  const styles: Record<string, { bg: string; border: string }> = {
+    info:    { bg: "var(--primary-600)", border: "var(--primary-700)" },
+    warning: { bg: "var(--warning-500)", border: "var(--warning-600)" },
+    success: { bg: "var(--success-600)", border: "var(--success-700)" },
   };
 
+  const s = styles[config.type] || styles.info;
+
   return (
-    <div className={`${bgColors[config.type]} text-white px-4 py-2 relative flex items-center justify-center text-sm font-medium z-50`}>
+    <div
+      className="text-white px-4 py-2 relative flex items-center justify-center text-sm font-medium z-50"
+      style={{ background: s.bg, borderBottom: `1px solid ${s.border}` }}
+    >
       <span className="mr-8 text-center">{config.text}</span>
       <button 
         onClick={() => setVisible(false)}
