@@ -23,6 +23,7 @@ export default function AdminUpdatesPage() {
   const [editTarget, setEditTarget] = useState<Update | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [publishedDate, setPublishedDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Delete
@@ -48,6 +49,7 @@ export default function AdminUpdatesPage() {
     setEditTarget(null);
     setTitle("");
     setContent("");
+    setPublishedDate("");
     setFormOpen(true);
   };
 
@@ -55,6 +57,18 @@ export default function AdminUpdatesPage() {
     setEditTarget(update);
     setTitle(update.title);
     setContent(update.content);
+    
+    if (update.published_date) {
+      try {
+        const d = new Date(update.published_date);
+        const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        setPublishedDate(localIso);
+      } catch {
+        setPublishedDate("");
+      }
+    } else {
+      setPublishedDate("");
+    }
     setFormOpen(true);
   };
 
@@ -66,10 +80,26 @@ export default function AdminUpdatesPage() {
         ? `${API_BASE_URL}/api/v1/admin/updates/${editTarget.id}`
         : `${API_BASE_URL}/api/v1/admin/updates`;
       const method = editTarget ? "PUT" : "POST";
+      
+      const payload: Record<string, string> = {
+        title: title.trim(),
+        content: content.trim(),
+      };
+      if (publishedDate) {
+        try {
+          payload.published_date = new Date(publishedDate).toISOString();
+        } catch {
+          // Ignored
+        }
+      } else if (editTarget) {
+        // If editing and date is blank, retain the original date
+        payload.published_date = editTarget.published_date;
+      }
+
       const res = await adminWriteFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), content: content.trim() }),
+        body: JSON.stringify(payload),
       });
       if (res.status === 401) { handleSessionExpired(); return; }
       const data = await res.json();
@@ -198,6 +228,11 @@ export default function AdminUpdatesPage() {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., CET Round 3 Results Declared" className="admin-input" maxLength={200} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Publish Date (Optional)</label>
+            <input type="datetime-local" value={publishedDate} onChange={(e) => setPublishedDate(e.target.value)} className="admin-input" />
+            <p className="text-xs text-slate-500 mt-1.5">Leave empty to use current system time</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Content</label>
