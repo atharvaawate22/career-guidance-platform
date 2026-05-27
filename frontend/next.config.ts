@@ -1,13 +1,7 @@
 import path from "path";
 import type { NextConfig } from "next";
 
-const frontendRoot = path.resolve(__dirname);
-
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: frontendRoot,
-  turbopack: {
-    root: frontendRoot,
-  },
   // Enable gzip/brotli compression for API routes and SSR responses.
   // If your reverse proxy (nginx/Cloudflare) already compresses, this is
   // a safe no-op; enabling it here ensures compression even without a proxy.
