@@ -87,14 +87,7 @@ export default function CutoffsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const params = new URLSearchParams();
-    params.append("year", DEFAULT_META_YEAR);
-    selectedBranches.forEach(b => params.append("branch", b));
-    selectedCities.forEach(c => params.append("city", c));
-    if (collegeCode) params.append("college_code", collegeCode);
-    else if (collegeName) params.append("college_name", collegeName);
-
-    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?${params.toString()}`, {
+    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?year=${DEFAULT_META_YEAR}`, {
       signal: controller.signal,
     })
       .then(async response => {
@@ -110,7 +103,7 @@ export default function CutoffsPage() {
       });
 
     return () => controller.abort();
-  }, [collegeCode, collegeName, selectedBranches, selectedCities]);
+  }, []);
 
   useEffect(() => {
     if (collegeCode && collegeName && !collegeOptions.some(c => c.name === collegeName)) {
