@@ -1,19 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
-export default function AdminLoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
+  const loginSecret = process.env.NEXT_PUBLIC_ADMIN_LOGIN_SECRET || "";
+  const queryKey = searchParams.get("key") || "";
+
+  // If the secret is configured in the environment, validate it.
+  // Otherwise, default to letting the page render normally (e.g. in dev)
+  const isAuthorized = !loginSecret || queryKey === loginSecret;
+
   // Check if already logged in
   useEffect(() => {
+    if (!isAuthorized) {
+      setCheckingSession(false);
+      return;
+    }
+
     const checkSession = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/v1/admin/session`, {
@@ -33,10 +47,11 @@ export default function AdminLoginPage() {
       }
     };
     void checkSession();
-  }, [router]);
+  }, [router, isAuthorized]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthorized) return;
     setError("");
     setLoading(true);
 
@@ -62,6 +77,24 @@ export default function AdminLoginPage() {
       setLoading(false);
     }
   };
+
+  // If unauthorized (secret is set but url lacks key or has wrong key), display a fake 404 Not Found
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <h1 className="text-6xl font-bold text-slate-800" style={{ fontFamily: "var(--font-display)" }}>404</h1>
+          <h2 className="text-xl font-semibold text-slate-400">Page Not Found</h2>
+          <p className="text-slate-600 text-sm max-w-sm leading-relaxed">
+            The page you are looking for does not exist or has been moved.
+          </p>
+          <a href="/" className="inline-block mt-2 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+            &larr; Back to Homepage
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (checkingSession) {
     return (
@@ -236,5 +269,17 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
