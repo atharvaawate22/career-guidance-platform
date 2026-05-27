@@ -422,6 +422,15 @@ input, select, textarea { font-family: inherit; }
 .admin-input:hover  { border-color: var(--slate-500); }
 .admin-input:focus  { border-color: var(--primary-500); box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
 
+/* Prevent shorthand padding specificity from overriding left-icon input padding */
+.admin-input.pl-10, .input-base.pl-10 {
+  padding-left: 2.5rem !important;
+}
+.admin-input.pl-11, .input-base.pl-11 {
+  padding-left: 2.75rem !important;
+}
+
+
 .admin-btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   padding: 0.625rem 1.25rem;
