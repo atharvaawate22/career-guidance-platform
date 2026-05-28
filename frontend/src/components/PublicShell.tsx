@@ -18,7 +18,11 @@ export default function PublicShell({ children }: { children: React.ReactNode })
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg-secondary)" }}>
       <AnnouncementBanner />
       <Navbar />
-      <main className="flex-1 w-full min-w-0 pt-16 lg:pt-[72px]" id="main-content">
+      <main 
+        className="flex-1 w-full min-w-0" 
+        style={{ paddingTop: "calc(var(--navbar-height) + var(--banner-height, 0px))" }} 
+        id="main-content"
+      >
         {children}
       </main>
       <Footer />

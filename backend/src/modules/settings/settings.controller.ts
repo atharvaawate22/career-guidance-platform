@@ -17,7 +17,8 @@ const bookingSlotsSchema = z.object({
 const announcementSchema = z.object({
   enabled: z.boolean(),
   text: z.string().max(500).default(''),
-  type: z.enum(['info', 'warning', 'success']).default('info'),
+  type: z.string().max(50).default('info'),
+  pages: z.array(z.string()).default([]),
 });
 
 const contactInfoSchema = z.object({
@@ -66,7 +67,7 @@ export async function getPublicAnnouncement(
     const setting = await settingsRepository.getSetting('announcement');
     res.json({
       success: true,
-      data: setting?.value ?? { enabled: false, text: '', type: 'info' },
+      data: setting?.value ?? { enabled: false, text: '', type: 'info', pages: [] },
     });
   } catch (error) {
     next(error);

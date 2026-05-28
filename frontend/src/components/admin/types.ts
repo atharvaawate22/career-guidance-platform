@@ -89,7 +89,8 @@ export interface BookingSlotConfig {
 export interface AnnouncementConfig {
   enabled: boolean;
   text: string;
-  type: "info" | "warning" | "success";
+  type: string;
+  pages?: string[];
 }
 
 export interface ContactInfoConfig {

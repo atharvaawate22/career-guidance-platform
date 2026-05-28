@@ -7,6 +7,18 @@ import { SkeletonCard } from "@/components/ui/Skeleton";
 import type { BookingSlotConfig, AnnouncementConfig, ContactInfoConfig } from "@/components/admin/types";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const PUBLIC_PAGES = [
+  { path: "/", label: "Home Page" },
+  { path: "/predictor", label: "College Predictor" },
+  { path: "/book", label: "Book Consultation" },
+  { path: "/cutoffs", label: "Cutoff Finder" },
+  { path: "/resources", label: "Resources Hub" },
+  { path: "/guides", label: "E-Books & Guides" },
+  { path: "/updates", label: "MHT-CET Updates" },
+  { path: "/terms", label: "Terms of Service" },
+  { path: "/privacy", label: "Privacy Policy" },
+];
 const ALL_POSSIBLE_SLOTS = [
   "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
   "12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30",
@@ -91,7 +103,7 @@ export default function AdminSettingsPage() {
     slots: ["10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30"],
     working_days: [1,2,3,4,5], special_open_dates: [], special_closed_dates: [],
   });
-  const [announcement, setAnnouncement] = useState<AnnouncementConfig>({ enabled: false, text: "", type: "info" });
+  const [announcement, setAnnouncement] = useState<AnnouncementConfig>({ enabled: false, text: "", type: "info", pages: [] });
   const [contactInfo, setContactInfo] = useState<ContactInfoConfig>({ email: "", phone: "" });
   const [newSpecialDate, setNewSpecialDate] = useState("");
   const [specialDateType, setSpecialDateType] = useState<"open" | "closed">("closed");
@@ -104,7 +116,14 @@ export default function AdminSettingsPage() {
         const d = await r.json();
         if (d.success && d.data) {
           if (d.data.booking_slots) setBookingSlots(d.data.booking_slots);
-          if (d.data.announcement) setAnnouncement(d.data.announcement);
+          if (d.data.announcement) {
+            setAnnouncement({
+              enabled: d.data.announcement.enabled ?? false,
+              text: d.data.announcement.text ?? "",
+              type: d.data.announcement.type ?? "info",
+              pages: d.data.announcement.pages ?? [],
+            });
+          }
           if (d.data.contact_info) setContactInfo(d.data.contact_info);
         }
       } catch { /* use defaults */ }
@@ -303,7 +322,7 @@ export default function AdminSettingsPage() {
       <div className="animate-fade-up-2">
         <SettingsSection
           title="Site Announcement"
-          description="Display a banner across all public pages"
+          description="Display a banner across specific or all public pages"
           onSave={() => save("announcement", announcement)}
           saving={saving === "announcement"}
         >
@@ -312,7 +331,7 @@ export default function AdminSettingsPage() {
               checked={announcement.enabled}
               onChange={(v) => setAnnouncement(p => ({ ...p, enabled: v }))}
               label="Show Banner"
-              description="Display announcement on all public pages"
+              description="Display announcement banner on public pages"
             />
 
             <div>
@@ -329,7 +348,7 @@ export default function AdminSettingsPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Type</label>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 {(["info", "warning", "success"] as const).map(t => (
                   <button
                     key={t}
@@ -346,18 +365,135 @@ export default function AdminSettingsPage() {
                     {t}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const custom = prompt("Enter custom announcement type:", "alert");
+                    if (custom !== null) {
+                      const cleaned = custom.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+                      setAnnouncement(p => ({ ...p, type: cleaned || "other" }));
+                    } else {
+                      const isCustom = !["info", "warning", "success"].includes(announcement.type);
+                      if (!isCustom) {
+                        setAnnouncement(p => ({ ...p, type: "other" }));
+                      }
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${
+                    !["info", "warning", "success"].includes(announcement.type)
+                      ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:text-white"
+                  }`}
+                >
+                  {!["info", "warning", "success"].includes(announcement.type) && announcement.type ? `Other: ${announcement.type}` : "Other"}
+                </button>
               </div>
             </div>
+
+            {!["info", "warning", "success"].includes(announcement.type) && (
+              <div className="mt-3 animate-fade-in">
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Custom Type Name</label>
+                <input
+                  type="text"
+                  value={announcement.type === "other" ? "" : announcement.type}
+                  onChange={(e) => {
+                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+                    setAnnouncement(p => ({ ...p, type: val || "other" }));
+                  }}
+                  className="admin-input max-w-xs"
+                  placeholder="e.g. maintenance, alert, holiday..."
+                  maxLength={30}
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Display Target</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setAnnouncement(p => ({ ...p, pages: [] }))}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    !announcement.pages || announcement.pages.length === 0 || announcement.pages.includes("*") || announcement.pages.includes("all")
+                      ? "bg-indigo-600/10 border-indigo-500/50 text-white shadow-glow-primary"
+                      : "bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-slate-600"
+                  }`}
+                >
+                  <div className="font-semibold text-sm">All Pages</div>
+                  <div className="text-xs text-slate-500 mt-1">Show the announcement banner across the entire public website.</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnnouncement(p => ({ ...p, pages: ["/"] }))}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    announcement.pages && announcement.pages.length > 0 && !announcement.pages.includes("*") && !announcement.pages.includes("all")
+                      ? "bg-indigo-600/10 border-indigo-500/50 text-white shadow-glow-primary"
+                      : "bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-slate-600"
+                  }`}
+                >
+                  <div className="font-semibold text-sm">Specific Pages</div>
+                  <div className="text-xs text-slate-500 mt-1">Select one or multiple public pages to target.</div>
+                </button>
+              </div>
+            </div>
+
+            {announcement.pages && announcement.pages.length > 0 && !announcement.pages.includes("*") && !announcement.pages.includes("all") && (
+              <div className="animate-scale-in rounded-xl bg-slate-900/30 border border-slate-700/30 p-4 space-y-3">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Select Target Pages</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {PUBLIC_PAGES.map(page => {
+                    const isChecked = announcement.pages?.includes(page.path);
+                    return (
+                      <label
+                        key={page.path}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                          isChecked
+                            ? "bg-slate-800 border-indigo-500/40 text-white"
+                            : "bg-slate-900/20 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const activePages = announcement.pages || [];
+                            let newPages = [];
+                            if (e.target.checked) {
+                              newPages = [...activePages.filter(p => p !== "*" && p !== "all"), page.path];
+                            } else {
+                              newPages = activePages.filter(p => p !== page.path);
+                              if (newPages.length === 0) {
+                                newPages = ["/"];
+                              }
+                            }
+                            setAnnouncement(p => ({ ...p, pages: newPages }));
+                          }}
+                          className="w-4 h-4 rounded text-indigo-600 bg-slate-700 border-slate-600 focus:ring-indigo-500 focus:ring-offset-slate-900 focus:ring-2"
+                        />
+                        <div>
+                          <div className="text-sm font-medium">{page.label}</div>
+                          <div className="text-xs text-slate-500 font-mono">{page.path}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Preview */}
             {announcement.enabled && announcement.text && (
               <div>
                 <p className="text-xs text-slate-500 mb-2">Preview:</p>
-                <div className={`px-4 py-3 rounded-xl text-sm font-medium ${
-                  announcement.type === "info" ? "bg-blue-500/10 border border-blue-500/30 text-blue-300"
-                  : announcement.type === "warning" ? "bg-amber-500/10 border border-amber-500/30 text-amber-300"
-                  : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
-                }`}>
+                <div 
+                  className="px-4 py-3 rounded-xl text-sm font-semibold border backdrop-blur-md transition-all text-center"
+                  style={
+                    announcement.type === "info" ? { background: "var(--primary-600)", borderColor: "var(--primary-700)", color: "#ffffff" }
+                    : announcement.type === "warning" ? { background: "rgba(239, 68, 68, 0.15)", borderColor: "rgba(239, 68, 68, 0.3)", color: "#ef4444" }
+                    : announcement.type === "success" ? { background: "var(--success-600)", borderColor: "var(--success-700)", color: "#ffffff" }
+                    : { background: "rgba(99, 102, 241, 0.15)", borderColor: "rgba(99, 102, 241, 0.3)", color: "var(--primary-500)" }
+                  }
+                >
                   {announcement.text}
                 </div>
               </div>
