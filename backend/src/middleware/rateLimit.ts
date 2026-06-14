@@ -3,10 +3,13 @@ import RedisStore from 'rate-limit-redis';
 import { createRedisStore } from '../config/redis';
 
 /**
- * Factory: builds a RedisStore when Redis is configured, otherwise falls back
- * to the default MemoryStore.  This ensures that in PM2 cluster mode all
- * worker processes share the same rate-limit counters via Redis, while dev /
- * no-Redis environments continue to work without any configuration change.
+ * Single source of truth for rate limiting.
+ *
+ * Factory helpers build per-route limiters for public GET/POST endpoints, and
+ * the named instances below are applied directly in their route modules. Each
+ * limiter gets its own RedisStore so PM2 cluster workers share counters via
+ * Redis; when Redis is not configured the limiters fall back to the default
+ * in-memory store, so dev / no-Redis environments work without any config.
  */
 function makeStore(): InstanceType<typeof RedisStore> | undefined {
   const redisStoreConfig = createRedisStore();
@@ -50,22 +53,47 @@ export function createPublicGetLimiter(maxRequests: number, windowMs: number) {
   });
 }
 
-export function createAdminLoginLimiter(
-  maxRequests = 8,
-  windowMs = 15 * 60 * 1000,
-) {
-  return rateLimit({
-    windowMs,
-    max: maxRequests,
-    standardHeaders: true,
-    legacyHeaders: false,
-    store: makeStore(),
-    message: {
-      success: false,
-      error: {
-        code: 'RATE_LIMITED',
-        message: 'Too many login attempts. Please wait before trying again.',
-      },
+export const predictorLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: makeStore(),
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many requests, please try again in a minute.',
     },
-  });
-}
+  },
+});
+
+export const bookingLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: makeStore(),
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many booking attempts, please try again later.',
+    },
+  },
+});
+
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: makeStore(),
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many login attempts, please try again later.',
+    },
+  },
+});

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { PredictorController } from './predictor.controller';
 import { validateBody } from '../../middleware/validateRequest';
 import { predictorRequestSchema } from './predictor.schemas';
-import { predictorLimiter } from '../../middleware/rateLimiter';
+import { predictorLimiter } from '../../middleware/rateLimit';
 
 const router = Router();
 const predictorController = new PredictorController();

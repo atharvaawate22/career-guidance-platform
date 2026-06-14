@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as bookingController from './booking.controller';
 import { validateBody } from '../../middleware/validateRequest';
 import { createBookingSchema } from './booking.schemas';
-import { bookingLimiter } from '../../middleware/rateLimiter';
+import { bookingLimiter } from '../../middleware/rateLimit';
 
 const router = Router();
 

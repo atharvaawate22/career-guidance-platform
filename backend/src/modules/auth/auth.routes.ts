@@ -5,7 +5,7 @@ import {
   requireAdminRole,
 } from '../../middleware/authMiddleware';
 import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
-import { authLimiter } from '../../middleware/rateLimiter';
+import { authLimiter } from '../../middleware/rateLimit';
 
 const router = Router();
 

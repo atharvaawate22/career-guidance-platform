@@ -49,8 +49,9 @@ function resolveTrustProxy(): boolean | number | string {
 
 app.set('trust proxy', resolveTrustProxy());
 const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
-const publicPredictLimiter = createPublicPostLimiter(60, 15 * 60 * 1000);
-const publicBookingLimiter = createPublicPostLimiter(20, 15 * 60 * 1000);
+// Per-route public limiters. Predict and booking carry their own dedicated
+// limiters inside their route modules (predictorLimiter / bookingLimiter), so
+// they are intentionally not double-wrapped here.
 const publicBookingSlotsGetLimiter = createPublicGetLimiter(120, 15 * 60 * 1000);
 const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
 
@@ -192,13 +193,13 @@ app.use(/^\/api\/(?!v1(?:\/|$)).+/, (req, res) => {
 // Register module routes
 app.use('/api/v1/updates', updatesRoutes);
 app.use('/api/v1/cutoffs', cutoffsRoutes);
-app.use('/api/v1/predict', publicPredictLimiter, predictorRoutes);
+app.use('/api/v1/predict', predictorRoutes);
 app.use('/api/v1/guides/download', publicGuideDownloadLimiter);
 app.use('/api/v1/guides', guidesRoutes);
 app.use('/api/v1/resources', resourcesRoutes);
 app.use('/api/v1/faqs', faqsRoutes);
 app.use('/api/v1/bookings/slots', publicBookingSlotsGetLimiter);
-app.use('/api/v1/bookings', publicBookingLimiter, bookingRoutes);
+app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/admin', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
