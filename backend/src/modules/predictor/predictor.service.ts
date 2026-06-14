@@ -6,6 +6,7 @@ import {
 } from './predictor.types';
 import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
 import { cacheGet, cacheSet } from '../../config/redis';
+import { HttpError } from '../../utils/httpError';
 
 const predictorRepository = new PredictorRepository();
 const PREDICTOR_CACHE_TTL_SECONDS = 6 * 60 * 60;
@@ -57,14 +58,18 @@ export class PredictorService {
       (request.rank === undefined || request.rank === null) &&
       (request.percentile === undefined || request.percentile === null)
     ) {
-      throw new Error('Either rank or percentile is required');
+      throw new HttpError(400, 'Either rank or percentile is required', {
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     if (
       request.rank !== undefined &&
       (request.rank < 1 || isNaN(request.rank))
     ) {
-      throw new Error('Rank must be a positive number');
+      throw new HttpError(400, 'Rank must be a positive number', {
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     if (
@@ -73,7 +78,9 @@ export class PredictorService {
         request.percentile > 100 ||
         isNaN(request.percentile))
     ) {
-      throw new Error('Percentile must be between 0 and 100');
+      throw new HttpError(400, 'Percentile must be between 0 and 100', {
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     const cacheKey = `predictor:${stableStringify(request)}`;
@@ -95,8 +102,14 @@ export class PredictorService {
           Number(request.percentile),
         );
       if (!estimatedRank) {
-        throw new Error(
+        throw new HttpError(
+          422,
           'Unable to estimate rank from percentile for the selected year',
+          {
+            code: 'RANK_ESTIMATION_FAILED',
+            publicMessage:
+              'We could not estimate a rank for that percentile and year. Please enter your CET rank instead.',
+          },
         );
       }
       effectiveRank = estimatedRank;

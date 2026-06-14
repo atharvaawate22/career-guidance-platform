@@ -45,7 +45,9 @@ export default function errorHandler(
     (statusCode >= 500 ? 'Something went wrong' : 'Request failed');
   const message = typedError?.message || 'Something went wrong';
 
-  logger.error(message, {
+  // Client errors (4xx) are expected and logged at warn; only 5xx are errors.
+  const logLevel = statusCode >= 500 ? 'error' : 'warn';
+  logger[logLevel](message, {
     requestId,
     path: req.originalUrl,
     method: req.method,
