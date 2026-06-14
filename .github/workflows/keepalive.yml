@@ -1,0 +1,43 @@
+name: Keep backend warm
+
+# Render's free web service sleeps after ~15 minutes of inactivity; the next
+# visitor then waits 30-60s for a cold start. This workflow pings the health
+# endpoint on a schedule so the instance stays awake during the day.
+#
+# CAVEATS — read these:
+#  - GitHub's scheduled cron is BEST-EFFORT and is frequently delayed by
+#    10-20+ minutes under load, so this alone may not fully prevent cold starts.
+#    A dedicated uptime monitor (e.g. UptimeRobot at a 5-minute interval) is more
+#    reliable. See docs/FREE_TIER_PERFORMANCE.md. This workflow is a zero-setup
+#    backup, not a guarantee.
+#  - Keeping the instance awake ~24/7 consumes roughly 720 of Render's 750 free
+#    instance-hours per month. That is fine for ONE web service; if you run more
+#    than one Render web service you will exceed the free allowance.
+#  - Set a repository variable named BACKEND_HEALTH_URL to your health endpoint
+#    (e.g. https://cethub-api.onrender.com/api/v1/health). If it is unset, the
+#    job no-ops instead of failing.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          URL="${{ vars.BACKEND_HEALTH_URL }}"
+          if [ -z "$URL" ]; then
+            echo "BACKEND_HEALTH_URL repo variable not set; skipping ping."
+            exit 0
+          fi
+          echo "Pinging $URL"
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 40 "$URL" || echo "000")
+          echo "Response: HTTP $code"
+          # 200 (ok) and 503 (degraded) both mean the app is awake, which is the
+          # goal. A 000 usually means the cold start is still in progress — that
+          # is expected occasionally and must not fail the workflow (avoids noisy
+          # red-X notification emails).
+          exit 0
