@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import errorHandler from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { createPublicPostLimiter, createPublicGetLimiter } from './middleware/rateLimit';
+import { publicCache } from './middleware/cacheControl';
 import updatesRoutes from './modules/updates/updates.routes';
 import authRoutes from './modules/auth/auth.routes';
 import adminRoutes from './modules/admin/admin.routes';
@@ -54,6 +55,30 @@ const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
 // they are intentionally not double-wrapped here.
 const publicBookingSlotsGetLimiter = createPublicGetLimiter(120, 15 * 60 * 1000);
 const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
+
+// Public read caching. These endpoints return identical data for every visitor
+// (no auth / cookies / per-user content), so browsers and any shared CDN can
+// serve repeat reads without waking the small backend instance behind them.
+// The server-side Redis cache (6h for cutoffs) remains the source of truth;
+// these headers just keep that data closer to the user. See cacheControl.ts.
+const referenceCache = publicCache({
+  // Reference data that changes a few times a year (cutoffs, FAQs).
+  browserMaxAge: 300,
+  sharedMaxAge: 21600,
+  staleWhileRevalidate: 86400,
+});
+const contentCache = publicCache({
+  // Editorial / settings content that can change during the day.
+  browserMaxAge: 120,
+  sharedMaxAge: 3600,
+  staleWhileRevalidate: 86400,
+});
+const availabilityCache = publicCache({
+  // Booking slot availability shifts as people book — keep it short.
+  browserMaxAge: 15,
+  sharedMaxAge: 30,
+  staleWhileRevalidate: 60,
+});
 
 app.use(
   // Allow large JSON bodies for the admin bulk-cutoff import endpoint only.
@@ -191,16 +216,16 @@ app.use(/^\/api\/(?!v1(?:\/|$)).+/, (req, res) => {
 });
 
 // Register module routes
-app.use('/api/v1/updates', updatesRoutes);
-app.use('/api/v1/cutoffs', cutoffsRoutes);
-app.use('/api/v1/predict', predictorRoutes);
+app.use('/api/v1/updates', contentCache, updatesRoutes);
+app.use('/api/v1/cutoffs', referenceCache, cutoffsRoutes);
+app.use('/api/v1/predict', predictorRoutes); // POST — not CDN-cacheable; cached server-side in Redis
 app.use('/api/v1/guides/download', publicGuideDownloadLimiter);
-app.use('/api/v1/guides', guidesRoutes);
-app.use('/api/v1/resources', resourcesRoutes);
-app.use('/api/v1/faqs', faqsRoutes);
-app.use('/api/v1/bookings/slots', publicBookingSlotsGetLimiter);
+app.use('/api/v1/guides', contentCache, guidesRoutes);
+app.use('/api/v1/resources', contentCache, resourcesRoutes);
+app.use('/api/v1/faqs', referenceCache, faqsRoutes);
+app.use('/api/v1/bookings/slots', availabilityCache, publicBookingSlotsGetLimiter);
 app.use('/api/v1/bookings', bookingRoutes);
-app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/settings', contentCache, settingsRoutes);
 app.use('/api/v1/admin', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
