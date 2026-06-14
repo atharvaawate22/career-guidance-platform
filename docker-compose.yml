@@ -1,0 +1,53 @@
+# Local development infrastructure: PostgreSQL + Redis.
+#
+# These are the stateful dependencies the backend needs. The app servers
+# themselves run with `npm run dev` in backend/ and frontend/ (no Dockerfiles
+# are shipped for the apps yet). The defaults below match the backend's dev
+# fallbacks in src/config/database.ts (localhost:5432, db "career_guidance")
+# and src/config/redis.ts (localhost:6379).
+#
+#   docker compose up -d     # start Postgres + Redis
+#   docker compose down      # stop (data is preserved in named volumes)
+#   docker compose down -v   # stop and wipe all data
+#
+# After first start, provision the schema:
+#   cd backend && psql "postgresql://postgres:${DB_PASSWORD:-postgres}@localhost:5432/career_guidance" -f src/config/schema.sql
+# then `npm run migrate` to apply the migration deltas.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cethub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: career_guidance
+    ports:
+      - "5432:5432"
+    volumes:
+      - cethub-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d career_guidance"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cethub-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - cethub-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  cethub-pgdata:
+  cethub-redisdata:
