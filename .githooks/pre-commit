@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+# Pre-commit gate: block commits that fail lint or typecheck.
+#
+# Runs checks only for the app(s) that actually have staged changes, so commits
+# stay fast. Dependency-free on purpose (no husky / lint-staged): this repo
+# intentionally keeps node_modules out of the root (see .gitignore), and each
+# app already ships its own eslint + tsc via its local devDependencies.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+run_checks() {
+  app="$1"
+  if printf '%s\n' "$staged" | grep -q "^$app/"; then
+    echo "[pre-commit] $app changed — running lint + typecheck"
+    ( cd "$app" && npm run lint && npm run typecheck )
+  fi
+}
+
+run_checks backend
+run_checks frontend
+
+echo "[pre-commit] checks passed"
