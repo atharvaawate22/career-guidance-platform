@@ -351,8 +351,7 @@ async function sendTemplateViaGmailAPI(
  * Send email via SMTP — uses a lazy-initialised transporter singleton
  * so we don't pay TLS/connection overhead on every send.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let smtpTransporter: any = null;
+let smtpTransporter: nodemailer.Transporter | null = null;
 let smtpVerified = false;
 
 function getSmtpTransporter() {
