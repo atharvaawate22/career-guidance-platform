@@ -52,3 +52,37 @@ npm audit --audit-level=high
 ```
 
 This will show zero high-severity vulnerabilities, confirming production safety.
+
+---
+
+## Admin login page obfuscation (`NEXT_PUBLIC_ADMIN_LOGIN_SECRET`)
+
+### What it is
+
+When `NEXT_PUBLIC_ADMIN_LOGIN_SECRET` is set, the admin login page at
+`/admin/login` renders a fake **404** unless the URL carries a matching
+`?key=<secret>`. This keeps the login form from being discovered by casual
+crawlers and vulnerability scanners.
+
+### What it is NOT
+
+This is **obfuscation, not access control**. `NEXT_PUBLIC_*` environment
+variables are inlined into the client JavaScript bundle at build time, so the
+"secret" is trivially recoverable by anyone who inspects the shipped JS. It does
+**not** protect the API: `POST /api/v1/admin/login` remains directly reachable
+regardless of this key.
+
+### The actual security boundary
+
+Authentication is enforced entirely on the backend:
+
+- Rate limiting on `POST /api/v1/admin/login` (`authLimiter`, 10 / 15 min)
+- bcrypt password verification + a constant-time dummy compare to prevent
+  user-enumeration timing attacks
+- A strong, secret admin password (`ADMIN_PASSWORD`)
+- HttpOnly session cookie + CSRF double-submit token on all mutating routes
+
+### If you need real page hiding
+
+Move the gate server-side — e.g. an IP allowlist or a backend-checked header at
+the reverse proxy / middleware layer — rather than a client-readable env var.

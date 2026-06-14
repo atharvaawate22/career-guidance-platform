@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
@@ -14,11 +15,18 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
+  // NOTE: This is obfuscation, NOT access control. `NEXT_PUBLIC_*` values are
+  // compiled into the client bundle, so this "secret" is extractable by anyone
+  // who inspects the JS. It only hides the login *page* (shows a fake 404) to
+  // keep casual scanners away — the real security boundary is the backend
+  // (`POST /api/v1/admin/login`: rate limiting + bcrypt + a strong password +
+  // CSRF on mutations). Do not rely on this key to protect anything. See
+  // SECURITY.md ("Admin login page obfuscation").
   const loginSecret = process.env.NEXT_PUBLIC_ADMIN_LOGIN_SECRET || "";
   const queryKey = searchParams.get("key") || "";
 
-  // If the secret is configured in the environment, validate it.
-  // Otherwise, default to letting the page render normally (e.g. in dev)
+  // If the secret is configured, the URL must carry the matching ?key=...
+  // Otherwise (e.g. in dev) the page renders normally.
   const isAuthorized = !loginSecret || queryKey === loginSecret;
 
   // Check if already logged in
@@ -88,9 +96,9 @@ function LoginForm() {
           <p className="text-slate-600 text-sm max-w-sm leading-relaxed">
             The page you are looking for does not exist or has been moved.
           </p>
-          <a href="/" className="inline-block mt-2 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+          <Link href="/" className="inline-block mt-2 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
             &larr; Back to Homepage
-          </a>
+          </Link>
         </div>
       </div>
     );
