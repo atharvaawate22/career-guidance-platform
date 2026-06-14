@@ -29,7 +29,12 @@ const resolveSslRejectUnauthorized = (): boolean => {
 const compactSql = (text: string): string =>
   text.replace(/\s+/g, ' ').trim().slice(0, 240);
 
-const POOL_MAX = Number(process.env.DB_POOL_MAX || '20');
+// Default tuned for a single small instance (e.g. Render free, 0.1 CPU) talking
+// to a connection-limited managed Postgres (e.g. Supabase free) — ideally via
+// its transaction pooler. A large pool here gains nothing on one low-CPU
+// process and risks exhausting the database's connection allowance. Override
+// with DB_POOL_MAX when running on a bigger instance / dedicated Postgres.
+const POOL_MAX = Number(process.env.DB_POOL_MAX || '5');
 const POOL_IDLE_TIMEOUT_MS = Number(process.env.DB_POOL_IDLE_TIMEOUT_MS || '30000');
 const POOL_CONNECTION_TIMEOUT_MS = Number(process.env.DB_POOL_CONNECTION_TIMEOUT_MS || '5000');
 const STATEMENT_TIMEOUT_MS = Number(process.env.DB_STATEMENT_TIMEOUT_MS || '10000');
