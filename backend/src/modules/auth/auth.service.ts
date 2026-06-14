@@ -3,6 +3,12 @@ import jwt from 'jsonwebtoken';
 import { findUserByEmail } from './auth.repository';
 import { LoginResponse, JWTPayload } from './auth.types';
 
+// Pre-computed bcrypt hash (cost 10) compared against the supplied password when
+// an email is unknown, so an unknown email takes the same time as a wrong
+// password for a known one. This blunts admin user-enumeration via response timing.
+const DUMMY_PASSWORD_HASH =
+  '$2b$10$kIyoNi76jM8UNFXpOfN7cO8wL0BJdRARtpSjWcU/FAe09R7P9eohS';
+
 type AuthServiceError = Error & {
   code?: string;
   statusCode?: number;
@@ -40,6 +46,9 @@ export const login = async (
   }
 
   if (!user) {
+    // Equalise timing with the wrong-password path below to prevent
+    // user-enumeration: an unknown email still pays one bcrypt comparison.
+    await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
     return null;
   }
 
