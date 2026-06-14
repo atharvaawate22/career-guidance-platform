@@ -11,7 +11,7 @@ import type { Update } from "@/components/admin/types";
 import { format, parseISO } from "date-fns";
 
 export default function AdminUpdatesPage() {
-  const { adminFetch, adminWriteFetch, handleSessionExpired, API_BASE_URL } = useAdmin();
+  const { adminWriteFetch, handleSessionExpired, API_BASE_URL } = useAdmin();
   const { toast } = useToast();
 
   const [updates, setUpdates] = useState<Update[]>([]);

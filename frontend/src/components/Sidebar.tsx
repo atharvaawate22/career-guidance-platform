@@ -170,8 +170,6 @@ export default function Sidebar() {
     ? [...navItems, { name: "Admin", href: "/admin", icon: <IconAdmin />, description: "Control panel" }]
     : navItems;
 
-  const w = isCollapsed ? "64px" : "240px";
-
   return (
     <>
       {/* Mobile toggle */}
