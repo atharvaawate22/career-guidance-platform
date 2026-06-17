@@ -65,6 +65,11 @@ cutoffs_*.csv
 city_aliases_*.csv
 cutoff_pdfs/
 
+# Database backups — contain PII (bookings) and password hashes (admin_users)
+backups/
+# Parser intermediate outputs
+scripts/parsed/
+
 # Root-level node_modules (only backend/ and frontend/ should have their own)
 /node_modules/
 
