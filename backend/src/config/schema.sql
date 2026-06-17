@@ -40,42 +40,11 @@ CREATE INDEX IF NOT EXISTS idx_admin_users_email
 ON admin_users(email);
 
 -- ============================================================================
--- TABLE: cutoff_data
--- Purpose: Historical cutoff information for predictor and explorer
+-- CUTOFF SCHEMA (colleges + courses + cutoffs)
+-- Defined in migrations/012_cutoffs_redesign.sql. The legacy flat `cutoff_data`
+-- table has been superseded; it is kept in the live database only as a revert
+-- backup and is intentionally NOT recreated by this baseline.
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS cutoff_data (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  year INTEGER NOT NULL,
-  college_code TEXT,
-  college_name TEXT NOT NULL,
-  branch_code TEXT,
-  branch TEXT NOT NULL,
-  college_status TEXT,
-  stage TEXT,
-  level TEXT,
-  category TEXT NOT NULL,
-  gender TEXT,
-  home_university TEXT NOT NULL DEFAULT 'All',
-  percentile DECIMAL(10,7) NOT NULL,
-  cutoff_rank INTEGER,
-  city_normalized TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Optimized composite and covering performance indexes
-CREATE INDEX IF NOT EXISTS idx_cutoff_composite 
-ON cutoff_data(year, category, branch);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_predictor_filters
-ON cutoff_data(year, stage, category, level, cutoff_rank)
-INCLUDE (percentile);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_year_stage_category_city_home
-ON cutoff_data(year, stage, category, city_normalized, home_university)
-INCLUDE (cutoff_rank, percentile);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_meta_year_college_code_name
-ON cutoff_data(year, college_code, college_name);
 
 -- ============================================================================
 -- TABLE: resources
@@ -180,7 +149,6 @@ ALTER TABLE updates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guides ENABLE ROW LEVEL SECURITY;
-ALTER TABLE cutoff_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guide_downloads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
@@ -204,17 +172,6 @@ BEGIN
     WHERE schemaname = 'public' AND tablename = 'faqs' AND policyname = 'faqs_public_read_active'
   ) THEN
     CREATE POLICY faqs_public_read_active ON faqs FOR SELECT USING (is_active = true);
-  END IF;
-END
-$$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'cutoff_data' AND policyname = 'cutoff_data_public_read'
-  ) THEN
-    CREATE POLICY cutoff_data_public_read ON cutoff_data FOR SELECT USING (true);
   END IF;
 END
 $$;
