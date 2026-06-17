@@ -43,3 +43,16 @@ export const CUTOFF_STAGES = ['I', 'II', 'III', 'IV'] as const;
 /** CAP rounds (1–4). The cutoff data now models the round explicitly, separate
  *  from the allotment stage within a round. */
 export const CAP_ROUNDS = [1, 2, 3, 4] as const;
+
+/**
+ * Sort branch names alphabetically, but push any that don't start with a letter
+ * (e.g. "5G") to the bottom so a terse/odd value never heads the dropdown.
+ */
+export function sortBranches(branches: string[]): string[] {
+  return [...branches].sort((a, b) => {
+    const aAlpha = /^[A-Za-z]/.test(a) ? 0 : 1;
+    const bAlpha = /^[A-Za-z]/.test(b) ? 0 : 1;
+    if (aAlpha !== bAlpha) return aAlpha - bAlpha;
+    return a.localeCompare(b);
+  });
+}

@@ -6,7 +6,7 @@ import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import PredictorResultCard from "@/components/PredictorResultCard";
 import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
-import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
+import { CUTOFF_CATEGORIES, sortBranches } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
   MINORITY_TYPE_OPTIONS,
@@ -91,7 +91,7 @@ export default function PredictorPage() {
       })
       .then(data => {
         if (data.success) {
-          setBranchOptions(data.data.branches ?? []);
+          setBranchOptions(sortBranches(data.data.branches ?? []));
           setCityOptions(data.data.cities ?? []);
         }
       })

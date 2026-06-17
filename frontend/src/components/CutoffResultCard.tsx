@@ -9,6 +9,7 @@ interface Props {
     college_code: string | null; college_name: string;
     branch: string; category: string;
     college_status: string | null; cap_round: number;
+    allotment_pool: string;
     percentile: number | null; cutoff_rank: number | null;
   };
 }
@@ -16,6 +17,14 @@ interface Props {
 function formatRound(round: number | null) {
   if (!round) return "—";
   return `CAP Round ${round}`;
+}
+
+function poolLabel(pool: string) {
+  if (pool === "STATE") return "State Level";
+  if (pool.startsWith("HU")) return "Home University";
+  if (pool.startsWith("OHU")) return "Other than HU";
+  if (pool === "AI") return "All India";
+  return pool;
 }
 
 export default function CutoffResultCard({ cutoff }: Props) {
@@ -105,9 +114,9 @@ export default function CutoffResultCard({ cutoff }: Props) {
             </div>
           </div>
           <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--slate-50)", border: "1px solid var(--slate-100)" }}>
-            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate-500)" }}>Round</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate-500)" }}>Seat Type</div>
             <div className="text-sm font-semibold" style={{ color: "var(--slate-900)" }}>
-              {formatRound(cutoff.cap_round)}
+              {poolLabel(cutoff.allotment_pool)}
             </div>
           </div>
         </div>
