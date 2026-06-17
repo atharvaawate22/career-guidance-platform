@@ -39,3 +39,7 @@ export const CUTOFF_LEVELS = [
 ] as const;
 
 export const CUTOFF_STAGES = ['I', 'II', 'III', 'IV'] as const;
+
+/** CAP rounds (1–4). The cutoff data now models the round explicitly, separate
+ *  from the allotment stage within a round. */
+export const CAP_ROUNDS = [1, 2, 3, 4] as const;
