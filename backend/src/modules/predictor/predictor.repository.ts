@@ -1,37 +1,44 @@
 import { query } from '../../config/database';
 import { CollegeOption, PredictorFilters } from './predictor.types';
+import { ACTIVE_CAP_ROUND } from '../../config/constants';
 import {
-  CITY_FILTER_SQL,
-} from '../../utils/cityNormalization';
-import { buildCandidateGenderFilter } from '../../utils/candidateGenderFilter';
-import { buildMinorityStatusFilter } from '../../utils/minorityStatus';
+  buildCategoryCondition,
+  buildGenderCondition,
+  buildCollegeMinorityCondition,
+} from '../../utils/cutoffFilters';
 
 export class PredictorRepository {
+  /**
+   * Estimate a CET rank from a percentile using the nearest known
+   * percentile→rank pairs in the active round's Stage I cutoffs.
+   */
   async estimateRankFromPercentile(
     year: number,
     percentile: number,
   ): Promise<number | null> {
     const sql = `
       WITH below AS (
-        SELECT percentile, cutoff_rank
-        FROM cutoff_data
-        WHERE year = $1
+        SELECT closing_percentile AS percentile, closing_rank AS cutoff_rank
+        FROM cutoffs
+        WHERE academic_year = $1
+          AND cap_round = $2
           AND stage = 'I'
-          AND cutoff_rank IS NOT NULL
-          AND percentile IS NOT NULL
-          AND percentile <= $2
-        ORDER BY percentile DESC
+          AND closing_rank IS NOT NULL
+          AND closing_percentile IS NOT NULL
+          AND closing_percentile <= $3
+        ORDER BY closing_percentile DESC
         LIMIT 1
       ),
       above AS (
-        SELECT percentile, cutoff_rank
-        FROM cutoff_data
-        WHERE year = $1
+        SELECT closing_percentile AS percentile, closing_rank AS cutoff_rank
+        FROM cutoffs
+        WHERE academic_year = $1
+          AND cap_round = $2
           AND stage = 'I'
-          AND cutoff_rank IS NOT NULL
-          AND percentile IS NOT NULL
-          AND percentile >= $2
-        ORDER BY percentile ASC
+          AND closing_rank IS NOT NULL
+          AND closing_percentile IS NOT NULL
+          AND closing_percentile >= $3
+        ORDER BY closing_percentile ASC
         LIMIT 1
       )
       SELECT cutoff_rank
@@ -40,15 +47,14 @@ export class PredictorRepository {
         UNION ALL
         SELECT percentile, cutoff_rank FROM above
       ) candidates
-      ORDER BY ABS(percentile - $2), cutoff_rank ASC
+      ORDER BY ABS(percentile - $3), cutoff_rank ASC
       LIMIT 1
     `;
 
-    const result = await query(sql, [year, percentile], {
+    const result = await query(sql, [year, ACTIVE_CAP_ROUND, percentile], {
       name: 'predictor.estimate_rank_from_percentile',
     });
     if (result.rows.length === 0) return null;
-
     return Number(result.rows[0].cutoff_rank);
   }
 
@@ -59,154 +65,107 @@ export class PredictorRepository {
     const values: unknown[] = [];
     let p = 1;
 
-    // Year is mandatory
-    conditions.push(`year = $${p++}`);
+    conditions.push(`co.academic_year = $${p++}`);
     values.push(filters.year);
 
-    // Default to Stage I (CAP Round 1) so we get opening cutoffs
-    conditions.push(`stage = $${p++}`);
-    values.push('I');
+    conditions.push(`co.cap_round = $${p++}`);
+    values.push(filters.cap_round);
 
-    // Optional category — when include_tfws is true, also match TFWS rows
-    if (filters.category) {
-      if (filters.include_tfws && filters.category !== 'TFWS') {
-        conditions.push(`(category = $${p++} OR category = $${p++})`);
-        values.push(filters.category, 'TFWS');
-      } else {
-        conditions.push(`category = $${p++}`);
-        values.push(filters.category);
-      }
+    const cat = buildCategoryCondition(
+      filters.category,
+      !!filters.include_tfws,
+      p,
+      'co',
+    );
+    if (cat.condition) {
+      conditions.push(cat.condition);
+      values.push(...cat.values);
+      p = cat.nextIndex;
     }
 
-    const minorityFilter = buildMinorityStatusFilter(
+    const gen = buildGenderCondition(filters.gender, p, 'co');
+    if (gen.condition) {
+      conditions.push(gen.condition);
+      values.push(...gen.values);
+      p = gen.nextIndex;
+    }
+
+    const min = buildCollegeMinorityCondition(
       filters.minority_types,
       filters.minority_groups,
       p,
+      'col',
     );
-    if (minorityFilter.condition) {
-      conditions.push(minorityFilter.condition);
-      values.push(...minorityFilter.values);
-      p = minorityFilter.nextIndex;
+    if (min.condition) {
+      conditions.push(min.condition);
+      values.push(...min.values);
+      p = min.nextIndex;
     }
 
-    // Candidate gender handling:
-    // - Male candidates can compete for gender-neutral ('All') seats only.
-    // - Female candidates can compete for both gender-neutral ('All') and ladies seats.
-    // - Unspecified means no gender filter (all seat types).
-    const genderFilter = buildCandidateGenderFilter(filters.gender, p);
-    if (genderFilter.condition) {
-      conditions.push(genderFilter.condition);
-      values.push(...genderFilter.values);
-      p = genderFilter.nextIndex;
+    if (filters.preferred_branches && filters.preferred_branches.length > 0) {
+      conditions.push(`c.branch_group = ANY($${p++}::text[])`);
+      values.push(filters.preferred_branches);
     }
 
-    // Optional seat level (State Level / Home University Level)
-    if (filters.level) {
-      conditions.push(`level = $${p++}`);
-      values.push(filters.level);
+    if (filters.cities && filters.cities.length > 0) {
+      conditions.push(`col.city_normalized = ANY($${p++}::text[])`);
+      values.push(filters.cities.map((cty) => cty.trim().toLowerCase()));
     }
 
     if (filters.min_cutoff_rank !== undefined) {
-      conditions.push(`cutoff_rank >= $${p++}`);
+      conditions.push(`co.closing_rank >= $${p++}`);
       values.push(filters.min_cutoff_rank);
     }
-
     if (filters.max_cutoff_rank !== undefined) {
-      conditions.push(`cutoff_rank <= $${p++}`);
+      conditions.push(`co.closing_rank <= $${p++}`);
       values.push(filters.max_cutoff_rank);
-    }
-
-    // Optional preferred_branches (OR across branches)
-    if (filters.preferred_branches && filters.preferred_branches.length > 0) {
-      const branchConditions = filters.preferred_branches.map((_, idx) => {
-        return `branch ILIKE $${p + idx}`;
-      });
-      conditions.push(`(${branchConditions.join(' OR ')})`);
-      filters.preferred_branches.forEach((b) => {
-        values.push(`%${b}%`);
-        p++;
-      });
-    }
-
-    // Optional cities filter (OR across selected cities).
-    // CITY_FILTER_SQL = COALESCE(city_normalized column, computed CITY_NORMALIZED_SQL),
-    // meaning it prefers the persisted city_normalized value (written at insert / backfill)
-    // and falls back to the expression-based normalization for older rows.
-    // This matches exactly what the meta-endpoint returns for dropdown values.
-    if (filters.cities && filters.cities.length > 0) {
-      const cityParam = p++;
-      conditions.push(`LOWER(TRIM(${CITY_FILTER_SQL})) = ANY($${cityParam}::text[])`);
-      values.push(filters.cities.map((c) => c.trim().toLowerCase()));
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
+    // Dedupe to one representative cutoff per college+branch+category, taking the
+    // loosest (highest) closing rank across pools/stages — the most inclusive
+    // "could I get in" threshold. Stage is rendered as the CAP round.
     const sql = `
       WITH filtered AS (
         SELECT
-          id,
-          college_code,
-          college_name,
-          branch,
-          category,
-          gender,
-          college_status,
-          level,
-          stage,
-          cutoff_rank,
-          percentile,
-          year,
-          created_at
-        FROM cutoff_data
+          co.id,
+          col.college_code,
+          col.name           AS college_name,
+          c.course_name      AS branch,
+          COALESCE(co.category, co.subquota) AS category,
+          co.gender,
+          col.status         AS college_status,
+          co.cap_round,
+          co.closing_rank       AS cutoff_rank,
+          co.closing_percentile AS cutoff_percentile,
+          co.academic_year   AS year
+        FROM cutoffs co
+        JOIN courses  c   ON c.id = co.course_id
+        JOIN colleges col ON col.college_code = c.college_code
         ${whereClause}
       ),
       deduped AS (
         SELECT DISTINCT ON (college_name, branch, category)
-          id,
-          college_code,
-          college_name,
-          branch,
-          category,
-          gender,
-          college_status,
-          level,
-          stage,
-          cutoff_rank,
-          percentile,
-          year
+          id, college_code, college_name, branch, category, gender,
+          college_status, cap_round, cutoff_rank, cutoff_percentile, year
         FROM filtered
         ORDER BY
-          college_name,
-          branch,
-          category,
+          college_name, branch, category,
           cutoff_rank DESC NULLS LAST,
-          percentile ASC NULLS LAST,
-          created_at DESC
+          cutoff_percentile ASC NULLS LAST
       )
       SELECT
-        id,
-        college_code,
-        college_name,
-        branch,
-        category,
-        gender,
-        college_status,
-        level,
-        stage,
-        cutoff_rank,
-        percentile AS cutoff_percentile,
-        year
+        id, college_code, college_name, branch, category, gender,
+        college_status, cap_round,
+        CASE cap_round WHEN 1 THEN 'I' WHEN 2 THEN 'II' WHEN 3 THEN 'III' WHEN 4 THEN 'IV' END AS stage,
+        cutoff_rank, cutoff_percentile, year
       FROM deduped
       ORDER BY cutoff_rank ASC NULLS LAST
       LIMIT 800
     `;
 
-    // Do NOT use a named prepared statement here: the WHERE clause is built
-    // dynamically based on user-supplied filters, so each call may produce a
-    // structurally different SQL string. Using a fixed name would cause
-    // node-postgres to reuse the first call's query plan for all subsequent
-    // calls, returning results for wrong filters (critical correctness bug).
-    const result = await query(sql, values);
+    const result = await query(sql, values, { name: 'predictor.eligible' });
     return result.rows as CollegeOption[];
   }
 }

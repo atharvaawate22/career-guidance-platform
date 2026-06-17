@@ -4,7 +4,7 @@ import {
   PredictorResponse,
   CollegeOption,
 } from './predictor.types';
-import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
+import { ACTIVE_CUTOFF_YEAR, ACTIVE_CAP_ROUND } from '../../config/constants';
 import { cacheGet, cacheSet } from '../../config/redis';
 import { HttpError } from '../../utils/httpError';
 
@@ -122,11 +122,11 @@ export class PredictorService {
     // that will be discarded during post-processing.
     const colleges = await predictorRepository.getEligibleColleges({
       year: ACTIVE_CUTOFF_YEAR,
+      cap_round: ACTIVE_CAP_ROUND,
       category: request.category,
       gender: request.gender,
       minority_types: request.minority_types,
       minority_groups: request.minority_groups,
-      level: request.level,
       preferred_branches: request.preferred_branches,
       cities: request.cities,
       include_tfws: request.include_tfws,
@@ -180,6 +180,8 @@ export class PredictorService {
         effectiveRank,
         inputPercentile:
           inputMode === 'percentile' ? Number(request.percentile) : undefined,
+        windowFloor: Math.max(1, effectiveRank - ceilGap),
+        windowCeil: effectiveRank + floorGap,
       },
     };
     await cacheSet(cacheKey, response, PREDICTOR_CACHE_TTL_SECONDS);

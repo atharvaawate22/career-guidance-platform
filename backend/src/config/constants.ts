@@ -11,6 +11,14 @@ export const ACTIVE_CUTOFF_YEAR = Number(
 );
 
 /**
+ * The CAP round the predictor compares a student against. Round 1 is the
+ * default because later rounds have sparse data (seats fill up earlier), so
+ * Round 1 gives the most complete cutoff coverage. The cutoff explorer shows
+ * all rounds; only the predictor is pinned to this one.
+ */
+export const ACTIVE_CAP_ROUND = Number(process.env.ACTIVE_CAP_ROUND || '1');
+
+/**
  * Maximum number of array filter values accepted in a single request.
  * Applied to branches, cities, minority_types, minority_groups, etc.
  * Prevents clients from generating unbounded SQL via massive arrays.

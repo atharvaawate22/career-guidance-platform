@@ -6,10 +6,14 @@ export interface PredictorRequest {
   gender?: string;
   minority_types?: string[];
   minority_groups?: string[];
-  level?: string; // 'State Level' | 'Home University Level' | 'Other Than Home University Level'
+  level?: string;
   preferred_branches?: string[];
   cities?: string[];
-  include_tfws?: boolean; // also include TFWS seats alongside the chosen category
+  include_tfws?: boolean;
+  // Accepted by the request schema but not used by the round-1 predictor model.
+  homeUniversity?: string;
+  branch?: string;
+  stage?: string;
 }
 
 export interface CollegeOption {
@@ -20,8 +24,8 @@ export interface CollegeOption {
   category: string;
   gender: string | null;
   college_status: string | null;
-  level: string;
-  stage: string;
+  cap_round: number;
+  stage: string; // roman numeral of the CAP round (predictor is pinned to round 1)
   cutoff_rank: number | null;
   cutoff_percentile: number;
   year: number;
@@ -35,16 +39,18 @@ export interface PredictorResponse {
     inputMode: 'rank' | 'percentile';
     effectiveRank: number;
     inputPercentile?: number;
+    windowFloor: number;
+    windowCeil: number;
   };
 }
 
 export interface PredictorFilters {
   year: number;
+  cap_round: number;
   category?: string;
   gender?: string;
   minority_types?: string[];
   minority_groups?: string[];
-  level?: string;
   preferred_branches?: string[];
   cities?: string[];
   include_tfws?: boolean;
