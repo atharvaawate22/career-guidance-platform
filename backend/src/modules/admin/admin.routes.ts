@@ -1,24 +1,19 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import {
   authMiddleware,
   requireAdminRole,
 } from '../../middleware/authMiddleware';
 import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
 import { UpdatesController } from '../updates/updates.controller';
-import { CutoffsController } from '../cutoffs/cutoffs.controller';
-import { invalidateCutoffMetaCache } from '../cutoffs/cutoffsMetaCache';
-import { cacheDelete } from '../../config/redis';
 import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
 import * as faqsController from '../faqs/faqs.controller';
 import * as settingsController from '../settings/settings.controller';
-import { query as dbQuery } from '../../config/database';
 import adminBookingsRoutes from './admin.bookings.routes';
 import adminUploadRoutes from './admin.upload.routes';
 
 const router = Router();
 const updatesController = new UpdatesController();
-const cutoffsController = new CutoffsController();
 
 // Sub-routers extracted into their own modules to keep this file focused.
 // They define their full sub-paths (/bookings*, /upload), so mounting order
@@ -51,68 +46,11 @@ router.delete(
   updatesController.deleteUpdate.bind(updatesController),
 );
 
-// Protected route for bulk inserting cutoffs
-router.post(
-  '/cutoffs',
-  authMiddleware,
-  requireAdminRole,
-  verifyCsrfToken,
-  cutoffsController.bulkInsertCutoffs.bind(cutoffsController),
-);
-
-// Protected route to delete cutoff data for a specific year (for re-importing)
-router.delete(
-  '/cutoffs',
-  authMiddleware,
-  requireAdminRole,
-  verifyCsrfToken,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const rawYear = req.query.year;
-
-      // year is required — refusing to accept a request that would delete
-      // ALL cutoff data in one shot (no accidental full wipe from a missing param).
-      if (rawYear === undefined || String(rawYear).trim().length === 0) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'year query parameter is required (e.g. ?year=2025)',
-          },
-        });
-        return;
-      }
-
-      const parsedYear = Number.parseInt(String(rawYear), 10);
-      if (!Number.isInteger(parsedYear) || parsedYear <= 0) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'year must be a positive integer',
-          },
-        });
-        return;
-      }
-
-      const result = await dbQuery(
-        'DELETE FROM cutoff_data WHERE year = $1',
-        [parsedYear],
-      );
-      invalidateCutoffMetaCache();
-      await cacheDelete('predictor:*');
-      await cacheDelete('cutoffs:*');
-      await cacheDelete('cutoffs:meta:*');
-      res.json({
-        success: true,
-        deleted: result.rowCount,
-        year: parsedYear,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+// NOTE: Cutoff data is now managed entirely through the offline ETL pipeline
+// (scripts/parse_cutoffs_v2.py → scripts/load_cutoffs.js) which writes to the
+// normalized colleges/courses/cutoffs tables. The old admin bulk-insert and
+// delete-by-year endpoints (which wrote to the legacy cutoff_data table) have
+// been removed. The cutoff_data table is retained only as a revert backup.
 
 // Protected routes for guides management
 router.post(

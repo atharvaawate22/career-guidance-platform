@@ -11,8 +11,6 @@
     "start": "node dist/server.js",
     "start:prod": "pm2 start ecosystem.config.js --env production",
     "profile:endpoints": "node scripts/profile_endpoints.js",
-    "report:unresolved-cities": "npx ts-node-dev --transpile-only --exit-child scripts/report_unresolved_cities.ts",
-    "check:city-normalization": "npx ts-node-dev --transpile-only --exit-child scripts/assert_no_unresolved_cities.ts",
     "lint": "eslint ./src --ext .ts",
     "format": "prettier --write ./src",
     "test": "node scripts/vitest-compat.js",
