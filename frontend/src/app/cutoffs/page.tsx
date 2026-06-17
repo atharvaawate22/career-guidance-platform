@@ -7,7 +7,7 @@ import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import CutoffResultCard from "@/components/CutoffResultCard";
 import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
-import { CUTOFF_CATEGORIES, CAP_ROUNDS } from "@/lib/cutoffOptions";
+import { CUTOFF_CATEGORIES, CAP_ROUNDS, sortBranches } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
   MINORITY_TYPE_OPTIONS,
@@ -23,6 +23,7 @@ interface CutoffData {
   branch_code: string | null; branch: string;
   category: string; gender: string | null;
   college_status: string | null; cap_round: number;
+  allotment_pool: string;
   percentile: number | null; cutoff_rank: number | null;
 }
 
@@ -73,7 +74,7 @@ export default function CutoffsPage() {
   );
 
   const collegeOptions = meta.colleges;
-  const branchOptions = meta.branches;
+  const branchOptions = useMemo(() => sortBranches(meta.branches), [meta.branches]);
   const cityOptions = meta.cities;
 
   useEffect(() => {
