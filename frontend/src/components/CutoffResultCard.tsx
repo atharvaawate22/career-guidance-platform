@@ -8,18 +8,14 @@ interface Props {
     id: string; year: number;
     college_code: string | null; college_name: string;
     branch: string; category: string;
-    college_status: string | null; stage: string | null;
-    percentile: number; cutoff_rank: number | null;
+    college_status: string | null; cap_round: number;
+    percentile: number | null; cutoff_rank: number | null;
   };
 }
 
-function formatRound(stage: string | null) {
-  if (!stage) return "—";
-  const n = stage.trim().toUpperCase();
-  const map: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4" };
-  if (map[n]) return `CAP Round ${map[n]}`;
-  if (n.includes("ROUND") || n.includes("CAP")) return stage;
-  return `Round ${stage}`;
+function formatRound(round: number | null) {
+  if (!round) return "—";
+  return `CAP Round ${round}`;
 }
 
 export default function CutoffResultCard({ cutoff }: Props) {
@@ -63,7 +59,7 @@ export default function CutoffResultCard({ cutoff }: Props) {
                 className="text-[10px] font-medium px-2 py-1 rounded-lg"
                 style={{ background: "var(--primary-50)", color: "var(--primary-700)", border: "1px solid var(--primary-200)" }}
               >
-                {formatRound(cutoff.stage)}
+                {formatRound(cutoff.cap_round)}
               </span>
               {minority && (
                 <span
@@ -95,7 +91,7 @@ export default function CutoffResultCard({ cutoff }: Props) {
           >
             <div className="text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--primary-500)" }}>Percentile</div>
             <div className="text-xl font-bold leading-none" style={{ color: "var(--primary-700)", fontFamily: "var(--font-mono)" }}>
-              {Number(cutoff.percentile).toFixed(2)}
+              {cutoff.percentile != null ? Number(cutoff.percentile).toFixed(2) : "—"}
             </div>
           </div>
         </div>
@@ -111,7 +107,7 @@ export default function CutoffResultCard({ cutoff }: Props) {
           <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--slate-50)", border: "1px solid var(--slate-100)" }}>
             <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--slate-500)" }}>Round</div>
             <div className="text-sm font-semibold" style={{ color: "var(--slate-900)" }}>
-              {formatRound(cutoff.stage)}
+              {formatRound(cutoff.cap_round)}
             </div>
           </div>
         </div>

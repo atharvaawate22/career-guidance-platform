@@ -7,7 +7,7 @@ import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import CutoffResultCard from "@/components/CutoffResultCard";
 import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
-import { CUTOFF_CATEGORIES, CUTOFF_STAGES } from "@/lib/cutoffOptions";
+import { CUTOFF_CATEGORIES, CAP_ROUNDS } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
   MINORITY_TYPE_OPTIONS,
@@ -22,8 +22,8 @@ interface CutoffData {
   college_code: string | null; college_name: string;
   branch_code: string | null; branch: string;
   category: string; gender: string | null;
-  college_status: string | null; stage: string | null;
-  percentile: number; cutoff_rank: number | null;
+  college_status: string | null; cap_round: number;
+  percentile: number | null; cutoff_rank: number | null;
 }
 
 interface CollegeOption { code: string | null; name: string; }
@@ -34,15 +34,6 @@ interface CutoffMeta {
 }
 
 type SortOption = "percentile-desc" | "percentile-asc" | "rank-asc" | "rank-desc" | "college-asc" | "branch-asc" | "round-asc";
-
-function formatRound(stage: string | null) {
-  if (!stage) return "—";
-  const n = stage.trim().toUpperCase();
-  const map: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4" };
-  if (map[n]) return `CAP Round ${map[n]}`;
-  if (n.includes("ROUND") || n.includes("CAP")) return stage;
-  return `Round ${stage}`;
-}
 
 function FilterLabel({ children }: { children: React.ReactNode }) {
   return <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--slate-600)" }}>{children}</label>;
@@ -68,7 +59,7 @@ export default function CutoffsPage() {
   const [gender, setGender] = useState("");
   const [selectedMinorityTypes, setSelectedMinorityTypes] = useState<string[]>([]);
   const [selectedMinorityGroups, setSelectedMinorityGroups] = useState<string[]>([]);
-  const [stage, setStage] = useState("");
+  const [round, setRound] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [includeTfws, setIncludeTfws] = useState(false);
   const [meta, setMeta] = useState<CutoffMeta>({
@@ -149,7 +140,7 @@ export default function CutoffsPage() {
       if (gender) params.append("gender", gender);
       selectedMinorityTypes.forEach(t => params.append("minority_type", t));
       selectedMinorityGroups.forEach(g => params.append("minority_group", g));
-      if (stage) params.append("stage", stage);
+      if (round) params.append("round", round);
       if (collegeCode) params.append("college_code", collegeCode);
       else if (collegeName) params.append("college_name", collegeName);
       selectedCities.forEach(c => params.append("city", c));
@@ -169,7 +160,7 @@ export default function CutoffsPage() {
   const handleReset = () => {
     setSelectedBranches([]); setCategory(""); setIncludeTfws(false);
     setGender(""); setSelectedMinorityTypes([]); setSelectedMinorityGroups([]);
-    setStage(""); setCollegeName(""); setCollegeCode(null);
+    setRound(""); setCollegeName(""); setCollegeCode(null);
     setSelectedCities([]); setCutoffs([]); setTotal(null);
     setError(""); setGenderError(""); setHasSearched(false); setSortBy("percentile-desc");
   };
@@ -182,7 +173,7 @@ export default function CutoffsPage() {
       case "rank-desc": return (Number(b.cutoff_rank ?? -1)) - (Number(a.cutoff_rank ?? -1));
       case "college-asc": return a.college_name.localeCompare(b.college_name);
       case "branch-asc":  return a.branch.localeCompare(b.branch);
-      case "round-asc":   return formatRound(a.stage).localeCompare(formatRound(b.stage), undefined, { numeric: true });
+      case "round-asc":   return a.cap_round - b.cap_round;
       default: return 0;
     }
   });
@@ -217,8 +208,8 @@ export default function CutoffsPage() {
               <div className="space-y-3">
                 <div>
                   <FilterLabel>CAP Round</FilterLabel>
-                  <CustomSelect id="stage" value={stage} onChange={setStage}
-                    options={[{ value: "", label: "All CAP Rounds" }, ...CUTOFF_STAGES.map(s => ({ value: s, label: formatRound(s) }))]} />
+                  <CustomSelect id="round" value={round} onChange={setRound}
+                    options={[{ value: "", label: "All CAP Rounds" }, ...CAP_ROUNDS.map(r => ({ value: String(r), label: `CAP Round ${r}` }))]} />
                 </div>
                 <div>
                   <FilterLabel>College</FilterLabel>
