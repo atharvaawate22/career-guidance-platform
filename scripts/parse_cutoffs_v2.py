@@ -158,6 +158,7 @@ def main():
     college = course = pool = None
     headers = []
     pending = None  # (stage, {code: rank_word})
+    pending_name = None  # course dict awaiting a wrapped course-name continuation
 
     def cur_choice():
         return course['choice_code'] if course else None
@@ -222,6 +223,7 @@ def main():
 
                 if mco:
                     flush()
+                    pending_name = None
                     cc, cname = mco.group(1), mco.group(2).strip()
                     if cc not in courses:
                         courses[cc] = {'choice_code': cc,
@@ -229,6 +231,7 @@ def main():
                                        'course_name': cname,
                                        'branch_group': canonical_subject(cname)}
                         report['courses'] += 1
+                        pending_name = courses[cc]
                         if len(samples) < args.sample:
                             samples.append({'choice': cc, 'name': cname,
                                             'college': college['name'] if college else '',
@@ -238,6 +241,7 @@ def main():
                     continue
 
                 if s.startswith('Status:') and college:
+                    pending_name = None
                     st, mt, mg, hu = parse_status(s)
                     college['status'] = college['status'] or st
                     college['minority_type'] = college['minority_type'] or (mt or '')
@@ -275,6 +279,19 @@ def main():
                     flush(pct_map)
                     add_sample_line(s)
                     continue
+
+                # Wrapped course-name continuation: a non-structural line right
+                # after a course heading (before its Status line) is the tail of
+                # a long course name that wrapped onto the next line. Append it
+                # and recompute the branch group.
+                if pending_name is not None:
+                    pending_name['course_name'] = (
+                        pending_name['course_name'] + ' ' + s
+                    ).strip()
+                    pending_name['branch_group'] = canonical_subject(
+                        pending_name['course_name']
+                    )
+                    add_sample_line(s)
         flush()
 
     def write_csv(name, rows, fields):
