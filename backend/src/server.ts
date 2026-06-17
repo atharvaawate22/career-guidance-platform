@@ -24,7 +24,6 @@ import db, { testConnection, query } from './config/database';
 import { getRedis } from './config/redis';
 import { runMigrations } from './config/migrations';
 import { runSampleSeed, bootstrapAdmin } from './config/seed';
-import { CITY_NORMALIZED_SQL } from './utils/cityNormalization';
 import logger, { pinoLogger } from './utils/logger';
 
 // Global error logging for diagnosis — registered after logger is imported
@@ -49,7 +48,6 @@ function resolveTrustProxy(): boolean | number | string {
 }
 
 app.set('trust proxy', resolveTrustProxy());
-const CITY_NORMALIZATION_BACKFILL_BATCH_SIZE = 1000;
 // Per-route public limiters. Predict and booking carry their own dedicated
 // limiters inside their route modules (predictorLimiter / bookingLimiter), so
 // they are intentionally not double-wrapped here.
@@ -244,33 +242,6 @@ const initializeDatabase = async (): Promise<boolean> => {
     }
 
     await bootstrapAdmin();
-
-    try {
-      const cityBackfillResult = await query(`
-        WITH city_backfill_batch AS (
-          SELECT ctid
-          FROM cutoff_data
-          WHERE city_normalized IS NULL
-             OR TRIM(city_normalized) = ''
-          LIMIT ${CITY_NORMALIZATION_BACKFILL_BATCH_SIZE}
-        )
-        UPDATE cutoff_data AS cutoff
-        SET city_normalized = LOWER(TRIM(${CITY_NORMALIZED_SQL}))
-        FROM city_backfill_batch
-        WHERE cutoff.ctid = city_backfill_batch.ctid
-      `);
-
-      if ((cityBackfillResult.rowCount ?? 0) > 0) {
-        logger.info(
-          `Backfilled city_normalized for ${cityBackfillResult.rowCount} cutoff rows during startup`,
-        );
-      }
-    } catch (backfillError) {
-      logger.warn(
-        'Skipping cutoff city_normalized backfill for this boot; startup can continue without it',
-        backfillError,
-      );
-    }
 
     return true;
   } catch (error) {
