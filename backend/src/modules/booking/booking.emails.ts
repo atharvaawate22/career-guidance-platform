@@ -7,7 +7,7 @@ export interface BookingEmailTemplate {
 }
 
 const bookingUrl = () =>
-  `${process.env.FRONTEND_URL?.split(',')[0]?.trim() || 'https://career-guidance-platform-gilt.vercel.app'}/book`;
+  `${process.env.FRONTEND_URL?.split(',')[0]?.trim() || 'https://www.cethub.in'}/book`;
 
 const formatSessionTime = (meetingTime: Date) => {
   const date = meetingTime.toLocaleDateString('en-IN', {
