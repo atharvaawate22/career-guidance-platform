@@ -22,6 +22,11 @@ export default function AnnouncementBanner() {
       .then((d) => {
         if (d.success && d.data) {
           setConfig(d.data);
+          try {
+            if (localStorage.getItem("cethub-announcement-dismissed") === d.data.text) {
+              setVisible(false);
+            }
+          } catch { /* localStorage unavailable */ }
         }
       })
       .catch(() => {});
@@ -66,9 +71,12 @@ export default function AnnouncementBanner() {
         color: s.text,
       }}
     >
-      <span className="mr-8 text-center truncate">{config.text}</span>
-      <button 
-        onClick={() => setVisible(false)}
+      <span className="mr-8 text-center truncate" title={config.text}>{config.text}</span>
+      <button
+        onClick={() => {
+          setVisible(false);
+          try { localStorage.setItem("cethub-announcement-dismissed", config.text); } catch { /* ignore */ }
+        }}
         className="absolute right-4 p-1 rounded transition-colors"
         style={{
           color: s.text,

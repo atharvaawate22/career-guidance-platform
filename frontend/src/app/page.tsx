@@ -111,7 +111,7 @@ const steps = [
   {
     n: 2,
     title: "Explore predictions",
-    desc: "Instantly see Safe, Target, and Dream college options — powered by 33,497 actual 2025 CAP records.",
+    desc: "Instantly see Safe, Target, and Dream college options — powered by 90,000+ actual 2025 CAP cutoff records.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -222,10 +222,24 @@ export default function Home() {
   const [backendStatus, setBackendStatus] = useState<"loading" | "connected" | "disconnected">("loading");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/health`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then((d: { status: string }) => setBackendStatus(d.status === "ok" ? "connected" : "disconnected"))
-      .catch(() => setBackendStatus("disconnected"));
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = () => {
+      fetch(`${API_BASE_URL}/api/v1/health`)
+        .then(r => (r.ok ? r.json() : Promise.reject()))
+        .then((d: { status: string }) => {
+          if (!active) return;
+          if (d.status === "ok") setBackendStatus("connected");
+          else { setBackendStatus("disconnected"); timer = setTimeout(check, 5000); }
+        })
+        .catch(() => {
+          // The free-tier backend may be cold-starting — keep retrying so the
+          // pill recovers to "connected" instead of showing a scary error.
+          if (active) { setBackendStatus("disconnected"); timer = setTimeout(check, 5000); }
+        });
+    };
+    check();
+    return () => { active = false; clearTimeout(timer); };
   }, []);
 
   return (
@@ -291,17 +305,17 @@ export default function Home() {
                 <span
                   className="w-2 h-2 rounded-full inline-block"
                   style={{
-                    background: backendStatus === "connected" ? "#22C55E" : backendStatus === "loading" ? "#F59E0B" : "#EF4444",
+                    background: backendStatus === "connected" ? "#22C55E" : "#F59E0B",
                     boxShadow: backendStatus === "connected" ? "0 0 8px rgba(34,197,94,0.5)" : "none",
                   }}
                 />
-                {backendStatus === "connected" ? "Platform Live · 2025 Data Ready" : backendStatus === "loading" ? "Connecting…" : "Service Unavailable"}
+                {backendStatus === "connected" ? "Platform Live · 2025 Data Ready" : backendStatus === "loading" ? "Connecting…" : "Reconnecting…"}
               </div>
 
               {/* Heading */}
               <h1
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] mb-6"
-                style={{ fontFamily: "var(--font-playfair)", color: "#ffffff" }}
+                style={{ fontFamily: "var(--font-display)", color: "#ffffff" }}
               >
                 Navigate Your{" "}
                 <span
@@ -372,7 +386,7 @@ export default function Home() {
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   {[
-                    { val: 33497, suffix: "", label: "Cutoff Records" },
+                    { val: 90000, suffix: "+", label: "Cutoff Records" },
                     { val: 300, suffix: "+", label: "Colleges Covered" },
                     { val: 4, suffix: "", label: "CAP Rounds" },
                     { val: 0, suffix: "", label: "Expert Sessions", display: "Free" },
@@ -443,7 +457,7 @@ export default function Home() {
             className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 lg:-mt-10 relative z-10"
           >
             {[
-              { val: 33497, suffix: "", label: "Cutoff Records", icon: "📊" },
+              { val: 90000, suffix: "+", label: "Cutoff Records", icon: "📊" },
               { val: 300, suffix: "+", label: "Colleges", icon: "🏛️" },
               { val: 4, suffix: "", label: "CAP Rounds", icon: "🔄" },
               { val: 1000, suffix: "+", label: "Students Helped", icon: "🎓" },
@@ -457,7 +471,7 @@ export default function Home() {
                     boxShadow: "var(--shadow-md)",
                   }}
                 >
-                  <span className="text-2xl mb-2 block">{stat.icon}</span>
+                  <span className="text-2xl mb-2 block" aria-hidden="true">{stat.icon}</span>
                   <div
                     className="text-2xl lg:text-3xl font-bold"
                     style={{ color: "var(--primary-600)", fontFamily: "var(--font-mono)" }}
@@ -482,7 +496,7 @@ export default function Home() {
               <p className="section-label mb-3">The Process</p>
               <h2
                 className="text-3xl lg:text-4xl font-bold"
-                style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}
+                style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
               >
                 How it works
               </h2>
@@ -538,7 +552,7 @@ export default function Home() {
                 <p className="section-label mb-3">What We Offer</p>
                 <h2
                   className="text-3xl lg:text-4xl font-bold"
-                  style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}
+                  style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
                 >
                   Everything You Need
                 </h2>
@@ -582,7 +596,7 @@ export default function Home() {
             </p>
             <h2
               className="text-3xl lg:text-4xl font-bold mb-5"
-              style={{ color: "#ffffff", fontFamily: "var(--font-playfair)" }}
+              style={{ color: "#ffffff", fontFamily: "var(--font-display)" }}
             >
               Ready to find your college?
             </h2>

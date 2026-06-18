@@ -256,6 +256,7 @@ input, select, textarea { font-family: inherit; }
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -269,6 +270,15 @@ input, select, textarea { font-family: inherit; }
     var(--slate-200) 25%,
     var(--slate-100) 50%,
     var(--slate-200) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.shimmer-light {
+  background: linear-gradient(90deg,
+    var(--slate-100) 25%,
+    var(--slate-50) 50%,
+    var(--slate-100) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -304,19 +314,22 @@ input, select, textarea { font-family: inherit; }
 .input-base:focus  { border-color: var(--primary-500); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
 
 /* ─── Buttons (backward-compat) ─────────────────────────────────────────── */
+/* Primary action button. (Legacy class name kept; restyled to the indigo brand
+   so CTAs match the rest of the site instead of the old gold theme.) */
 .btn-gold {
   display: inline-flex; align-items: center; gap: .5rem;
   padding: .75rem 1.75rem;
-  background: var(--gold);
-  color: var(--navy);
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  color: #ffffff;
   font-weight: 700; font-size: .9rem; letter-spacing: .01em;
   border-radius: var(--radius-lg);
   border: none; cursor: pointer;
-  transition: background .15s, transform .15s, box-shadow .15s;
-  box-shadow: 0 2px 8px rgb(201 168 76 / .3);
+  transition: filter .15s, transform .15s, box-shadow .15s;
+  box-shadow: 0 2px 8px rgba(79,70,229,.3);
 }
-.btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); box-shadow: 0 6px 18px rgb(201 168 76 / .35); }
+.btn-gold:hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.38); }
 .btn-gold:active { transform: translateY(0); }
+.btn-gold:disabled { opacity: .6; cursor: not-allowed; transform: none; filter: none; }
 
 .btn-outline {
   display: inline-flex; align-items: center; gap: .5rem;
@@ -327,7 +340,7 @@ input, select, textarea { font-family: inherit; }
   border-radius: var(--radius-lg); cursor: pointer;
   transition: border-color .15s, background .15s, transform .15s;
 }
-.btn-outline:hover { border-color: var(--gold); color: var(--gold); background: rgb(201 168 76 / .05); transform: translateY(-1px); }
+.btn-outline:hover { border-color: var(--primary-500); color: var(--primary-600); background: rgba(99,102,241,.05); transform: translateY(-1px); }
 
 /* ─── Card (backward-compat) ────────────────────────────────────────────── */
 .card {

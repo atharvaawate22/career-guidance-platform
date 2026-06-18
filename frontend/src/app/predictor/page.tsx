@@ -155,7 +155,7 @@ export default function PredictorPage() {
       <div className="mb-10">
         <div className="flex items-center gap-3 mb-4">
           <span className="w-2 h-6 rounded-full shrink-0" style={{ background: colors[tier] }} />
-          <h3 className="text-xl font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>{title}</h3>
+          <h3 className="text-xl font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>{title}</h3>
           <span className="text-sm ml-1" style={{ color: "var(--slate-500)" }}>({colleges.length})</span>
         </div>
         {colleges.length === 0 ? (
@@ -185,7 +185,7 @@ export default function PredictorPage() {
         {/* Page header */}
         <div className="mb-8">
           <p className="section-label mb-2">MHT-CET 2025</p>
-          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
             College Predictor
           </h1>
           <p className="text-sm" style={{ color: "var(--slate-500)" }}>

@@ -186,7 +186,7 @@ export default function CutoffsPage() {
         {/* Header */}
         <div className="mb-8">
           <p className="section-label mb-2">MHT-CET 2025</p>
-          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
             Cutoff Explorer
           </h1>
           <p className="text-sm" style={{ color: "var(--slate-500)" }}>
@@ -378,7 +378,7 @@ export default function CutoffsPage() {
             "@context": "https://schema.org",
             "@type": "Dataset",
             "name": "MHT-CET 2025 CAP Round Engineering Cutoff Dataset",
-            "description": "Structured historical cutoff dataset containing 33,000+ percentile and rank admission records across engineering colleges, branches, categories, and rounds in Maharashtra.",
+            "description": "Structured historical cutoff dataset containing 90,000+ percentile and rank admission records across engineering colleges, branches, categories, and rounds in Maharashtra.",
             "url": "https://cethub.in/cutoffs",
             "keywords": [
               "MHT-CET cutoffs",

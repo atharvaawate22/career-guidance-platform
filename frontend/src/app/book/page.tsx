@@ -465,7 +465,7 @@ export default function BookPage() {
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <p className="section-label mb-2">Guidance</p>
-          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
             Book a Session
           </h1>
           <p className="text-sm" style={{ color: "var(--slate-500)" }}>
