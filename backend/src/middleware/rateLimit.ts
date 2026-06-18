@@ -1,6 +1,15 @@
+import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createRedisStore } from '../config/redis';
+
+/** Constant-time string compare for the internal proxy token (length-guarded). */
+function safeTokenEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 /**
  * Single source of truth for rate limiting.
@@ -35,13 +44,35 @@ export function createPublicPostLimiter(maxRequests: number, windowMs: number) {
   });
 }
 
-export function createPublicGetLimiter(maxRequests: number, windowMs: number) {
+export function createPublicGetLimiter(
+  maxRequests: number,
+  windowMs: number,
+  options?: { proxyToken?: string },
+) {
+  const proxyToken = options?.proxyToken;
   return rateLimit({
     windowMs,
     max: maxRequests,
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => req.method !== 'GET',
+    // Behind our own Vercel edge proxy, cache-miss requests reach the origin
+    // from Vercel's shared IP. When the proxy authenticates with the shared
+    // INTERNAL_PROXY_TOKEN, key on the real visitor IP it forwards so the
+    // per-IP cap stays per-user instead of collapsing onto Vercel's IP. Direct
+    // (non-proxy) traffic always keys on the connection IP, so the forwarded
+    // header cannot be spoofed to evade the limit. Falls back gracefully to the
+    // connection IP when no token is configured.
+    keyGenerator: (req) => {
+      if (proxyToken) {
+        const provided = req.get('x-internal-proxy-token');
+        const realIp = req.get('x-real-client-ip');
+        if (provided && realIp && safeTokenEqual(provided, proxyToken)) {
+          return realIp;
+        }
+      }
+      return req.ip ?? 'unknown';
+    },
     store: makeStore(),
     message: {
       success: false,

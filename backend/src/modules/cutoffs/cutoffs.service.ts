@@ -23,7 +23,7 @@ function stableStringify(value: unknown): string {
 export class CutoffsService {
   async getCutoffs(
     filters: CutoffFilters,
-  ): Promise<{ rows: CutoffRow[]; total: number }> {
+  ): Promise<{ rows: CutoffRow[]; total: number; cached: boolean }> {
     const normalizedFilters = {
       ...filters,
       year: ACTIVE_CUTOFF_YEAR,
@@ -31,10 +31,10 @@ export class CutoffsService {
     const cacheKey = `cutoffs:${stableStringify(normalizedFilters)}`;
     const cached =
       await cacheGet<{ rows: CutoffRow[]; total: number }>(cacheKey);
-    if (cached) return cached;
+    if (cached) return { ...cached, cached: true };
 
     const result = await cutoffsRepository.getCutoffs(normalizedFilters);
     await cacheSet(cacheKey, result, CUTOFFS_CACHE_TTL_SECONDS);
-    return result;
+    return { ...result, cached: false };
   }
 }

@@ -55,13 +55,14 @@ const publicBookingSlotsGetLimiter = createPublicGetLimiter(120, 15 * 60 * 1000)
 const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
 // /cutoffs runs the heaviest public DB query (DISTINCT-ON over ~92k rows) and
 // was the only unthrottled public endpoint — the easiest lever for an overload
-// attack on the small free-tier instance. It is fetched CLIENT-SIDE (browser
-// IP), so a per-IP cap is correct here; the limit is generous enough for real
-// browsing (incl. shared-NAT labs) while stopping a single-IP flood. The other
-// public reads are intentionally left unlimited: they are lightweight and some
-// are SSR-fetched from Vercel's shared egress IP, where a per-IP cap would
-// throttle every visitor at once.
-const publicCutoffsLimiter = createPublicGetLimiter(120, 60 * 1000);
+// attack on the small free-tier instance. Cap it per visitor (120/min). It is
+// now served through the Vercel edge-cache proxy, so cache-miss requests arrive
+// from Vercel's shared IP; the limiter keys on the real visitor IP that the
+// proxy forwards (authenticated with INTERNAL_PROXY_TOKEN) so the cap stays
+// per-user. Direct traffic still keys on the connection IP.
+const publicCutoffsLimiter = createPublicGetLimiter(120, 60 * 1000, {
+  proxyToken: process.env.INTERNAL_PROXY_TOKEN,
+});
 
 // Public read caching. These endpoints return identical data for every visitor
 // (no auth / cookies / per-user content), so browsers and any shared CDN can
