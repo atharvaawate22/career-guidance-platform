@@ -82,7 +82,7 @@ function ToastItem({ toast: t, onDismiss }: { toast: ToastData; onDismiss: (id: 
 
   return (
     <div
-      role="alert"
+      role={t.type === "error" || t.type === "warning" ? "alert" : "status"}
       className={`relative flex items-start gap-3 w-80 sm:w-96 bg-slate-800 border border-slate-700 ${borderColors[t.type]} border-l-4 rounded-xl p-4 shadow-xl ${exiting ? "animate-slide-out-right" : "animate-slide-in-right"}`}
     >
       <div className="flex-shrink-0 mt-0.5">{icons[t.type]}</div>

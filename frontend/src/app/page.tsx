@@ -460,7 +460,7 @@ export default function Home() {
               { val: 90000, suffix: "+", label: "Cutoff Records", icon: "📊" },
               { val: 300, suffix: "+", label: "Colleges", icon: "🏛️" },
               { val: 4, suffix: "", label: "CAP Rounds", icon: "🔄" },
-              { val: 1000, suffix: "+", label: "Students Helped", icon: "🎓" },
+              { val: 100, suffix: "+", label: "Branches", icon: "🧭" },
             ].map((stat, i) => (
               <ScrollReveal key={stat.label} animation="fade-up" delay={i * 100}>
                 <div
@@ -601,8 +601,8 @@ export default function Home() {
               Ready to find your college?
             </h2>
             <p className="text-base mb-10 max-w-xl mx-auto" style={{ color: "var(--slate-300)" }}>
-              Join thousands of students who have successfully navigated their admission journey
-              with data-driven predictions and expert guidance.
+              Make a confident, data-driven choice with real 2025 CAP cutoffs,
+              college predictions, and free expert guidance.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
