@@ -111,7 +111,7 @@ export default function ResourcesPage() {
             <p className="section-label mb-2">Downloads</p>
             <h1
               className="text-4xl font-bold mb-2"
-              style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}
+              style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
             >
               Resources
             </h1>

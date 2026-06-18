@@ -39,7 +39,7 @@ export default function FaqSection() {
         <ScrollReveal>
           <div className="text-center mb-14">
             <p className="section-label mb-3">FAQ</p>
-            <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
               Got questions? We&apos;ve got answers
             </h2>
             <p className="text-base" style={{ color: "var(--slate-500)" }}>
@@ -78,6 +78,8 @@ export default function FaqSection() {
                     <button
                       type="button"
                       onClick={() => setOpenId(isOpen ? "" : faq.id)}
+                      aria-expanded={isOpen}
+                      aria-controls={`faq-panel-${faq.id}`}
                       className="w-full px-5 py-4 text-left flex items-start justify-between gap-4"
                     >
                       <div className="flex items-start gap-4">
@@ -95,6 +97,7 @@ export default function FaqSection() {
                         </h4>
                       </div>
                       <span
+                        aria-hidden="true"
                         className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 text-base transition-all duration-300 mt-0.5"
                         style={{
                           background: isOpen ? "var(--primary-50)" : "var(--slate-100)",
@@ -105,7 +108,7 @@ export default function FaqSection() {
                         +
                       </span>
                     </button>
-                    <div className="faq-answer-grid" data-open={isOpen}>
+                    <div id={`faq-panel-${faq.id}`} role="region" className="faq-answer-grid" data-open={isOpen}>
                       <div className="faq-answer-inner">
                         <div className="px-5 pb-5 pl-[4.5rem]">
                           <p

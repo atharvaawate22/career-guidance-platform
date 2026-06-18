@@ -57,6 +57,14 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  /* Close mobile menu on Escape */
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
   /* Check admin session */
   useEffect(() => {
     const check = async () => {
@@ -215,6 +223,8 @@ export default function Navbar() {
       {/* ── Mobile menu overlay ─────────────────────────────────── */}
       <div
         className="fixed inset-0 z-30 lg:hidden transition-all duration-300"
+        aria-hidden={!mobileOpen}
+        inert={!mobileOpen}
         style={{
           opacity: mobileOpen ? 1 : 0,
           pointerEvents: mobileOpen ? "auto" : "none",
@@ -278,7 +288,7 @@ export default function Navbar() {
               </svg>
             </Link>
             <p className="text-xs text-center mt-4" style={{ color: "var(--slate-400)" }}>
-              © 2026 CETHub · Data: 2025 CAP
+              © {new Date().getFullYear()} CETHub · Data: 2025 CAP
             </p>
           </div>
         </div>

@@ -21,6 +21,7 @@ export default function CustomSelect({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [openAbove, setOpenAbove] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const generatedId = useId();
@@ -33,6 +34,12 @@ export default function CustomSelect({
     const r = containerRef.current.getBoundingClientRect();
     setOpenAbove(window.innerHeight - r.bottom < 260 && r.top > window.innerHeight - r.bottom);
   }, []);
+
+  const openMenu = useCallback(() => {
+    computeDir();
+    setOpen(true);
+    setActiveIndex(Math.max(0, options.findIndex(o => o.value === value)));
+  }, [computeDir, options, value]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -48,12 +55,13 @@ export default function CustomSelect({
     return () => document.removeEventListener("keydown", h);
   }, []);
 
+  // Keep the active option scrolled into view as the user navigates.
   useEffect(() => {
-    if (open && listRef.current) {
-      const sel = listRef.current.querySelector("[data-selected='true']") as HTMLElement | null;
-      if (sel) sel.scrollIntoView({ block: "nearest" });
+    if (open && listRef.current && activeIndex >= 0) {
+      const el = listRef.current.children[activeIndex] as HTMLElement | undefined;
+      el?.scrollIntoView({ block: "nearest" });
     }
-  }, [open]);
+  }, [activeIndex, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,11 +73,32 @@ export default function CustomSelect({
 
   const selected = options.find(o => o.value === value);
 
+  // Keyboard operation: open with ↓/Enter/Space, move with ↑/↓/Home/End,
+  // commit with Enter/Space, dismiss with Escape.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") { setOpen(false); return; }
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") { e.preventDefault(); openMenu(); }
+      return;
+    }
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex(i => Math.min(options.length - 1, i + 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIndex(i => Math.max(0, i - 1)); }
+    else if (e.key === "Home") { e.preventDefault(); setActiveIndex(0); }
+    else if (e.key === "End") { e.preventDefault(); setActiveIndex(options.length - 1); }
+    else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const opt = options[activeIndex];
+      if (opt) { onChange(opt.value); setOpen(false); }
+    }
+  };
+
   return (
     <div ref={containerRef} className={`relative ${w}`}>
       <button
         type="button" id={buttonId} aria-haspopup="listbox" aria-expanded={open}
-        onClick={() => { if (!open) computeDir(); setOpen(p => !p); }}
+        aria-activedescendant={open && activeIndex >= 0 ? `${buttonId}-opt-${activeIndex}` : undefined}
+        onClick={() => { if (open) setOpen(false); else openMenu(); }}
+        onKeyDown={onKeyDown}
         className={`w-full flex items-center justify-between ${py} text-left text-sm transition-all cursor-pointer`}
         style={{
           background: "var(--bg-primary)",
@@ -90,19 +119,19 @@ export default function CustomSelect({
         <div role="listbox" ref={listRef}
           className={`absolute z-50 w-full overflow-y-auto max-h-64 ${openAbove ? "bottom-full mb-1" : "top-full mt-1"}`}
           style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)", borderRadius: ".5rem", boxShadow: "var(--shadow-lg)" }}>
-          {options.map(opt => {
+          {options.map((opt, idx) => {
             const isSel = opt.value === value;
+            const isActive = idx === activeIndex;
             return (
-              <div key={opt.value} role="option" aria-selected={isSel} data-selected={isSel}
+              <div key={opt.value} id={`${buttonId}-opt-${idx}`} role="option" aria-selected={isSel} data-selected={isSel}
                 onClick={() => { onChange(opt.value); setOpen(false); }}
+                onMouseEnter={() => setActiveIndex(idx)}
                 className="px-3.5 py-2.5 cursor-pointer text-sm transition-colors"
                 style={{
-                  background: isSel ? "var(--primary-50)" : "transparent",
+                  background: isSel ? "var(--primary-50)" : isActive ? "var(--slate-50)" : "transparent",
                   color: isSel ? "var(--primary-700)" : "var(--slate-900)",
                   fontWeight: isSel ? 600 : 400,
-                }}
-                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = "var(--slate-50)"; }}
-                onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = isSel ? "var(--primary-50)" : "transparent"; }}>
+                }}>
                 {opt.label}
               </div>
             );

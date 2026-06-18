@@ -101,7 +101,7 @@ export default function Footer() {
           style={{ borderTop: "1px solid var(--slate-800)" }}
         >
           <p className="text-sm font-medium" style={{ color: "var(--slate-500)" }}>
-            © 2026{" "}
+            © {new Date().getFullYear()}{" "}
             <span style={{ color: "var(--primary-400)" }}>CETHub</span>
             . All rights reserved.
           </p>

@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
     <main style={{ minHeight: "100vh", background: "var(--bg-secondary)" }}>
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         <p className="section-label mb-3">Legal</p>
-        <h1 className="text-4xl font-bold mb-3" style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}>
+        <h1 className="text-4xl font-bold mb-3" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
           Privacy Policy
         </h1>
         <p className="text-sm mb-8" style={{ color: "var(--slate-500)" }}>

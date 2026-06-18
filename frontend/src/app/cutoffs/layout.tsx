@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "MHT-CET 2025 Cutoff Explorer — 33,000+ Records by College & Branch",
+  title: "MHT-CET 2025 Cutoff Explorer — 90,000+ Records by College & Branch",
   description:
     "Search MHT-CET 2025 cutoff percentiles and ranks by college, branch, category, and CAP round. Free, instant access to all Maharashtra engineering cutoffs.",
   openGraph: {

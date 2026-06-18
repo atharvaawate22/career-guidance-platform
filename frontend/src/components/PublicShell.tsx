@@ -16,6 +16,13 @@ export default function PublicShell({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg-secondary)" }}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:top-3 focus:left-3 focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:shadow-lg"
+        style={{ background: "var(--bg-primary)", color: "var(--primary-700)" }}
+      >
+        Skip to content
+      </a>
       <AnnouncementBanner />
       <Navbar />
       <main 

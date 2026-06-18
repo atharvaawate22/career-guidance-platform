@@ -176,7 +176,7 @@ export default function GuidesPage() {
             <p className="section-label mb-2">Learn</p>
             <h1
               className="text-4xl font-bold mb-2"
-              style={{ color: "var(--slate-900)", fontFamily: "var(--font-playfair)" }}
+              style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
             >
               Admission Guides
             </h1>
