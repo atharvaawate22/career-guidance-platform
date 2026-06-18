@@ -121,7 +121,7 @@ function LoginForm() {
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-950 via-slate-950 to-slate-900" />
           <div className="absolute top-1/4 -left-20 w-96 h-96 bg-indigo-600/8 rounded-full blur-3xl animate-float" />
           <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-teal-600/8 rounded-full blur-3xl animate-float" style={{ animationDelay: "1.5s" }} />
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-primary-600/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
+          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-indigo-600/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
         </div>
 
         {/* Grid Pattern Overlay */}
