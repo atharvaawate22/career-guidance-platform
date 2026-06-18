@@ -8,9 +8,9 @@ export const metadata: Metadata = {
     title: "Book a Free MHT-CET Counseling Session",
     description:
       "Get personalised college selection advice from a MHT-CET expert. Free 30-minute Google Meet session.",
-    url: "https://cethub.in/book",
+    url: "https://www.cethub.in/book",
   },
-  alternates: { canonical: "https://cethub.in/book" },
+  alternates: { canonical: "https://www.cethub.in/book" },
 };
 
 export default function BookLayout({

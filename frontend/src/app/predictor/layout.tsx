@@ -8,9 +8,9 @@ export const metadata: Metadata = {
     title: "MHT-CET 2025 College Predictor",
     description:
       "Find colleges you can get into based on your MHT-CET 2025 percentile or rank.",
-    url: "https://cethub.in/predictor",
+    url: "https://www.cethub.in/predictor",
   },
-  alternates: { canonical: "https://cethub.in/predictor" },
+  alternates: { canonical: "https://www.cethub.in/predictor" },
 };
 
 export default function PredictorLayout({

@@ -8,9 +8,9 @@ export const metadata: Metadata = {
     title: "MHT-CET Resources — Official Documents & Downloads",
     description:
       "Previous year cutoffs, seat matrices, and government circulars for MHT-CET admissions.",
-    url: "https://cethub.in/resources",
+    url: "https://www.cethub.in/resources",
   },
-  alternates: { canonical: "https://cethub.in/resources" },
+  alternates: { canonical: "https://www.cethub.in/resources" },
 };
 
 export default function ResourcesLayout({
