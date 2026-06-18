@@ -10,16 +10,20 @@ name: Keep backend warm
 #    A dedicated uptime monitor (e.g. UptimeRobot at a 5-minute interval) is more
 #    reliable. See docs/FREE_TIER_PERFORMANCE.md. This workflow is a zero-setup
 #    backup, not a guarantee.
-#  - Keeping the instance awake ~24/7 consumes roughly 720 of Render's 750 free
-#    instance-hours per month. That is fine for ONE web service; if you run more
-#    than one Render web service you will exceed the free allowance.
+#  - The PRIMARY keep-warm is now a Supabase pg_cron job (runs on schedule, far
+#    more reliable than GitHub cron). This workflow is a secondary backup. Both
+#    are windowed to active hours (UTC 0-19 ≈ 05:30-01:29 IST) so the instance
+#    sleeps overnight and stays well under Render's free monthly instance-hour
+#    budget. Adding a second Render web service would still exceed the allowance.
 #  - Set a repository variable named BACKEND_HEALTH_URL to your health endpoint
 #    (e.g. https://cethub-api.onrender.com/api/v1/health). If it is unset, the
 #    job no-ops instead of failing.
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # Active hours only (UTC 00-19 ≈ 05:30-01:29 IST) to match the Supabase
+    # pg_cron job and stay under the free instance-hour budget.
+    - cron: '*/10 0-19 * * *'
   workflow_dispatch: {}
 
 jobs:
