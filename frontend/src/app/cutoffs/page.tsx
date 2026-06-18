@@ -13,7 +13,6 @@ import {
   MINORITY_TYPE_OPTIONS,
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 const DEFAULT_META_YEAR = "2025";
 
@@ -79,7 +78,7 @@ export default function CutoffsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?year=${DEFAULT_META_YEAR}`, {
+    fetch(`/api/cutoffs/meta?year=${DEFAULT_META_YEAR}`, {
       signal: controller.signal,
     })
       .then(async response => {
@@ -145,7 +144,7 @@ export default function CutoffsPage() {
       if (collegeCode) params.append("college_code", collegeCode);
       else if (collegeName) params.append("college_name", collegeName);
       selectedCities.forEach(c => params.append("city", c));
-      const response = await fetch(`${API_BASE_URL}/api/v1/cutoffs?${params.toString()}`);
+      const response = await fetch(`/api/cutoffs?${params.toString()}`);
       if (!response.ok) {
         // Surface HTTP-level errors (proxy failures, 5xx, etc.) explicitly
         throw new Error(`Server returned ${response.status}`);
