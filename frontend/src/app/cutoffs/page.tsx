@@ -378,7 +378,7 @@ export default function CutoffsPage() {
             "@type": "Dataset",
             "name": "MHT-CET 2025 CAP Round Engineering Cutoff Dataset",
             "description": "Structured historical cutoff dataset containing 90,000+ percentile and rank admission records across engineering colleges, branches, categories, and rounds in Maharashtra.",
-            "url": "https://cethub.in/cutoffs",
+            "url": "https://www.cethub.in/cutoffs",
             "keywords": [
               "MHT-CET cutoffs",
               "engineering admission cutoffs Maharashtra",
@@ -389,13 +389,13 @@ export default function CutoffsPage() {
             "creator": {
               "@type": "Organization",
               "name": "CETHub",
-              "url": "https://cethub.in"
+              "url": "https://www.cethub.in"
             },
             "distribution": [
               {
                 "@type": "DataDownload",
                 "encodingFormat": "application/json",
-                "contentUrl": "https://cethub.in/api/v1/cutoffs"
+                "contentUrl": "https://www.cethub.in/api/v1/cutoffs"
               }
             ],
             "temporalCoverage": "2025",

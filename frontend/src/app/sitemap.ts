@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://cethub.in';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cethub.in';
 
   return [
     {

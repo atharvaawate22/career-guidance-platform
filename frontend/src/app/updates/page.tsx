@@ -259,18 +259,18 @@ export default function UpdatesPage() {
                   "author": {
                     "@type": "Organization",
                     "name": "CETHub",
-                    "url": "https://cethub.in"
+                    "url": "https://www.cethub.in"
                   },
                   "publisher": {
                     "@type": "Organization",
                     "name": "CETHub",
-                    "url": "https://cethub.in",
+                    "url": "https://www.cethub.in",
                     "logo": {
                       "@type": "ImageObject",
-                      "url": "https://cethub.in/favicon.ico"
+                      "url": "https://www.cethub.in/favicon.ico"
                     }
                   },
-                  "mainEntityOfPage": "https://cethub.in/updates"
+                  "mainEntityOfPage": "https://www.cethub.in/updates"
                 }
               }))
             })

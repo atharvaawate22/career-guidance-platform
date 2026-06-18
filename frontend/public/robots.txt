@@ -2,9 +2,9 @@
 User-agent: *
 Allow: /
 
-# Disallow admin panel and API routes from being indexed
+# Admin panel and API routes are not for indexing
 Disallow: /admin
 Disallow: /api/
 
 # Sitemap
-Sitemap: https://cethub.in/sitemap.xml
+Sitemap: https://www.cethub.in/sitemap.xml

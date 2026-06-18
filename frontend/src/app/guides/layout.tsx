@@ -8,9 +8,9 @@ export const metadata: Metadata = {
     title: "Free MHT-CET Admission Guides",
     description:
       "Download free PDF guides for MHT-CET CAP admissions — college lists, option forms, seat matrix, and more.",
-    url: "https://cethub.in/guides",
+    url: "https://www.cethub.in/guides",
   },
-  alternates: { canonical: "https://cethub.in/guides" },
+  alternates: { canonical: "https://www.cethub.in/guides" },
 };
 
 export default function GuidesLayout({

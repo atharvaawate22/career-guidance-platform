@@ -1,0 +1,25 @@
+# CET Hub (https://www.cethub.in)
+
+> CET Hub is a free MHT-CET (Maharashtra Common Entrance Test — PCM / engineering)
+> admission-guidance platform. It helps students predict eligible engineering
+> colleges from their percentile or CAP rank, explore historical CAP cutoffs, and
+> book free counselling sessions.
+
+## Key facts
+- Audience: MHT-CET (PCM) candidates seeking Maharashtra engineering (B.E./B.Tech) admission through the CAP (Centralized Admission Process).
+- Data: 90,000+ official 2025 CAP cutoff records across 300+ colleges and all CAP rounds.
+- All public tools are free and need no login.
+- Independent platform; not affiliated with the State CET Cell or DTE Maharashtra.
+
+## Primary pages
+- College Predictor: https://www.cethub.in/predictor — enter percentile or rank to get Safe / Target / Dream colleges.
+- Cutoff Explorer: https://www.cethub.in/cutoffs — search 2025 cutoffs by college, branch, category, and CAP round.
+- Book Counselling: https://www.cethub.in/book — free one-on-one expert sessions.
+- Guides: https://www.cethub.in/guides — CAP process and admission guides.
+- Resources: https://www.cethub.in/resources — seat matrices, government circulars, cutoff PDFs.
+- Updates: https://www.cethub.in/updates — MHT-CET news, notifications, and key dates.
+
+## Questions this site answers
+- Which engineering colleges can I get with my MHT-CET percentile or rank?
+- What were the MHT-CET 2025 cutoffs for a given college / branch / category?
+- How does the Maharashtra MHT-CET CAP (Centralized Admission Process) work?
