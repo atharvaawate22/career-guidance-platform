@@ -100,8 +100,11 @@ export class CutoffsController {
         cities: cities.length > 0 ? cities : undefined,
       };
 
-      const { rows, total } = await cutoffsService.getCutoffs(filters);
+      const { rows, total, cached } = await cutoffsService.getCutoffs(filters);
 
+      // Surface server-side Redis cache behavior so it is observable in prod
+      // (and through the edge proxy). HIT = served from Redis, no DB query.
+      res.setHeader('X-Cache', cached ? 'HIT' : 'MISS');
       res.json({ success: true, data: rows, total });
     } catch (error) {
       next(error);
