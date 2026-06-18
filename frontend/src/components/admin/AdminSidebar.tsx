@@ -105,12 +105,28 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   // Load collapsed state from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("admin_sidebar_collapsed");
     if (saved === "true") setCollapsed(true);
   }, []);
+
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Close the mobile drawer on Escape.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onMobileClose?.(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen, onMobileClose]);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -137,6 +153,9 @@ export default function AdminSidebar({
 
       {/* Sidebar */}
       <aside
+        aria-label="Admin navigation"
+        aria-hidden={!isDesktop && !mobileOpen}
+        inert={!isDesktop && !mobileOpen}
         className={`
           fixed top-0 left-0 h-full z-50 flex flex-col
           bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/50
