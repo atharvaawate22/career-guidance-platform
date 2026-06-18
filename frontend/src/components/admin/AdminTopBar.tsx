@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -30,6 +31,22 @@ export default function AdminTopBar({ onMenuClick, onLogout }: AdminTopBarProps)
   const profileRef = useRef<HTMLDivElement>(null);
 
   const currentLabel = routeLabels[pathname] || "Admin";
+  const [online, setOnline] = useState<boolean | null>(null);
+
+  // Reflect real backend health instead of a hardcoded "online" pill.
+  useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const ping = () => {
+      fetch(`${API_BASE_URL}/api/v1/health`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d: { status: string }) => { if (active) setOnline(d.status === "ok"); })
+        .catch(() => { if (active) setOnline(false); })
+        .finally(() => { if (active) timer = setTimeout(ping, 30000); });
+    };
+    ping();
+    return () => { active = false; clearTimeout(timer); };
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -69,10 +86,12 @@ export default function AdminTopBar({ onMenuClick, onLogout }: AdminTopBarProps)
 
       {/* Right Side */}
       <div className="flex items-center gap-3">
-        {/* System Status */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-xs text-emerald-400 font-medium">System Online</span>
+        {/* System Status — reflects the live backend health check */}
+        <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border ${online === false ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20"}`}>
+          <div className={`w-2 h-2 rounded-full animate-pulse-dot ${online === false ? "bg-amber-500" : "bg-emerald-500"}`} />
+          <span className={`text-xs font-medium ${online === false ? "text-amber-400" : "text-emerald-400"}`}>
+            {online === false ? "Reconnecting…" : "System Online"}
+          </span>
         </div>
 
         {/* Profile Dropdown */}
