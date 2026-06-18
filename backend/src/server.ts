@@ -53,6 +53,15 @@ app.set('trust proxy', resolveTrustProxy());
 // they are intentionally not double-wrapped here.
 const publicBookingSlotsGetLimiter = createPublicGetLimiter(120, 15 * 60 * 1000);
 const publicGuideDownloadLimiter = createPublicPostLimiter(30, 15 * 60 * 1000);
+// /cutoffs runs the heaviest public DB query (DISTINCT-ON over ~92k rows) and
+// was the only unthrottled public endpoint — the easiest lever for an overload
+// attack on the small free-tier instance. It is fetched CLIENT-SIDE (browser
+// IP), so a per-IP cap is correct here; the limit is generous enough for real
+// browsing (incl. shared-NAT labs) while stopping a single-IP flood. The other
+// public reads are intentionally left unlimited: they are lightweight and some
+// are SSR-fetched from Vercel's shared egress IP, where a per-IP cap would
+// throttle every visitor at once.
+const publicCutoffsLimiter = createPublicGetLimiter(120, 60 * 1000);
 
 // Public read caching. These endpoints return identical data for every visitor
 // (no auth / cookies / per-user content), so browsers and any shared CDN can
@@ -215,7 +224,7 @@ app.use(/^\/api\/(?!v1(?:\/|$)).+/, (req, res) => {
 
 // Register module routes
 app.use('/api/v1/updates', contentCache, updatesRoutes);
-app.use('/api/v1/cutoffs', referenceCache, cutoffsRoutes);
+app.use('/api/v1/cutoffs', publicCutoffsLimiter, referenceCache, cutoffsRoutes);
 app.use('/api/v1/predict', predictorRoutes); // POST — not CDN-cacheable; cached server-side in Redis
 app.use('/api/v1/guides/download', publicGuideDownloadLimiter);
 app.use('/api/v1/guides', contentCache, guidesRoutes);
@@ -226,6 +235,17 @@ app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/settings', contentCache, settingsRoutes);
 app.use('/api/v1/admin', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
+
+// Catch-all 404 for unmatched API routes. Without this, Express serves its
+// default HTML "Cannot GET ..." page, which both leaks the framework and breaks
+// the JSON contract every other endpoint honours. Keep it after all routes and
+// before the error handler.
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: { code: 'NOT_FOUND', message: 'The requested resource was not found.' },
+  });
+});
 
 // Register error handler after all routes
 Sentry.setupExpressErrorHandler(app);
