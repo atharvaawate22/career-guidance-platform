@@ -447,47 +447,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════ STATS BAR ════════════════════════════════════ */}
-      <section
-        className="relative -mt-1 py-8 lg:py-0"
-        style={{ background: "var(--bg-primary)" }}
-      >
-        <div className="max-w-5xl mx-auto px-6 lg:px-8">
-          <div
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 lg:-mt-10 relative z-10"
-          >
-            {[
-              { val: 90000, suffix: "+", label: "Cutoff Records", icon: "📊" },
-              { val: 300, suffix: "+", label: "Colleges", icon: "🏛️" },
-              { val: 4, suffix: "", label: "CAP Rounds", icon: "🔄" },
-              { val: 100, suffix: "+", label: "Branches", icon: "🧭" },
-            ].map((stat, i) => (
-              <ScrollReveal key={stat.label} animation="fade-up" delay={i * 100}>
-                <div
-                  className="rounded-2xl p-5 lg:p-6 text-center border transition-all duration-200 hover:shadow-lg"
-                  style={{
-                    background: "var(--bg-primary)",
-                    borderColor: "var(--slate-200)",
-                    boxShadow: "var(--shadow-md)",
-                  }}
-                >
-                  <span className="text-2xl mb-2 block" aria-hidden="true">{stat.icon}</span>
-                  <div
-                    className="text-2xl lg:text-3xl font-bold"
-                    style={{ color: "var(--primary-600)", fontFamily: "var(--font-mono)" }}
-                  >
-                    <AnimatedCounter target={stat.val} suffix={stat.suffix} />
-                  </div>
-                  <div className="text-xs font-medium mt-1" style={{ color: "var(--slate-500)" }}>
-                    {stat.label}
-                  </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ═══════════════ HOW IT WORKS ═════════════════════════════════ */}
       <section className="py-20 lg:py-28" style={{ background: "var(--bg-secondary)" }}>
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
