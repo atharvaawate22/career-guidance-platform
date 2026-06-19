@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "@/components/FaqSection";
+import LatestUpdates from "@/components/LatestUpdates";
 import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
@@ -447,7 +448,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════ HOW IT WORKS ═════════════════════════════════ */}
+      {/* LATEST UPDATES — fresh official notices, surfaced high on the page */}
+      <LatestUpdates />
+
+      {/* FEATURES — what we offer (shown before "how it works") */}
+      <section className="py-20 lg:py-28" style={{ background: "var(--bg-primary)" }}>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-14">
+              <div>
+                <p className="section-label mb-3">What We Offer</p>
+                <h2
+                  className="text-3xl lg:text-4xl font-bold"
+                  style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
+                >
+                  Everything You Need
+                </h2>
+              </div>
+              <p className="text-sm max-w-xs sm:text-right" style={{ color: "var(--slate-500)" }}>
+                Tools, data, and expert guidance for a successful engineering admission journey.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f, i) => (
+              <FeatureCard key={f.href} feature={f} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS — the process, after the feature overview */}
       <section className="py-20 lg:py-28" style={{ background: "var(--bg-secondary)" }}>
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
           <ScrollReveal>
@@ -497,34 +529,6 @@ export default function Home() {
                   </p>
                 </div>
               </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ FEATURES ═════════════════════════════════════ */}
-      <section className="py-20 lg:py-28" style={{ background: "var(--bg-primary)" }}>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <ScrollReveal>
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-14">
-              <div>
-                <p className="section-label mb-3">What We Offer</p>
-                <h2
-                  className="text-3xl lg:text-4xl font-bold"
-                  style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
-                >
-                  Everything You Need
-                </h2>
-              </div>
-              <p className="text-sm max-w-xs sm:text-right" style={{ color: "var(--slate-500)" }}>
-                Tools, data, and expert guidance for a successful engineering admission journey.
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f, i) => (
-              <FeatureCard key={f.href} feature={f} index={i} />
             ))}
           </div>
         </div>
