@@ -298,9 +298,9 @@ export default function CutoffsPage() {
                 </button>
               </div>
 
-              <p className="text-xs mt-3 text-center" style={{ color: "var(--slate-400)" }}>
+              <p className="text-xs mt-3 text-center" style={{ color: "var(--slate-500)" }}>
                 Previous year data?{" "}
-                <Link href="/resources" style={{ color: "var(--primary-600)" }}>Resources →</Link>
+                <Link href="/resources" style={{ color: "var(--primary-600)", textDecoration: "underline" }}>Resources →</Link>
               </p>
             </div>
           </div>

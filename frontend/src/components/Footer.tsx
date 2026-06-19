@@ -68,7 +68,7 @@ export default function Footer() {
             <div key={col.heading}>
               <h4
                 className="text-xs font-bold uppercase tracking-widest mb-4"
-                style={{ color: "var(--slate-500)" }}
+                style={{ color: "var(--slate-300)" }}
               >
                 {col.heading}
               </h4>
@@ -78,12 +78,12 @@ export default function Footer() {
                     <Link
                       href={link.href}
                       className="text-sm transition-colors duration-200"
-                      style={{ color: "var(--slate-400)" }}
+                      style={{ color: "var(--slate-300)" }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.color = "var(--primary-400)")
                       }
                       onMouseLeave={(e) =>
-                        (e.currentTarget.style.color = "var(--slate-400)")
+                        (e.currentTarget.style.color = "var(--slate-300)")
                       }
                     >
                       {link.label}
@@ -100,12 +100,12 @@ export default function Footer() {
           className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4"
           style={{ borderTop: "1px solid var(--slate-800)" }}
         >
-          <p className="text-sm font-medium" style={{ color: "var(--slate-500)" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--slate-300)" }}>
             © {new Date().getFullYear()}{" "}
             <span style={{ color: "var(--primary-400)" }}>CETHub</span>
             . All rights reserved.
           </p>
-          <p className="text-xs" style={{ color: "var(--slate-600)" }}>
+          <p className="text-xs" style={{ color: "var(--slate-400)" }}>
             Powered by official 2025 Maharashtra CAP data
           </p>
         </div>

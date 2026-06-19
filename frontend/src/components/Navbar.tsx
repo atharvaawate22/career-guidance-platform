@@ -123,7 +123,7 @@ export default function Navbar() {
                 >
                   CET<span style={{ color: "var(--primary-600)" }}>Hub</span>
                 </span>
-                <span className="text-[10px] font-medium mt-0.5" style={{ color: "var(--slate-400)" }}>
+                <span className="text-[10px] font-medium mt-0.5" style={{ color: "var(--slate-500)" }}>
                   cethub.in
                 </span>
               </div>
@@ -287,7 +287,7 @@ export default function Navbar() {
                 <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
               </svg>
             </Link>
-            <p className="text-xs text-center mt-4" style={{ color: "var(--slate-400)" }}>
+            <p className="text-xs text-center mt-4" style={{ color: "var(--slate-500)" }}>
               © {new Date().getFullYear()} CETHub · Data: 2025 CAP
             </p>
           </div>

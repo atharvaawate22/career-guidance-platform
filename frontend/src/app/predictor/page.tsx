@@ -265,7 +265,7 @@ export default function PredictorPage() {
                           color: inputMode === m ? "var(--slate-900)" : "var(--slate-500)",
                           boxShadow: inputMode === m ? "var(--shadow-sm)" : "none",
                         }}>
-                        {m === "percentile" ? "Percentile" : <>Rank <span className="text-xs font-normal" style={{ color: "#22C55E" }}>(accurate)</span></>}
+                        {m === "percentile" ? "Percentile" : <>Rank <span className="text-xs font-normal" style={{ color: "#15803d" }}>(accurate)</span></>}
                       </button>
                     ))}
                   </div>
