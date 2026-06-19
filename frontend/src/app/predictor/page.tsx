@@ -54,7 +54,7 @@ function SectionLabel({ n, label, optional }: { n: number; label: string; option
         {n}
       </span>
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--slate-600)" }}>
-        {label}{optional && <span className="ml-1.5 normal-case font-normal tracking-normal" style={{ color: "var(--slate-400)" }}>— optional</span>}
+        {label}{optional && <span className="ml-1.5 normal-case font-normal tracking-normal" style={{ color: "var(--slate-600)" }}>— optional</span>}
       </span>
     </div>
   );
@@ -262,7 +262,7 @@ export default function PredictorPage() {
                         className="flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all"
                         style={{
                           background: inputMode === m ? "var(--bg-primary)" : "transparent",
-                          color: inputMode === m ? "var(--slate-900)" : "var(--slate-500)",
+                          color: inputMode === m ? "var(--slate-900)" : "var(--slate-600)",
                           boxShadow: inputMode === m ? "var(--shadow-sm)" : "none",
                         }}>
                         {m === "percentile" ? "Percentile" : <>Rank <span className="text-xs font-normal" style={{ color: "#15803d" }}>(accurate)</span></>}
@@ -280,7 +280,7 @@ export default function PredictorPage() {
                     <input id="percentile" type="number" value={percentile} onChange={e => setPercentile(e.target.value)}
                       min="0" max="100" step="0.0001" required={inputMode === "percentile"}
                       placeholder="e.g. 96.5000" className="input-base" />
-                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-400)" }}>Rank is estimated from percentile data</p>
+                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-600)" }}>Rank is estimated from percentile data</p>
                   </div>
                 ) : (
                   <div>
@@ -290,7 +290,7 @@ export default function PredictorPage() {
                     <input id="rank" type="number" value={rank} onChange={e => setRank(e.target.value)}
                       min="1" max="500000" step="1" required={inputMode === "rank"}
                       placeholder="e.g. 5000" className="input-base" />
-                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-400)" }}>Best once your official rank is published</p>
+                    <p className="text-xs mt-1.5" style={{ color: "var(--slate-600)" }}>Best once your official rank is published</p>
                   </div>
                 )}
               </div>
@@ -481,7 +481,7 @@ export default function PredictorPage() {
                   <span><strong style={{ color: "var(--warning-500)" }}>Target</strong> — realistic, worth considering</span>
                   <span><strong style={{ color: "var(--primary-500)" }}>Dream</strong> — competitive but worth a try</span>
                 </div>
-                <p className="text-xs" style={{ color: "var(--slate-400)", borderTop: "1px solid var(--slate-200)", paddingTop: ".5rem" }}>
+                <p className="text-xs" style={{ color: "var(--slate-600)", borderTop: "1px solid var(--slate-200)", paddingTop: ".5rem" }}>
                   Showing colleges with cutoff ranks between{" "}
                   <strong>{results.meta.windowFloor.toLocaleString()}</strong> and{" "}
                   <strong>{results.meta.windowCeil.toLocaleString()}</strong>

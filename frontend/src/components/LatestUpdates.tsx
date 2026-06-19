@@ -122,7 +122,7 @@ export default function LatestUpdates() {
                             {category}
                           </span>
                         )}
-                        <span className="text-xs" style={{ color: "var(--slate-400)" }}>{fmtDate(u.published_date)}</span>
+                        <span className="text-xs" style={{ color: "var(--slate-600)" }}>{fmtDate(u.published_date)}</span>
                       </div>
                       <h3 className="text-[15px] font-semibold leading-snug line-clamp-2" style={{ color: "var(--slate-900)" }}>
                         {title}

@@ -106,11 +106,11 @@ export default function CustomSelect({
           borderRadius: ".5rem",
           outline: "none",
           boxShadow: open ? "0 0 0 3px rgba(79,70,229,0.12)" : "none",
-          color: selected ? "var(--slate-900)" : "var(--slate-400)",
+          color: selected ? "var(--slate-900)" : "var(--slate-600)",
         }}>
         <span className="truncate">{selected ? selected.label : placeholder}</span>
         <svg className={`w-4 h-4 shrink-0 ml-2 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--slate-400)" }}>
+          fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--slate-600)" }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>

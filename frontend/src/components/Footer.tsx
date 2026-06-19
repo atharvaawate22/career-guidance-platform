@@ -66,12 +66,12 @@ export default function Footer() {
           {/* Link Columns */}
           {footerColumns.map((col) => (
             <div key={col.heading}>
-              <h4
+              <h2
                 className="text-xs font-bold uppercase tracking-widest mb-4"
                 style={{ color: "var(--slate-300)" }}
               >
                 {col.heading}
-              </h4>
+              </h2>
               <ul className="space-y-2.5">
                 {col.links.map((link) => (
                   <li key={link.href}>

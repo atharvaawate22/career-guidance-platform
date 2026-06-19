@@ -550,7 +550,7 @@ export default function BookPage() {
                     placeholder="9876543210"
                   />
                 </div>
-                <p className="text-xs mt-1" style={{ color: "var(--slate-400)" }}>Enter 10-digit mobile number</p>
+                <p className="text-xs mt-1" style={{ color: "var(--slate-600)" }}>Enter 10-digit mobile number</p>
               </div>
 
               <div>
@@ -758,11 +758,11 @@ export default function BookPage() {
                   Meeting Time <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
                 {!selectedDate ? (
-                  <p className="text-sm italic" style={{ color: "var(--slate-400)" }}>
+                  <p className="text-sm italic" style={{ color: "var(--slate-600)" }}>
                     Please select a date first.
                   </p>
                 ) : slotsLoading ? (
-                  <p className="text-sm italic" style={{ color: "var(--slate-400)" }}>Loading slots…</p>
+                  <p className="text-sm italic" style={{ color: "var(--slate-600)" }}>Loading slots…</p>
                 ) : (
                   <>
                     <div className="flex gap-3 flex-wrap text-xs mb-2">
