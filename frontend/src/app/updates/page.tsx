@@ -184,7 +184,7 @@ export default function UpdatesPage() {
                             }}
                           >
                             <div className="flex flex-wrap items-center gap-2 mb-2">
-                              <span className="text-xs font-medium" style={{ color: "var(--slate-400)" }}>
+                              <span className="text-xs font-medium" style={{ color: "var(--slate-600)" }}>
                                 {formatDate(update.published_date)}
                               </span>
                               {update.edited_at && (

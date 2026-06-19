@@ -101,7 +101,7 @@ export default function QuickPredict() {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
-                  style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: category ? "var(--slate-900)" : "var(--slate-400)" }}
+                  style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: category ? "var(--slate-900)" : "var(--slate-600)" }}
                 >
                   <option value="" disabled>Category</option>
                   {CUTOFF_CATEGORIES.map((c) => (
@@ -117,7 +117,7 @@ export default function QuickPredict() {
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
-                  style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: gender ? "var(--slate-900)" : "var(--slate-400)" }}
+                  style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: gender ? "var(--slate-900)" : "var(--slate-600)" }}
                 >
                   <option value="" disabled>Gender</option>
                   {GENDERS.map((g) => (
