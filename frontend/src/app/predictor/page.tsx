@@ -102,26 +102,59 @@ export default function PredictorPage() {
     return () => controller.abort();
   }, []);
 
+  // Prefill from a quick-predict deep link (/predictor?percentile=&category=&gender=)
+  // and auto-run once we have score + category + gender. Reads
+  // window.location.search (not useSearchParams) so the page stays static.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const p = sp.get("percentile");
+    const r = sp.get("rank");
+    const c = sp.get("category");
+    const g = sp.get("gender");
+    if (r) { setInputMode("rank"); setRank(r); }
+    else if (p) { setInputMode("percentile"); setPercentile(p); }
+    if (c) setCategory(c);
+    if (g) setGender(g);
+    if ((r || p) && c && g) {
+      void runPrediction({ mode: r ? "rank" : "percentile", percentile: p, rank: r, category: c, gender: g });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // When minority types are cleared, also clear the minority groups.
   // This is handled directly in the onChange for selectedMinorityTypes rather
   // than via a useEffect, to avoid the dependency cycle that arises from
   // having selectedMinorityGroups in the deps array while also setting it inside.
   // (The effect below is therefore intentionally removed.)
 
-  const handlePredict = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputMode === "percentile" && !percentile) { setError("Please enter your percentile."); return; }
-    if (inputMode === "rank" && !rank) { setError("Please enter your rank."); return; }
-    
+  // Core prediction. Accepts optional explicit values so a deep-link auto-run
+  // can pass URL params directly (avoids stale state); the form submit calls it
+  // with no args and uses component state.
+  const runPrediction = async (o?: {
+    mode?: "percentile" | "rank";
+    percentile?: string | null;
+    rank?: string | null;
+    category?: string | null;
+    gender?: string | null;
+  }) => {
+    const mode = o?.mode ?? inputMode;
+    const pctl = o?.percentile ?? percentile;
+    const rnk = o?.rank ?? rank;
+    const cat = o?.category ?? category;
+    const gen = o?.gender ?? gender;
+
+    if (mode === "percentile" && !pctl) { setError("Please enter your percentile."); return; }
+    if (mode === "rank" && !rnk) { setError("Please enter your rank."); return; }
+
     let hasValidationError = false;
-    if (!category) {
+    if (!cat) {
       setCategoryError("Please select your category — it determines your cutoff tier.");
       hasValidationError = true;
     } else {
       setCategoryError("");
     }
-    
-    if (!gender) {
+
+    if (!gen) {
       setGenderError("Please select your gender — it determines which seats you are eligible for.");
       hasValidationError = true;
     } else {
@@ -132,11 +165,11 @@ export default function PredictorPage() {
 
     setLoading(true); setError(""); setResults(null);
     try {
-      const body: Record<string, unknown> = { year: PREDICTOR_YEAR, category, gender, include_tfws: includeTfws };
+      const body: Record<string, unknown> = { year: PREDICTOR_YEAR, category: cat, gender: gen, include_tfws: includeTfws };
       if (selectedMinorityTypes.length > 0) body.minority_types = selectedMinorityTypes;
       if (selectedMinorityGroups.length > 0) body.minority_groups = selectedMinorityGroups;
-      if (inputMode === "percentile") body.percentile = Number(percentile);
-      if (inputMode === "rank") body.rank = Number(rank);
+      if (mode === "percentile") body.percentile = Number(pctl);
+      if (mode === "rank") body.rank = Number(rnk);
       if (selectedBranches.length > 0) body.preferred_branches = selectedBranches;
       if (selectedCities.length > 0) body.cities = selectedCities;
       const res = await fetch(`${API_BASE_URL}/api/v1/predict/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -145,6 +178,11 @@ export default function PredictorPage() {
       else setError(data.error?.message || "Failed to get predictions");
     } catch { setError("Failed to connect to server"); }
     finally { setLoading(false); }
+  };
+
+  const handlePredict = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runPrediction();
   };
 
   const totalResults = results ? results.safe.length + results.target.length + results.dream.length : 0;

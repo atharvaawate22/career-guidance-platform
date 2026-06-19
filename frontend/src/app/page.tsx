@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "@/components/FaqSection";
 import LatestUpdates from "@/components/LatestUpdates";
+import QuickPredict from "@/components/QuickPredict";
 import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
@@ -447,6 +448,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* QUICK PREDICT — friction-free entry to the platform's primary tool */}
+      <QuickPredict />
 
       {/* LATEST UPDATES — fresh official notices, surfaced high on the page */}
       <LatestUpdates />
