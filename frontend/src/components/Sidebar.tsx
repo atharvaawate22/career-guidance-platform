@@ -112,10 +112,10 @@ const navItems: NavItem[] = [
   { name: "Home",         href: "/",          icon: <IconHome />,       description: "Dashboard" },
   { name: "Predictor",   href: "/predictor",  icon: <IconPredictor />,  description: "Find colleges" },
   { name: "Cutoffs",     href: "/cutoffs",    icon: <IconCutoffs />,    description: "Browse data" },
+  { name: "Updates",     href: "/updates",    icon: <IconUpdates />,    description: "Latest news" },
+  { name: "Book Session",href: "/book",       icon: <IconBook />,       description: "Counseling" },
   { name: "Guides",      href: "/guides",     icon: <IconGuides />,     description: "Admission guides" },
   { name: "Resources",   href: "/resources",  icon: <IconResources />,  description: "PDFs & docs" },
-  { name: "Book Session",href: "/book",       icon: <IconBook />,       description: "Counseling" },
-  { name: "Updates",     href: "/updates",    icon: <IconUpdates />,    description: "Latest news" },
 ];
 
 /* ─── Sidebar ─────────────────────────────────────────────────────── */
