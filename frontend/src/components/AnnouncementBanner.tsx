@@ -50,18 +50,20 @@ export default function AnnouncementBanner() {
 
   const styles: Record<string, { bg: string; border: string; text: string }> = {
     info:    { bg: "var(--primary-600)", border: "var(--primary-700)", text: "#ffffff" },
-    warning: { bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.3)", text: "#ef4444" },
+    warning: { bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.3)", text: "#991b1b" },
     success: { bg: "var(--success-600)", border: "var(--success-700)", text: "#ffffff" },
   };
 
   const s = styles[config.type] || {
     bg: "rgba(99, 102, 241, 0.15)",
     border: "rgba(99, 102, 241, 0.3)",
-    text: "var(--primary-500)",
+    text: "var(--primary-700)",
   };
 
   return (
     <div
+      role="region"
+      aria-label="Site announcement"
       className="px-4 py-2 fixed left-0 right-0 z-30 flex items-center justify-center text-sm font-semibold transition-all backdrop-blur-md"
       style={{
         top: "var(--navbar-height)",

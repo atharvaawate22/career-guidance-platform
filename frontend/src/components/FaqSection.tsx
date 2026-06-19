@@ -92,9 +92,9 @@ export default function FaqSection() {
                         >
                           {String(idx + 1).padStart(2, "0")}
                         </span>
-                        <h4 className="text-sm sm:text-[15px] font-semibold leading-snug pt-1" style={{ color: "var(--slate-900)" }}>
+                        <h3 className="text-sm sm:text-[15px] font-semibold leading-snug pt-1" style={{ color: "var(--slate-900)" }}>
                           {faq.question}
-                        </h4>
+                        </h3>
                       </div>
                       <span
                         aria-hidden="true"
@@ -108,7 +108,7 @@ export default function FaqSection() {
                         +
                       </span>
                     </button>
-                    <div id={`faq-panel-${faq.id}`} role="region" className="faq-answer-grid" data-open={isOpen}>
+                    <div id={`faq-panel-${faq.id}`} className="faq-answer-grid" data-open={isOpen}>
                       <div className="faq-answer-inner">
                         <div className="px-5 pb-5 pl-[4.5rem]">
                           <p
