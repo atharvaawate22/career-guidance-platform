@@ -341,14 +341,14 @@ export default function Home() {
 
               <div className="flex flex-wrap gap-3">
                 <Link
-                  href="/predictor"
+                  href="/book"
                   className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
                   style={{
                     background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
                     boxShadow: "0 4px 16px rgba(99,102,241,0.35)",
                   }}
                 >
-                  Predict My College <ArrowRight />
+                  Book a Free Session <ArrowRight />
                 </Link>
                 <Link
                   href="/cutoffs"
@@ -373,61 +373,9 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right — Stats card */}
+            {/* Right — Quick Predict (primary action, above the fold) */}
             <div className="animate-fade-up-2">
-              <div
-                className="rounded-2xl p-8 border"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  borderColor: "rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(16px)",
-                }}
-              >
-                <p className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: "var(--primary-300)" }}>
-                  Platform at a Glance
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { val: 90000, suffix: "+", label: "Cutoff Records" },
-                    { val: 300, suffix: "+", label: "Colleges Covered" },
-                    { val: 4, suffix: "", label: "CAP Rounds" },
-                    { val: 0, suffix: "", label: "Expert Sessions", display: "Free" },
-                  ].map((s) => (
-                    <div
-                      key={s.label}
-                      className="rounded-xl p-4 transition-all duration-200"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.06)",
-                      }}
-                    >
-                      <div
-                        className="text-2xl font-bold mb-0.5"
-                        style={{ color: "var(--primary-300)", fontFamily: "var(--font-mono)" }}
-                      >
-                        {s.display ? s.display : (
-                          <AnimatedCounter target={s.val} suffix={s.suffix} />
-                        )}
-                      </div>
-                      <div className="text-xs" style={{ color: "var(--slate-400)" }}>{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <div
-                  className="mt-5 rounded-xl p-4 flex items-center gap-3"
-                  style={{
-                    background: "rgba(99,102,241,0.08)",
-                    border: "1px solid rgba(99,102,241,0.15)",
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-400)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                  <p className="text-sm" style={{ color: "var(--slate-300)" }}>
-                    Powered by official 2025 Maharashtra CAP data
-                  </p>
-                </div>
-              </div>
+              <QuickPredict />
             </div>
           </div>
 
@@ -449,8 +397,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* QUICK PREDICT — friction-free entry to the platform's primary tool */}
-      <QuickPredict />
+      {/* STATS — platform credibility, moved out of the hero */}
+      <section className="py-12 lg:py-16" style={{ background: "var(--bg-primary)", borderBottom: "1px solid var(--slate-100)" }}>
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+              {[
+                { val: 90000, suffix: "+", label: "Cutoff Records" },
+                { val: 300, suffix: "+", label: "Colleges Covered" },
+                { val: 4, suffix: "", label: "CAP Rounds" },
+                { val: 0, suffix: "", label: "Expert Sessions", display: "Free" },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  className="rounded-2xl border p-5 text-center"
+                  style={{ background: "var(--bg-secondary)", borderColor: "var(--slate-200)" }}
+                >
+                  <div className="text-3xl font-bold mb-1" style={{ color: "var(--primary-600)", fontFamily: "var(--font-mono)" }}>
+                    {s.display ? s.display : <AnimatedCounter target={s.val} suffix={s.suffix} />}
+                  </div>
+                  <div className="text-sm" style={{ color: "var(--slate-600)" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-xs mt-6" style={{ color: "var(--slate-500)" }}>
+              Powered by official 2025 Maharashtra CAP data
+            </p>
+          </ScrollReveal>
+        </div>
+      </section>
 
       {/* LATEST UPDATES — fresh official notices, surfaced high on the page */}
       <LatestUpdates />
@@ -459,19 +434,14 @@ export default function Home() {
       <section className="py-20 lg:py-28" style={{ background: "var(--bg-primary)" }}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <ScrollReveal>
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-14">
-              <div>
-                <p className="section-label mb-3">What We Offer</p>
-                <h2
-                  className="text-3xl lg:text-4xl font-bold"
-                  style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
-                >
-                  Everything You Need
-                </h2>
-              </div>
-              <p className="text-sm max-w-xs sm:text-right" style={{ color: "var(--slate-500)" }}>
-                Tools, data, and expert guidance for a successful engineering admission journey.
-              </p>
+            <div className="mb-14">
+              <p className="section-label mb-3">What We Offer</p>
+              <h2
+                className="text-3xl lg:text-4xl font-bold"
+                style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
+              >
+                Everything You Need
+              </h2>
             </div>
           </ScrollReveal>
 

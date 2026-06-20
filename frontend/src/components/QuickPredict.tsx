@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ScrollReveal from "@/components/ScrollReveal";
 import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
 
 const GENDERS = ["Male", "Female"] as const;
@@ -54,93 +53,88 @@ export default function QuickPredict() {
   };
 
   return (
-    <section className="py-10 lg:py-12" style={{ background: "var(--bg-secondary)" }}>
-      <div className="max-w-5xl mx-auto px-6 lg:px-8">
-        <ScrollReveal>
-          <div
-            className="rounded-2xl border p-6 lg:p-7"
-            style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-lg)" }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-              <div>
-                <h2 className="text-lg font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
-                  Predict your college in seconds
-                </h2>
-                <p className="text-sm mt-0.5" style={{ color: "var(--slate-500)" }}>
-                  Your score, category &amp; gender — get instant Safe / Target / Dream colleges.
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0" role="group" aria-label="Score type">
-                {toggleBtn("percentile", "Percentile")}
-                {toggleBtn("rank", "Rank")}
-              </div>
-            </div>
-
-            <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <label htmlFor="qp-value" className="sr-only">{mode === "percentile" ? "Percentile" : "Rank"}</label>
-                <input
-                  id="qp-value"
-                  type="number"
-                  inputMode="decimal"
-                  step={mode === "percentile" ? "0.0000001" : "1"}
-                  min={mode === "percentile" ? 0 : 1}
-                  max={mode === "percentile" ? 100 : undefined}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder={mode === "percentile" ? "Percentile (e.g. 95.5)" : "CET rank (e.g. 12000)"}
-                  className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
-                  style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: "var(--slate-900)" }}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="qp-category" className="sr-only">Category</label>
-                <select
-                  id="qp-category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
-                  style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: category ? "var(--slate-900)" : "var(--slate-600)" }}
-                >
-                  <option value="" disabled>Category</option>
-                  {CUTOFF_CATEGORIES.map((c) => (
-                    <option key={c} value={c} style={{ color: "var(--slate-900)" }}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="qp-gender" className="sr-only">Gender</label>
-                <select
-                  id="qp-gender"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
-                  style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: gender ? "var(--slate-900)" : "var(--slate-600)" }}
-                >
-                  <option value="" disabled>Gender</option>
-                  {GENDERS.map((g) => (
-                    <option key={g} value={g} style={{ color: "var(--slate-900)" }}>{g}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                style={{ background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))" }}
-              >
-                Predict →
-              </button>
-            </form>
-
-            {error && (
-              <p role="alert" className="text-xs mt-3" style={{ color: "#DC2626" }}>{error}</p>
-            )}
-          </div>
-        </ScrollReveal>
+    <div
+      className="rounded-2xl border p-6 lg:p-7"
+      style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-xl)" }}
+    >
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
+            Predict your college in seconds
+          </h2>
+          <p className="text-sm mt-1" style={{ color: "var(--slate-500)" }}>
+            Score, category &amp; gender — instant Safe / Target / Dream colleges.
+          </p>
+        </div>
       </div>
-    </section>
+
+      <div className="flex items-center gap-1.5 mb-4" role="group" aria-label="Score type">
+        {toggleBtn("percentile", "Percentile")}
+        {toggleBtn("rank", "Rank")}
+      </div>
+
+      <form onSubmit={submit} className="space-y-3">
+        <div>
+          <label htmlFor="qp-value" className="sr-only">{mode === "percentile" ? "Percentile" : "Rank"}</label>
+          <input
+            id="qp-value"
+            type="number"
+            inputMode="decimal"
+            step={mode === "percentile" ? "0.0000001" : "1"}
+            min={mode === "percentile" ? 0 : 1}
+            max={mode === "percentile" ? 100 : undefined}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={mode === "percentile" ? "Your percentile (e.g. 95.5)" : "Your CET rank (e.g. 12000)"}
+            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
+            style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: "var(--slate-900)" }}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="qp-category" className="sr-only">Category</label>
+          <select
+            id="qp-category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
+            style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: category ? "var(--slate-900)" : "var(--slate-600)" }}
+          >
+            <option value="" disabled>Category</option>
+            {CUTOFF_CATEGORIES.map((c) => (
+              <option key={c} value={c} style={{ color: "var(--slate-900)" }}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="qp-gender" className="sr-only">Gender</label>
+          <select
+            id="qp-gender"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
+            style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: gender ? "var(--slate-900)" : "var(--slate-600)" }}
+          >
+            <option value="" disabled>Gender</option>
+            {GENDERS.map((g) => (
+              <option key={g} value={g} style={{ color: "var(--slate-900)" }}>{g}</option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+          style={{ background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))" }}
+        >
+          Predict my colleges →
+        </button>
+      </form>
+
+      {error && (
+        <p role="alert" className="text-xs mt-3" style={{ color: "#DC2626" }}>{error}</p>
+      )}
+    </div>
   );
 }
