@@ -356,8 +356,8 @@ export default function AdminSettingsPage() {
                     onClick={() => setAnnouncement(p => ({ ...p, type: t }))}
                     className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${
                       announcement.type === t
-                        ? t === "info" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                        : t === "warning" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        ? t === "info" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/40"
+                        : t === "warning" ? "bg-red-500/20 text-red-300 border border-red-500/40"
                         : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                         : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:text-white"
                     }`}
@@ -365,47 +365,11 @@ export default function AdminSettingsPage() {
                     {t}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const custom = prompt("Enter custom announcement type:", "alert");
-                    if (custom !== null) {
-                      const cleaned = custom.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
-                      setAnnouncement(p => ({ ...p, type: cleaned || "other" }));
-                    } else {
-                      const isCustom = !["info", "warning", "success"].includes(announcement.type);
-                      if (!isCustom) {
-                        setAnnouncement(p => ({ ...p, type: "other" }));
-                      }
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${
-                    !["info", "warning", "success"].includes(announcement.type)
-                      ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
-                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:text-white"
-                  }`}
-                >
-                  {!["info", "warning", "success"].includes(announcement.type) && announcement.type ? `Other: ${announcement.type}` : "Other"}
-                </button>
               </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Colour follows the type on the live banner — info = indigo, success = green, warning = red.
+              </p>
             </div>
-
-            {!["info", "warning", "success"].includes(announcement.type) && (
-              <div className="mt-3 animate-fade-in">
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Custom Type Name</label>
-                <input
-                  type="text"
-                  value={announcement.type === "other" ? "" : announcement.type}
-                  onChange={(e) => {
-                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-                    setAnnouncement(p => ({ ...p, type: val || "other" }));
-                  }}
-                  className="admin-input max-w-xs"
-                  placeholder="e.g. maintenance, alert, holiday..."
-                  maxLength={30}
-                />
-              </div>
-            )}
 
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Display Target</label>
@@ -485,13 +449,12 @@ export default function AdminSettingsPage() {
             {announcement.enabled && announcement.text && (
               <div>
                 <p className="text-xs text-slate-500 mb-2">Preview:</p>
-                <div 
-                  className="px-4 py-3 rounded-xl text-sm font-semibold border backdrop-blur-md transition-all text-center"
+                <div
+                  className="px-4 py-3 rounded-xl text-sm font-semibold border backdrop-blur-lg transition-all text-center"
                   style={
-                    announcement.type === "info" ? { background: "var(--primary-600)", borderColor: "var(--primary-700)", color: "#ffffff" }
-                    : announcement.type === "warning" ? { background: "rgba(239, 68, 68, 0.15)", borderColor: "rgba(239, 68, 68, 0.3)", color: "#ef4444" }
-                    : announcement.type === "success" ? { background: "var(--success-600)", borderColor: "var(--success-700)", color: "#ffffff" }
-                    : { background: "rgba(99, 102, 241, 0.15)", borderColor: "rgba(99, 102, 241, 0.3)", color: "var(--primary-500)" }
+                    announcement.type === "success" ? { background: "rgba(6, 95, 70, 0.88)", borderColor: "rgba(255,255,255,0.22)", color: "#ffffff" }
+                    : announcement.type === "warning" || announcement.type === "error" ? { background: "rgba(185, 28, 28, 0.86)", borderColor: "rgba(255,255,255,0.22)", color: "#ffffff" }
+                    : { background: "rgba(67, 56, 202, 0.85)", borderColor: "rgba(255,255,255,0.22)", color: "#ffffff" }
                   }
                 >
                   {announcement.text}

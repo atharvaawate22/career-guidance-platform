@@ -48,14 +48,15 @@ export default function AnnouncementBanner() {
 
   if (!isBannerActive || !config) return null;
 
-  // Solid, semantic colours with white text — each meets WCAG AA contrast
-  // (info ~5.8:1, success ~5.6:1, warning/error ~4.8:1). Matched
-  // case-insensitively; unknown types fall back to a neutral info banner.
+  // Frosted-glass look: a translucent tinted background (with backdrop-blur set
+  // on the element below) and a soft light border. Opacity stays high enough
+  // that white text remains WCAG-AA legible over any page content behind it.
+  // Matched case-insensitively; unknown types fall back to a neutral info bar.
   const styles: Record<string, { bg: string; border: string; text: string }> = {
-    info:    { bg: "var(--primary-600)", border: "var(--primary-700)", text: "#ffffff" },
-    success: { bg: "#047857", border: "#065f46", text: "#ffffff" },
-    warning: { bg: "#dc2626", border: "#b91c1c", text: "#ffffff" },
-    error:   { bg: "#dc2626", border: "#b91c1c", text: "#ffffff" },
+    info:    { bg: "rgba(67, 56, 202, 0.85)", border: "rgba(255,255,255,0.22)", text: "#ffffff" },
+    success: { bg: "rgba(6, 95, 70, 0.88)",   border: "rgba(255,255,255,0.22)", text: "#ffffff" },
+    warning: { bg: "rgba(185, 28, 28, 0.86)", border: "rgba(255,255,255,0.22)", text: "#ffffff" },
+    error:   { bg: "rgba(185, 28, 28, 0.86)", border: "rgba(255,255,255,0.22)", text: "#ffffff" },
   };
 
   const s = styles[(config.type || "info").trim().toLowerCase()] || styles.info;
@@ -64,12 +65,13 @@ export default function AnnouncementBanner() {
     <div
       role="region"
       aria-label="Site announcement"
-      className="px-4 py-2 fixed left-0 right-0 z-30 flex items-center justify-center text-sm font-semibold transition-all backdrop-blur-md"
+      className="px-4 py-2 fixed left-0 right-0 z-30 flex items-center justify-center text-sm font-semibold transition-all backdrop-blur-lg"
       style={{
         top: "var(--navbar-height)",
         height: "40px",
         background: s.bg,
         borderBottom: `1px solid ${s.border}`,
+        boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
         color: s.text,
       }}
     >
