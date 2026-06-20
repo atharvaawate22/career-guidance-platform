@@ -374,7 +374,7 @@ export default function Home() {
             </div>
 
             {/* Right — Quick Predict (primary action, above the fold) */}
-            <div className="animate-fade-up-2">
+            <div className="animate-fade-up-2 w-full max-w-md mx-auto lg:ml-auto">
               <QuickPredict />
             </div>
           </div>

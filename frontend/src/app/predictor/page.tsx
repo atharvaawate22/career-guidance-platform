@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import PredictorResultCard from "@/components/PredictorResultCard";
@@ -64,6 +64,8 @@ export default function PredictorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState<PredictionResults | null>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const fromDeepLink = useRef(false);
 
   const [inputMode, setInputMode] = useState<"percentile" | "rank">("percentile");
   const [percentile, setPercentile] = useState("");
@@ -116,10 +118,24 @@ export default function PredictorPage() {
     if (c) setCategory(c);
     if (g) setGender(g);
     if ((r || p) && c && g) {
+      fromDeepLink.current = true;
       void runPrediction({ mode: r ? "rank" : "percentile", percentile: p, rank: r, category: c, gender: g });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // After a deep-link auto-run, jump to the results rather than leaving the user
+  // at the top of the (already-filled) form.
+  useEffect(() => {
+    if (results && fromDeepLink.current) {
+      fromDeepLink.current = false;
+      const t = setTimeout(
+        () => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        120,
+      );
+      return () => clearTimeout(t);
+    }
+  }, [results]);
 
   // When minority types are cleared, also clear the minority groups.
   // This is handled directly in the onChange for selectedMinorityTypes rather
@@ -448,7 +464,15 @@ export default function PredictorPage() {
 
         {/* Results */}
         {!loading && results && (
-          <div className="animate-fade-up">
+          <div ref={resultsRef} className="animate-fade-up scroll-mt-24">
+            {/* Data-driven disclaimer */}
+            <div className="rounded-xl p-3.5 mb-6 flex items-start gap-2.5 text-sm" style={{ background: "var(--primary-50)", border: "1px solid var(--primary-200)", color: "var(--slate-700)" }}>
+              <svg width="18" height="18" className="shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="var(--primary-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+              <span>
+                These predictions are <strong>data-driven estimates based on 2025 CAP Round&nbsp;I cutoffs</strong>. Actual cutoffs shift each year with exam difficulty, number of applicants, and seat-matrix changes — use this as guidance, not a guarantee.
+              </span>
+            </div>
+
             {/* Summary */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
               {[
@@ -468,13 +492,17 @@ export default function PredictorPage() {
             {results.meta?.windowFloor != null && (
               <div className="card p-4 mb-8">
                 {results.meta.inputMode === "percentile" && (
-                  <p className="text-sm mb-2" style={{ color: "var(--slate-700)" }}>
-                    Estimated rank for your percentile:{" "}
-                    <strong style={{ color: "var(--primary-600)" }}>{results.meta.effectiveRank.toLocaleString()}</strong>
-                    {results.meta.inputPercentile !== undefined && (
-                      <span style={{ color: "var(--slate-500)" }}> (from {results.meta.inputPercentile.toFixed(4)} percentile)</span>
-                    )}
-                  </p>
+                  <div className="mb-3 rounded-lg p-3 flex items-start gap-2 text-sm" style={{ background: "var(--warning-light)", border: "1px solid #fcd34d", color: "var(--slate-700)" }}>
+                    <svg width="16" height="16" className="shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="var(--warning-dark)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                    <span>
+                      Approximate rank from your percentile:{" "}
+                      <strong style={{ color: "var(--primary-600)" }}>~{results.meta.effectiveRank.toLocaleString()}</strong>
+                      {results.meta.inputPercentile !== undefined && (
+                        <span style={{ color: "var(--slate-500)" }}> (from {results.meta.inputPercentile.toFixed(4)} percentile)</span>
+                      )}
+                      . This is an <strong>estimate</strong> derived from 2025 percentile-to-rank data — for the most accurate results, enter your official CET rank.
+                    </span>
+                  </div>
                 )}
                 <div className="flex flex-wrap gap-4 text-sm mb-3">
                   <span><strong style={{ color: "var(--success-600)" }}>Safe</strong> — comfortably competitive</span>
