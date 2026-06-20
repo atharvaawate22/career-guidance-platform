@@ -68,14 +68,18 @@ export default function QuickPredict() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mb-4" role="group" aria-label="Score type">
-        {toggleBtn("percentile", "Percentile")}
-        {toggleBtn("rank", "Rank")}
-      </div>
-
-      <form onSubmit={submit} className="space-y-3">
+      <form onSubmit={submit} className="space-y-3.5">
+        {/* Score — full width, with the Percentile/Rank toggle inline */}
         <div>
-          <label htmlFor="qp-value" className="sr-only">{mode === "percentile" ? "Percentile" : "Rank"}</label>
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <label htmlFor="qp-value" className="text-xs font-semibold" style={{ color: "var(--slate-600)" }}>
+              {mode === "percentile" ? "Your percentile" : "Your CET rank"}
+            </label>
+            <div className="flex items-center gap-1" role="group" aria-label="Score type">
+              {toggleBtn("percentile", "Percentile")}
+              {toggleBtn("rank", "Rank")}
+            </div>
+          </div>
           <input
             id="qp-value"
             type="number"
@@ -85,44 +89,47 @@ export default function QuickPredict() {
             max={mode === "percentile" ? 100 : undefined}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={mode === "percentile" ? "Your percentile (e.g. 95.5)" : "Your CET rank (e.g. 12000)"}
+            placeholder={mode === "percentile" ? "e.g. 95.5" : "e.g. 12000"}
             className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
             style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: "var(--slate-900)" }}
           />
         </div>
 
-        <div>
-          <label htmlFor="qp-category" className="sr-only">Category</label>
-          <select
-            id="qp-category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
-            style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: category ? "var(--slate-900)" : "var(--slate-600)" }}
-          >
-            <option value="" disabled>Category</option>
-            {CUTOFF_CATEGORIES.map((c) => (
-              <option key={c} value={c} style={{ color: "var(--slate-900)" }}>{c}</option>
-            ))}
-          </select>
+        {/* Category + Gender — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="qp-category" className="block text-xs font-semibold mb-1.5" style={{ color: "var(--slate-600)" }}>Category</label>
+            <select
+              id="qp-category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+              style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: category ? "var(--slate-900)" : "var(--slate-600)" }}
+            >
+              <option value="" disabled>Select</option>
+              {CUTOFF_CATEGORIES.map((c) => (
+                <option key={c} value={c} style={{ color: "var(--slate-900)" }}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="qp-gender" className="block text-xs font-semibold mb-1.5" style={{ color: "var(--slate-600)" }}>Gender</label>
+            <select
+              id="qp-gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+              style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: gender ? "var(--slate-900)" : "var(--slate-600)" }}
+            >
+              <option value="" disabled>Select</option>
+              {GENDERS.map((g) => (
+                <option key={g} value={g} style={{ color: "var(--slate-900)" }}>{g}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label htmlFor="qp-gender" className="sr-only">Gender</label>
-          <select
-            id="qp-gender"
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
-            style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: gender ? "var(--slate-900)" : "var(--slate-600)" }}
-          >
-            <option value="" disabled>Gender</option>
-            {GENDERS.map((g) => (
-              <option key={g} value={g} style={{ color: "var(--slate-900)" }}>{g}</option>
-            ))}
-          </select>
-        </div>
-
+        {/* Submit — full width */}
         <button
           type="submit"
           className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
