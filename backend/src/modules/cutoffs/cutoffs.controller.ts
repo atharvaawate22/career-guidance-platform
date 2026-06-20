@@ -48,9 +48,12 @@ export class CutoffsController {
                ORDER BY branch_group`,
             ),
             query(
-              `SELECT DISTINCT INITCAP(city) AS city
+              // Source the dropdown from city_normalized (the district-level
+              // value the cutoffs filter matches on) — NOT the raw display
+              // `city` — so the listed cities line up with what filtering queries.
+              `SELECT DISTINCT INITCAP(city_normalized) AS city
                FROM colleges
-               WHERE city IS NOT NULL AND TRIM(city) <> ''
+               WHERE city_normalized IS NOT NULL AND TRIM(city_normalized) <> ''
                ORDER BY 1`,
             ),
           ]);
