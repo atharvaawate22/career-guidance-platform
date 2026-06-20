@@ -74,7 +74,10 @@ export const getOrLoadCutoffMeta = async (
   trimExpiredEntries();
 
   const cacheKey = buildCutoffMetaCacheKey(keyInput);
-  const redisKey = `cutoffs:meta:${cacheKey}`;
+  // Version suffix lets us bust the cached metadata (e.g. after a city-data
+  // re-map) on deploy: bumping it makes lookups miss the stale Redis entries so
+  // fresh values reload from the DB. v2 — 2026-06-20 city_normalized cleanup.
+  const redisKey = `cutoffs:meta:v2:${cacheKey}`;
   const cached = metaCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
