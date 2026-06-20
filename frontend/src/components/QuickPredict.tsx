@@ -142,6 +142,10 @@ export default function QuickPredict() {
       {error && (
         <p role="alert" className="text-xs mt-3" style={{ color: "#DC2626" }}>{error}</p>
       )}
+
+      <p className="text-[11px] text-center mt-3" style={{ color: "var(--slate-500)" }}>
+        Free · No sign-up · Based on 90,000+ official 2025 cutoffs
+      </p>
     </div>
   );
 }
