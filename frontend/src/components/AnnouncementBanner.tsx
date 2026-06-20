@@ -48,17 +48,17 @@ export default function AnnouncementBanner() {
 
   if (!isBannerActive || !config) return null;
 
+  // Solid, semantic colours with white text — each meets WCAG AA contrast
+  // (info ~5.8:1, success ~5.6:1, warning/error ~4.8:1). Matched
+  // case-insensitively; unknown types fall back to a neutral info banner.
   const styles: Record<string, { bg: string; border: string; text: string }> = {
     info:    { bg: "var(--primary-600)", border: "var(--primary-700)", text: "#ffffff" },
-    warning: { bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.3)", text: "#991b1b" },
-    success: { bg: "var(--success-600)", border: "var(--success-700)", text: "#ffffff" },
+    success: { bg: "#047857", border: "#065f46", text: "#ffffff" },
+    warning: { bg: "#dc2626", border: "#b91c1c", text: "#ffffff" },
+    error:   { bg: "#dc2626", border: "#b91c1c", text: "#ffffff" },
   };
 
-  const s = styles[config.type] || {
-    bg: "rgba(99, 102, 241, 0.15)",
-    border: "rgba(99, 102, 241, 0.3)",
-    text: "var(--primary-700)",
-  };
+  const s = styles[(config.type || "info").trim().toLowerCase()] || styles.info;
 
   return (
     <div
