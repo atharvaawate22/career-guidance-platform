@@ -12,6 +12,12 @@ interface Update {
   edited_at?: string;
 }
 
+/** Split a "[Category] Title" string into a badge label + the remaining title. */
+function splitTitle(raw: string): { category: string | null; title: string } {
+  const m = raw.match(/^\[([^\]]+)\]\s*(.*)$/);
+  return m ? { category: m[1], title: m[2] } : { category: null, title: raw };
+}
+
 export default function UpdatesPage() {
   const [updates, setUpdates] = useState<Update[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -157,6 +163,7 @@ export default function UpdatesPage() {
                     {monthUpdates.map((update, i) => {
                       const isExpanded = expandedIds.has(update.id);
                       const isLong = update.content.length > 300;
+                      const { category, title } = splitTitle(update.title);
 
                       return (
                         <div key={update.id} className="relative flex gap-4 group">
@@ -184,20 +191,28 @@ export default function UpdatesPage() {
                             }}
                           >
                             <div className="flex flex-wrap items-center gap-2 mb-2">
+                              {category && (
+                                <span
+                                  className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                                  style={{ background: "var(--primary-50)", color: "var(--primary-600)" }}
+                                >
+                                  {category}
+                                </span>
+                              )}
                               <span className="text-xs font-medium" style={{ color: "var(--slate-600)" }}>
                                 {formatDate(update.published_date)}
                               </span>
                               {update.edited_at && (
                                 <span
                                   className="text-[10px] font-medium px-2 py-0.5 rounded-md"
-                                  style={{ background: "var(--warning-50)", color: "var(--warning-700)", border: "1px solid var(--warning-200)" }}
+                                  style={{ background: "var(--target-light)", color: "var(--target-dark)" }}
                                 >
                                   Edited
                                 </span>
                               )}
                             </div>
                             <h2 className="text-lg font-bold mb-2" style={{ color: "var(--slate-900)" }}>
-                              {update.title}
+                              {title}
                             </h2>
                             <div className="relative">
                               <p
