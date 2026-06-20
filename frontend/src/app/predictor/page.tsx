@@ -414,7 +414,7 @@ export default function PredictorPage() {
               </p>
               <Link href="/book"
                 className="text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                style={{ background: "var(--primary-500)", color: "#ffffff" }}>
+                style={{ background: "var(--primary-600)", color: "#ffffff" }}>
                 Book Free Session
               </Link>
             </div>
