@@ -25,7 +25,7 @@ interface CacheEntry {
 }
 
 const META_CACHE_TTL_MS = 15 * 60 * 1000;
-const META_REDIS_TTL_SECONDS = 24 * 60 * 60;
+const META_REDIS_TTL_SECONDS = 60 * 60; // 1h — short so data changes (e.g. city re-maps) self-heal without a redeploy
 const META_CACHE_MAX_ENTRIES = 200;
 
 const metaCache = new Map<string, CacheEntry>();
@@ -74,10 +74,11 @@ export const getOrLoadCutoffMeta = async (
   trimExpiredEntries();
 
   const cacheKey = buildCutoffMetaCacheKey(keyInput);
-  // Version suffix lets us bust the cached metadata (e.g. after a city-data
-  // re-map) on deploy: bumping it makes lookups miss the stale Redis entries so
-  // fresh values reload from the DB. v2 — 2026-06-20 city_normalized cleanup.
-  const redisKey = `cutoffs:meta:v2:${cacheKey}`;
+  // Version suffix lets us bust cached metadata on deploy: bumping it makes
+  // lookups miss the stale Redis entries so fresh values reload from the DB.
+  // v3 — the cities dropdown is now sourced from city_normalized; this bypasses
+  // the v2 entry that was cached (from INITCAP(city)) before that fix landed.
+  const redisKey = `cutoffs:meta:v3:${cacheKey}`;
   const cached = metaCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
