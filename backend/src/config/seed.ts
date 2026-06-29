@@ -88,50 +88,90 @@ export async function runSampleSeed(): Promise<void> {
     // engineering admissions. Portal subdomains are rotated each cycle
     // (fe2025 -> fe2026, ...), so these links should be refreshed every
     // admission season — admins can manage them from the Resources panel.
+    // created_at is staggered (now() - N minutes) so the newer 2025 documents
+    // sort above the 2024 ones (the Resources page orders by created_at DESC).
     await query(
-      `INSERT INTO resources (title, description, file_url, category) VALUES
-        ($1, $2, $3, $4),
-        ($5, $6, $7, $8),
-        ($9, $10, $11, $12),
-        ($13, $14, $15, $16),
-        ($17, $18, $19, $20),
-        ($21, $22, $23, $24),
-        ($25, $26, $27, $28)`,
+      `INSERT INTO resources (title, description, file_url, category, created_at) VALUES
+        ($1, $2, $3, $4, now() - interval '1 minute'),
+        ($5, $6, $7, $8, now() - interval '2 minutes'),
+        ($9, $10, $11, $12, now() - interval '3 minutes'),
+        ($13, $14, $15, $16, now() - interval '4 minutes'),
+        ($17, $18, $19, $20, now() - interval '5 minutes'),
+        ($21, $22, $23, $24, now() - interval '6 minutes'),
+        ($25, $26, $27, $28, now() - interval '7 minutes'),
+        ($29, $30, $31, $32, now() - interval '8 minutes'),
+        ($33, $34, $35, $36, now() - interval '9 minutes'),
+        ($37, $38, $39, $40, now() - interval '10 minutes'),
+        ($41, $42, $43, $44, now() - interval '11 minutes'),
+        ($45, $46, $47, $48, now() - interval '12 minutes'),
+        ($49, $50, $51, $52, now() - interval '13 minutes')`,
       [
-        'FE Engineering CAP — Official Seat Matrix Portal',
-        'Official State CET Cell portal where the provisional and final category-wise seat matrix is published for every CAP round of First Year Engineering admissions.',
-        'https://fe2025.mahacet.org/',
-        'Seat Matrix',
-
-        'MHT-CET 2024 Engineering — CAP Round I Cutoff List',
-        'Official cutoff list (Maharashtra & Minority seats) for CAP Round I of First Year Engineering admissions, 2024-25, published by the State CET Cell.',
-        'https://fe2025.mahacet.org/2024/2024ENGG_CAP1_CutOff.pdf',
-        'Previous Year Cutoffs',
-
-        'MHT-CET 2024 Engineering — CAP Round III Cutoff List',
-        'Official cutoff list (Maharashtra & Minority seats) for CAP Round III of First Year Engineering admissions, 2024-25, published by the State CET Cell.',
-        'https://fe2025.mahacet.org/2024/2024ENGG_CAP3_CutOff.pdf',
-        'Previous Year Cutoffs',
-
-        'MHT-CET 2023 Engineering — CAP Round I Cutoff List',
-        'Official cutoff list (Maharashtra & Minority seats) for CAP Round I of First Year Engineering admissions, 2023-24, useful for comparing year-on-year trends.',
-        'https://fe2025.mahacet.org/2023/2023ENGG_CAP1_CutOff.pdf',
-        'Previous Year Cutoffs',
-
-        'FE Engineering Admissions 2025-26 — Information Brochure',
-        'The official Information Brochure for admission to First Year Under Graduate and Post Graduate technical courses (Engineering & Technology) for A.Y. 2025-26, covering eligibility, the CAP process, reservations and document requirements.',
+        // ===== 2025 =====
+        'Information Brochure 2025-26 — FE Engineering Admissions',
+        'Official Information Brochure for First Year UG/PG technical course (Engineering & Technology) admissions, A.Y. 2025-26 — eligibility, CAP process, reservations and documents.',
         'https://fe2025.mahacet.org/PublicPages/Information_Brochure_UG_PG_2025_26_Final_02_07_2025.pdf',
         'Exam Guidelines',
 
-        'State CET Cell — Notices & Circulars (2024-2025)',
-        'Government circulars, notices and schedules issued by the State CET Cell for the 2024-2025 admission cycle.',
-        'https://cetcell.mahacet.org/2024-2025/',
+        'CAP 2025-26 Admission Schedule Notice (B.E./B.Tech)',
+        'Official admission notice and CAP schedule for B.E./B.Tech (4 Years) & Integrated M.E./M.Tech (5 Years) for A.Y. 2025-26, up to the merit list stage.',
+        'https://cetcell.mahacet.org/wp-content/uploads/2023/12/BE-BTECH-CAP-AY-25-26-Schedule-Notice-Upto-Merit-List.pdf',
         'Government Circulars',
 
-        'State CET Cell — Official Website',
-        'Home of the State Common Entrance Test Cell, Government of Maharashtra — the authoritative source for all MHT-CET exam and admission announcements.',
-        'https://cetcell.mahacet.org/',
-        'Others',
+        'MHT-CET 2025 — Final Exam Schedule',
+        'Official final time-table / schedule notice for the MHT-CET 2025 examination issued by the State CET Cell.',
+        'https://cetcell.mahacet.org/wp-content/uploads/2023/12/CET-2025-Final-Schedule-.pdf',
+        'Government Circulars',
+
+        'CAP 2025-26 — Notices & Circulars Hub',
+        'Official hub page for the 2025-26 Engineering CAP process, where all round-wise notices, circulars and schedules are published by the State CET Cell.',
+        'https://cetcell.mahacet.org/cap-_2025-26/',
+        'Government Circulars',
+
+        'Seat Matrix & Round-wise Vacancy 2025-26 (Official Portal)',
+        'Official FE 2025 portal where the provisional category-wise seat matrix and round-wise vacancy position (CAP Rounds I–IV) for Engineering admissions are published.',
+        'https://fe2025.mahacet.org/',
+        'Seat Matrix',
+
+        'MHT-CET 2025 Engineering — CAP Round I Cutoff (MH & Minority)',
+        'Official cutoff list for Maharashtra & Minority seats, CAP Round I, First Year Engineering admissions 2025-26.',
+        'https://fe2025.mahacet.org/2025/2025ENGG_CAP1_CutOff.pdf',
+        'Previous Year Cutoffs',
+
+        'MHT-CET 2025 Engineering — CAP Round II Cutoff (MH & Minority)',
+        'Official cutoff list for Maharashtra & Minority seats, CAP Round II, First Year Engineering admissions 2025-26.',
+        'https://fe2025.mahacet.org/2025/2025ENGG_CAP2_CutOff.pdf',
+        'Previous Year Cutoffs',
+
+        'MHT-CET 2025 Engineering — CAP Round III Cutoff (MH & Minority)',
+        'Official cutoff list for Maharashtra & Minority seats, CAP Round III, First Year Engineering admissions 2025-26.',
+        'https://fe2025.mahacet.org/2025/2025ENGG_CAP3_CutOff.pdf',
+        'Previous Year Cutoffs',
+
+        'MHT-CET 2025 Engineering — CAP Round IV Cutoff (MH & Minority)',
+        'Official cutoff list for Maharashtra & Minority seats, CAP Round IV, First Year Engineering admissions 2025-26.',
+        'https://fe2025.mahacet.org/2025/2025ENGG_CAP4_CutOff.pdf',
+        'Previous Year Cutoffs',
+
+        // ===== 2024 (cutoffs + seat matrix only) =====
+        'MHT-CET 2024 Engineering — CAP Round I Cutoff (MH & Minority)',
+        'Official cutoff list for Maharashtra & Minority seats, CAP Round I, First Year Engineering admissions 2024-25.',
+        'https://fe2025.mahacet.org/2024/2024ENGG_CAP1_CutOff.pdf',
+        'Previous Year Cutoffs',
+
+        'MHT-CET 2024 Engineering — CAP Round II Cutoff (MH & Minority)',
+        'Official cutoff list for Maharashtra & Minority seats, CAP Round II, First Year Engineering admissions 2024-25.',
+        'https://fe2025.mahacet.org/2024/2024ENGG_CAP2_CutOff.pdf',
+        'Previous Year Cutoffs',
+
+        'MHT-CET 2024 Engineering — CAP Round III Cutoff (MH & Minority)',
+        'Official cutoff list for Maharashtra & Minority seats, CAP Round III, First Year Engineering admissions 2024-25.',
+        'https://fe2025.mahacet.org/2024/2024ENGG_CAP3_CutOff.pdf',
+        'Previous Year Cutoffs',
+
+        'Seat Matrix & Round-wise Vacancy 2024-25 (Official Portal)',
+        'Official FE 2024 portal where the category-wise seat matrix and round-wise vacancy position for Engineering admissions 2024-25 are published.',
+        'https://fe2024.mahacet.org/',
+        'Seat Matrix',
       ],
     );
     logger.info('Official CET resources data inserted successfully');
