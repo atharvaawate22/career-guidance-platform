@@ -23,3 +23,54 @@ INSERT INTO updates (title, content, published_date) VALUES
   '2026-02-14'
 )
 ON CONFLICT DO NOTHING;
+
+-- ============================================================================
+-- OFFICIAL CET RESOURCES
+-- Official State CET Cell (mahacet.org) documents for MHT-CET first year
+-- engineering admissions. Portal subdomains rotate each cycle
+-- (fe2025 -> fe2026, ...), so refresh these links every admission season.
+-- ============================================================================
+INSERT INTO resources (title, description, file_url, category) VALUES
+(
+  'FE Engineering CAP — Official Seat Matrix Portal',
+  'Official State CET Cell portal where the provisional and final category-wise seat matrix is published for every CAP round of First Year Engineering admissions.',
+  'https://fe2025.mahacet.org/',
+  'Seat Matrix'
+),
+(
+  'MHT-CET 2024 Engineering — CAP Round I Cutoff List',
+  'Official cutoff list (Maharashtra & Minority seats) for CAP Round I of First Year Engineering admissions, 2024-25, published by the State CET Cell.',
+  'https://fe2025.mahacet.org/2024/2024ENGG_CAP1_CutOff.pdf',
+  'Previous Year Cutoffs'
+),
+(
+  'MHT-CET 2024 Engineering — CAP Round III Cutoff List',
+  'Official cutoff list (Maharashtra & Minority seats) for CAP Round III of First Year Engineering admissions, 2024-25, published by the State CET Cell.',
+  'https://fe2025.mahacet.org/2024/2024ENGG_CAP3_CutOff.pdf',
+  'Previous Year Cutoffs'
+),
+(
+  'MHT-CET 2023 Engineering — CAP Round I Cutoff List',
+  'Official cutoff list (Maharashtra & Minority seats) for CAP Round I of First Year Engineering admissions, 2023-24, useful for comparing year-on-year trends.',
+  'https://fe2025.mahacet.org/2023/2023ENGG_CAP1_CutOff.pdf',
+  'Previous Year Cutoffs'
+),
+(
+  'FE Engineering Admissions 2025-26 — Information Brochure',
+  'The official Information Brochure for admission to First Year Under Graduate and Post Graduate technical courses (Engineering & Technology) for A.Y. 2025-26, covering eligibility, the CAP process, reservations and document requirements.',
+  'https://fe2025.mahacet.org/PublicPages/Information_Brochure_UG_PG_2025_26_Final_02_07_2025.pdf',
+  'Exam Guidelines'
+),
+(
+  'State CET Cell — Notices & Circulars (2024-2025)',
+  'Government circulars, notices and schedules issued by the State CET Cell for the 2024-2025 admission cycle.',
+  'https://cetcell.mahacet.org/2024-2025/',
+  'Government Circulars'
+),
+(
+  'State CET Cell — Official Website',
+  'Home of the State Common Entrance Test Cell, Government of Maharashtra — the authoritative source for all MHT-CET exam and admission announcements.',
+  'https://cetcell.mahacet.org/',
+  'Others'
+)
+ON CONFLICT DO NOTHING;
