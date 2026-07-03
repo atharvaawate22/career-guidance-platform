@@ -176,6 +176,21 @@ export default function AdminSettingsPage() {
     setNewSpecialDate("");
   };
 
+  // A date picked in the input but never added via "Add Date" is included on
+  // save anyway — otherwise it is silently lost.
+  const saveBookingSlots = () => {
+    let config = bookingSlots;
+    if (newSpecialDate) {
+      const key = specialDateType === "open" ? "special_open_dates" : "special_closed_dates";
+      if (!config[key].includes(newSpecialDate)) {
+        config = { ...config, [key]: [...config[key], newSpecialDate].sort() };
+      }
+      setBookingSlots(config);
+      setNewSpecialDate("");
+    }
+    save("booking_slots", config);
+  };
+
   const removeSpecialDate = (date: string, type: "open" | "closed") => {
     const key = type === "open" ? "special_open_dates" : "special_closed_dates";
     setBookingSlots(prev => ({ ...prev, [key]: prev[key].filter(d => d !== date) }));
@@ -208,7 +223,7 @@ export default function AdminSettingsPage() {
         <SettingsSection
           title="Booking Slots"
           description="Configure available time slots & working days for consultations"
-          onSave={() => save("booking_slots", bookingSlots)}
+          onSave={saveBookingSlots}
           saving={saving === "booking_slots"}
         >
           <div className="space-y-6">
