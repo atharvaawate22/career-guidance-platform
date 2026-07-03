@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { suggestEmailCorrection } from "@/lib/emailSuggestion";
 
 // Default fallback — only used if settings API is unreachable
 const DEFAULT_TIME_SLOTS = [
@@ -232,6 +233,9 @@ export default function BookPage() {
     const newFieldErrors: Record<string, string> = {};
 
     if (!slotConfig.enabled) newFieldErrors.meeting_date = "Booking sessions are currently closed.";
+    const suggestedEmail = suggestEmailCorrection(formData.email);
+    if (suggestedEmail)
+      newFieldErrors.email = `Please enter a valid email address. Did you mean ${suggestedEmail}?`;
     if (!formData.category) newFieldErrors.category = "Please select your reservation category.";
     if (!meetingPurposeOption) newFieldErrors.meeting_purpose = "Please select the purpose of your session.";
     if (meetingPurposeOption === "Other" && !formData.meeting_purpose.trim())
@@ -243,7 +247,14 @@ export default function BookPage() {
 
     if (Object.keys(newFieldErrors).length > 0) {
       setFieldErrors(newFieldErrors);
-      setGeneralError("");
+      // Banner at the top summarizes the problem; the highlighted fields carry
+      // the details. Without it, a user at the submit button never sees field
+      // errors rendered further up the form.
+      setGeneralError(
+        newFieldErrors.email
+          ? "The email address appears to be invalid. Please correct it and try again."
+          : "Please correct the highlighted fields and try again."
+      );
       setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
       return;
     }
@@ -297,6 +308,16 @@ export default function BookPage() {
           setSelectedTime("");
           setFormData((prev) => ({ ...prev, meeting_time: "" }));
           fetchSlotsForDate(selectedDate);
+        } else if (
+          data.error?.code === "INVALID_EMAIL_DOMAIN" ||
+          (data.error?.code === "VALIDATION_ERROR" &&
+            data.error.details?.some((d: { path: string }) => d.path === "email"))
+        ) {
+          const emailIssue = data.error.details?.find(
+            (d: { path: string; message: string }) => d.path === "email"
+          );
+          setFieldErrors({ email: emailIssue?.message ?? data.error.message });
+          window.scrollTo({ top: 0, behavior: "smooth" });
         } else {
           setGeneralError(data.error?.message || "Failed to create booking. Please try again.");
           setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -383,6 +404,7 @@ export default function BookPage() {
     fetchSlotsForDate(date);
   };
 
+  const emailSuggestion = suggestEmailCorrection(formData.email);
   const minDate = getMinDate(slotConfig);
   const calendarDates = getMonthDates(calendarMonth);
   const minMonth = getMonthKey(minDate);
@@ -522,10 +544,30 @@ export default function BookPage() {
                   required
                   autoComplete="email"
                   value={formData.email}
-                  onChange={handleInputChange}
+                  onChange={(e) => { handleInputChange(e); clearError("email"); }}
                   className="input-base"
                   placeholder="your.email@gmail.com"
                 />
+                {emailSuggestion && (
+                  <p className="text-xs mt-1" style={{ color: "var(--slate-600)" }}>
+                    Did you mean{" "}
+                    <button
+                      type="button"
+                      className="font-semibold underline"
+                      style={{ color: "var(--primary-600)" }}
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, email: emailSuggestion }));
+                        clearError("email");
+                      }}
+                    >
+                      {emailSuggestion}
+                    </button>
+                    ?
+                  </p>
+                )}
+                {fieldErrors.email && (
+                  <p className="text-xs mt-1" style={{ color: "var(--danger-500)" }}>{fieldErrors.email}</p>
+                )}
               </div>
 
               <div>

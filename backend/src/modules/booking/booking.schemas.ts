@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import * as settingsRepository from '../settings/settings.repository';
 import { VALID_PREDICTOR_CATEGORIES } from '../predictor/predictor.schemas';
+import { suggestEmailDomain } from '../../utils/emailValidation';
 
 // Valid booking categories matching Maharashtra MHT-CET reservation structure
 export const VALID_BOOKING_CATEGORIES = VALID_PREDICTOR_CATEGORIES;
@@ -62,7 +63,16 @@ export const createBookingSchema = z.object({
   email: z
     .string({ required_error: 'Email address is required' })
     .trim()
-    .email('Please enter a valid email address (e.g. name@gmail.com)'),
+    .email('Please enter a valid email address (e.g. name@gmail.com)')
+    .superRefine((email, ctx) => {
+      const suggested = suggestEmailDomain(email);
+      if (suggested) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Please enter a valid email address. Did you mean @${suggested}?`,
+        });
+      }
+    }),
 
   phone: z
     .string({ required_error: 'Phone number is required' })

@@ -3,6 +3,7 @@ import * as calendarService from './calendar.service';
 import * as emailService from './email.service';
 import { CreateBookingRequest, CreateBookingResponse } from './booking.types';
 import { getBookingSlotConfig } from './booking.schemas';
+import { isEmailDomainDeliverable } from '../../utils/emailValidation';
 import logger from '../../utils/logger';
 
 function isPgUniqueViolation(error: unknown): boolean {
@@ -74,6 +75,21 @@ export async function createBooking(
         error: {
           code: 'SLOT_UNAVAILABLE',
           message: 'Sessions are not available on this day. Please choose a working day.',
+        },
+      };
+    }
+
+    // ── Guard: email domain must actually exist ──────────────────────────────
+    // Catches typos like "gmail.con" that pass format validation but can never
+    // receive the confirmation email. Fails open on transient DNS errors.
+    const emailDeliverable = await isEmailDomainDeliverable(bookingRequest.email);
+    if (!emailDeliverable) {
+      const domain = bookingRequest.email.split('@').pop();
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_EMAIL_DOMAIN',
+          message: `The email domain "${domain}" could not be found. Please verify your email address and try again.`,
         },
       };
     }

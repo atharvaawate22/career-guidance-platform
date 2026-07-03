@@ -8,6 +8,7 @@ const {
   generateMeetLinkMock,
   sendBookingConfirmationMock,
   getSettingMock,
+  isEmailDomainDeliverableMock,
 } = vi.hoisted(() => ({
   createBookingMock: vi.fn(),
   updateEmailStatusMock: vi.fn(),
@@ -16,6 +17,7 @@ const {
   generateMeetLinkMock: vi.fn(),
   sendBookingConfirmationMock: vi.fn(),
   getSettingMock: vi.fn(),
+  isEmailDomainDeliverableMock: vi.fn(),
 }));
 
 vi.mock('../src/modules/booking/booking.repository', () => ({
@@ -35,6 +37,12 @@ vi.mock('../src/modules/booking/email.service', () => ({
 
 vi.mock('../src/modules/settings/settings.repository', () => ({
   getSetting: getSettingMock,
+}));
+
+// Mock only the DNS-based check; keep the pure typo-suggestion logic real.
+vi.mock('../src/utils/emailValidation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/utils/emailValidation')>()),
+  isEmailDomainDeliverable: isEmailDomainDeliverableMock,
 }));
 
 import { createBooking } from '../src/modules/booking/booking.service';
@@ -85,6 +93,29 @@ describe('booking.service createBooking', () => {
     // Default: no existing booking for the email
     getExistingActiveBookingByEmailMock.mockResolvedValue(null);
     getSettingMock.mockResolvedValue(defaultBookingSlotConfig());
+    // Default: email domain resolves fine
+    isEmailDomainDeliverableMock.mockResolvedValue(true);
+  });
+
+  it('rejects bookings when the email domain does not exist', async () => {
+    isEmailDomainDeliverableMock.mockResolvedValueOnce(false);
+
+    const result = await createBooking({
+      student_name: 'Student',
+      email: 'student@gmail.con',
+      phone: '9999999999',
+      percentile: 90,
+      category: 'OPEN',
+      branch_preference: 'Computer Engineering',
+      meeting_purpose: 'Need guidance',
+      meeting_time: getNextWeekdaySlot(),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.code).toBe('INVALID_EMAIL_DOMAIN');
+    expect(result.error?.message).toContain('gmail.con');
+    // No DB write should happen for an undeliverable email
+    expect(createBookingMock).not.toHaveBeenCalled();
   });
 
   it('returns slot taken error when insert hits unique slot collision', async () => {

@@ -7,6 +7,7 @@ import { sanitizeText } from '../../utils/sanitize';
 function bookingErrorStatus(code?: string): number {
   switch (code) {
     case 'VALIDATION_ERROR':
+    case 'INVALID_EMAIL_DOMAIN':
       return 400;
     case 'BOOKINGS_DISABLED':
       return 403;
