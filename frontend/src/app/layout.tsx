@@ -8,6 +8,11 @@ import { SITE_URL, SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
   title: {
     default: "CET Hub — MHT-CET College Predictor, Cutoffs & Guidance",
     template: "%s | CET Hub",
@@ -15,12 +20,23 @@ export const metadata: Metadata = {
   description:
     "All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank, explore 90,000+ 2025 CAP cutoff records across 300+ colleges, and book free expert counseling for Maharashtra engineering admissions.",
   keywords: [
-    "MHT-CET", "MHT CET", "MHT CET PCM", "MHT-CET 2025", "MHT CET 2026",
-    "MHT CET college predictor", "college predictor", "MHT CET cutoff",
-    "MHT CET cutoffs 2025", "MHT CET percentile predictor",
-    "engineering college predictor Maharashtra", "CAP round cutoff",
-    "Maharashtra engineering admission", "MHT CET counselling",
-    "DTE Maharashtra", "CET Hub", "cethub",
+    "MHT-CET",
+    "MHT CET",
+    "MHT CET PCM",
+    "MHT-CET 2025",
+    "MHT CET 2026",
+    "MHT CET college predictor",
+    "college predictor",
+    "MHT CET cutoff",
+    "MHT CET cutoffs 2025",
+    "MHT CET percentile predictor",
+    "engineering college predictor Maharashtra",
+    "CAP round cutoff",
+    "Maharashtra engineering admission",
+    "MHT CET counselling",
+    "DTE Maharashtra",
+    "CET Hub",
+    "cethub",
   ],
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
@@ -67,7 +83,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${dmSerif.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body
+        className={`${inter.variable} ${dmSerif.variable} ${jetbrainsMono.variable} antialiased`}
+      >
         <PublicShell>{children}</PublicShell>
         <ErrorTrackingBridge />
         <StructuredData />
