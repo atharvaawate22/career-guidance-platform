@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CET Hub logo">
+  <defs>
+    <linearGradient id="blue" x1="12" y1="10" x2="42" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5db9d7"/>
+      <stop offset="0.55" stop-color="#2d7ea2"/>
+      <stop offset="1" stop-color="#184f77"/>
+    </linearGradient>
+    <linearGradient id="blueShade" x1="18" y1="16" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f5c88"/>
+      <stop offset="1" stop-color="#093b5b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="32" y1="14" x2="58" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd96b"/>
+      <stop offset="0.5" stop-color="#f0b92d"/>
+      <stop offset="1" stop-color="#c98a08"/>
+    </linearGradient>
+  </defs>
+  <polygon points="12,16 28,7 44,16 44,32 28,41 12,32" fill="url(#blue)"/>
+  <polygon points="12,16 20,20 20,40 12,48 12,32" fill="url(#blueShade)"/>
+  <polygon points="44,16 52,20 52,40 44,32" fill="url(#blueShade)"/>
+  <polygon points="12,48 28,57 44,48 44,44 28,53 12,44" fill="url(#blueShade)"/>
+  <polygon points="44,16 56,23 56,41 51,44 51,20" fill="url(#gold)"/>
+  <polygon points="31,31 39,22 35,37 26,45 20,39" fill="url(#gold)"/>
+  <polygon points="39,35 50,31 50,37 43,40 36,40" fill="url(#gold)"/>
+  <polygon points="25,39 31,45 24,49 18,43" fill="url(#gold)"/>
+</svg>

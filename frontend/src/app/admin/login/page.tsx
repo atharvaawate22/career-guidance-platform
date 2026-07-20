@@ -138,7 +138,7 @@ function LoginForm() {
           {/* Logo */}
           <div className="mb-10 animate-fade-up">
             <div className="w-14 h-14 flex items-center justify-center mb-6">
-              <img src="/favicon.svg" alt="CET Hub" width={56} height={56} className="w-14 h-14" />
+              <img src="/logo-mark.svg" alt="CET Hub" width={56} height={56} className="w-14 h-14" />
             </div>
             <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4" style={{ fontFamily: "var(--font-display)", lineHeight: 1.2 }}>
               CETHub
@@ -170,7 +170,7 @@ function LoginForm() {
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4">
-              <img src="/favicon.svg" alt="CET Hub" width={48} height={48} className="w-12 h-12" />
+              <img src="/logo-mark.svg" alt="CET Hub" width={48} height={48} className="w-12 h-12" />
             </div>
             <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
               CETHub Admin
