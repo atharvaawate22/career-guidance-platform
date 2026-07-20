@@ -7,6 +7,7 @@ const {
   getExistingActiveBookingByEmailMock,
   generateMeetLinkMock,
   sendBookingConfirmationMock,
+  sendAdminBookingAlertMock,
   getSettingMock,
   isEmailDomainDeliverableMock,
 } = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ const {
   getExistingActiveBookingByEmailMock: vi.fn(),
   generateMeetLinkMock: vi.fn(),
   sendBookingConfirmationMock: vi.fn(),
+  sendAdminBookingAlertMock: vi.fn(),
   getSettingMock: vi.fn(),
   isEmailDomainDeliverableMock: vi.fn(),
 }));
@@ -33,6 +35,7 @@ vi.mock('../src/modules/booking/calendar.service', () => ({
 
 vi.mock('../src/modules/booking/email.service', () => ({
   sendBookingConfirmation: sendBookingConfirmationMock,
+  sendAdminBookingAlert: sendAdminBookingAlertMock,
 }));
 
 vi.mock('../src/modules/settings/settings.repository', () => ({
@@ -95,6 +98,8 @@ describe('booking.service createBooking', () => {
     getSettingMock.mockResolvedValue(defaultBookingSlotConfig());
     // Default: email domain resolves fine
     isEmailDomainDeliverableMock.mockResolvedValue(true);
+    // Fire-and-forget admin alert; default to resolving so it never rejects unexpectedly.
+    sendAdminBookingAlertMock.mockResolvedValue(true);
   });
 
   it('rejects bookings when the email domain does not exist', async () => {
