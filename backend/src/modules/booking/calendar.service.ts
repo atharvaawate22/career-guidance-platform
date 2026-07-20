@@ -80,7 +80,7 @@ export async function generateMeetLink(
         timeZone: 'Asia/Kolkata',
       },
       end: {
-        dateTime: toISTLocal(new Date(meetingTime.getTime() + 30 * 60000)),
+        dateTime: toISTLocal(new Date(meetingTime.getTime() + 20 * 60000)),
         timeZone: 'Asia/Kolkata',
       },
       attendees: [{ email }],

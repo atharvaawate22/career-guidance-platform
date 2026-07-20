@@ -79,6 +79,20 @@ export async function createBooking(
       };
     }
 
+    // ── Guard: enforce minimum booking lead time ───────────────────────────
+    // Mirrors the 3-hour buffer applied on the frontend; enforced here too
+    // since the frontend check alone can be bypassed via direct API calls.
+    const MIN_BOOKING_LEAD_MS = 3 * 60 * 60 * 1000;
+    if (meetingTime.getTime() - Date.now() < MIN_BOOKING_LEAD_MS) {
+      return {
+        success: false,
+        error: {
+          code: 'SLOT_UNAVAILABLE',
+          message: 'Sessions must be booked at least 3 hours in advance. Please choose a later slot.',
+        },
+      };
+    }
+
     // ── Guard: email domain must actually exist ──────────────────────────────
     // Catches typos like "gmail.con" that pass format validation but can never
     // receive the confirmation email. Fails open on transient DNS errors.
@@ -162,6 +176,23 @@ export async function createBooking(
       );
     } catch (calendarError) {
       logger.error('Failed to generate meeting link', calendarError);
+
+      // Notify the admin even when the Meet link failed to generate — this
+      // case needs a manual follow-up, so the alert matters more, not less.
+      emailService
+        .sendAdminBookingAlert({
+          studentName: bookingRequest.student_name,
+          email: bookingRequest.email,
+          phone: bookingRequest.phone,
+          meetingTime: meetingTime,
+          meetLink: null,
+          category: bookingRequest.category,
+          branchPreference: bookingRequest.branch_preference,
+          meetingPurpose: bookingRequest.meeting_purpose.trim(),
+          percentile: bookingRequest.percentile,
+        })
+        .catch((err) => logger.error('Admin booking alert failed', err));
+
       // Calendar failed but the booking exists in DB.
       // Return success:true with a warning — the admin can add the Meet link manually.
       return {
@@ -179,8 +210,8 @@ export async function createBooking(
     // ── Step 3: Persist the Meet link back to the booking row ────────────────
     await bookingRepository.updateMeetLink(booking.id, meetLink);
 
-    // Email is fire-and-forget; failures are logged but do NOT affect the
-    // HTTP response. The client receives the meet link immediately.
+    // Both emails are fire-and-forget; failures are logged but do NOT affect
+    // the HTTP response. The client receives the meet link immediately.
     emailService
       .sendBookingConfirmation({
         studentName: bookingRequest.student_name,
@@ -206,6 +237,20 @@ export async function createBooking(
       .catch((err) => {
         logger.error('Email sending error', err);
       });
+
+    emailService
+      .sendAdminBookingAlert({
+        studentName: bookingRequest.student_name,
+        email: bookingRequest.email,
+        phone: bookingRequest.phone,
+        meetingTime: meetingTime,
+        meetLink: meetLink,
+        category: bookingRequest.category,
+        branchPreference: bookingRequest.branch_preference,
+        meetingPurpose: bookingRequest.meeting_purpose.trim(),
+        percentile: bookingRequest.percentile,
+      })
+      .catch((err) => logger.error('Admin booking alert failed', err));
 
     return {
       success: true,

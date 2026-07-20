@@ -115,6 +115,8 @@ function nextWorkingDay(dateStr: string, config: SlotConfig): string {
   return candidate;
 }
 
+const MIN_BOOKING_LEAD_MINUTES = 180; // 3-hour minimum lead time before a slot can be booked
+
 function getMinDate(config: SlotConfig) {
   const nowIST = getNowIST();
   const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
@@ -124,7 +126,7 @@ function getMinDate(config: SlotConfig) {
   const lastSlot = sortedSlots[sortedSlots.length - 1] || "17:30";
   const [lastH, lastM] = lastSlot.split(":").map(Number);
   const baseDate =
-    nowMinutes + 60 > lastH * 60 + lastM
+    nowMinutes + MIN_BOOKING_LEAD_MINUTES > lastH * 60 + lastM
       ? addDays(todayIST, 1)
       : todayIST;
   return nextWorkingDay(baseDate, config);
@@ -137,7 +139,7 @@ function getAvailableSlots(dateStr: string, config: SlotConfig) {
   const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
   return config.slots.filter((slot) => {
     const [h, m] = slot.split(":").map(Number);
-    return h * 60 + m >= nowMinutes + 60; // 1-hour booking buffer
+    return h * 60 + m >= nowMinutes + MIN_BOOKING_LEAD_MINUTES;
   });
 }
 
@@ -160,6 +162,7 @@ export default function BookPage() {
   const [loading, setLoading] = useState(false);
   const [generalError, setGeneralError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [step, setStep] = useState<"form" | "review">("form");
   const [success, setSuccess] = useState(false);
   const [successData, setSuccessData] = useState<{
     meetLink: string | null;
@@ -228,7 +231,7 @@ export default function BookPage() {
       .finally(() => setSlotsLoading(false));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newFieldErrors: Record<string, string> = {};
 
@@ -260,6 +263,13 @@ export default function BookPage() {
     }
 
     setFieldErrors({});
+    setGeneralError("");
+    setSlotError("");
+    setStep("review");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleConfirmBooking = async () => {
     setLoading(true);
     setGeneralError("");
     setSlotError("");
@@ -298,11 +308,15 @@ export default function BookPage() {
           bookedDateTime: `${bookedDate} at ${bookedTime} IST`,
         });
         setSuccess(true);
+        setStep("form");
         setFormData({ student_name: "", email: "", phone: "", percentile: "", category: "", branch_preference: "", meeting_purpose: "", meeting_time: "" });
         setMeetingPurposeOption(""); setSelectedDate(""); setSelectedTime("");
         setCalendarMonth(getMonthKey(getMinDate(slotConfig)));
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
+        // Every failure path sends the user back to the editable form — the
+        // review screen has no fields of its own to surface these errors on.
+        setStep("form");
         if (data.error?.code === "SLOT_TAKEN") {
           setSlotError(data.error.message);
           setSelectedTime("");
@@ -325,6 +339,7 @@ export default function BookPage() {
       }
     } catch (err) {
       clearTimeout(timeoutId);
+      setStep("form");
       setGeneralError(
         err instanceof Error && err.name === "AbortError"
           ? "Request timed out. The server may be starting up — please try again in a moment."
@@ -482,6 +497,92 @@ export default function BookPage() {
     );
   }
 
+  if (step === "review") {
+    const reviewDate = formData.meeting_time
+      ? new Date(formData.meeting_time).toLocaleDateString("en-IN", {
+          weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata",
+        })
+      : "";
+    const reviewTime = formData.meeting_time
+      ? new Date(formData.meeting_time).toLocaleTimeString("en-IN", {
+          hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata",
+        })
+      : "";
+    const reviewPurpose = meetingPurposeOption === "Other" ? formData.meeting_purpose : meetingPurposeOption;
+    const reviewRows: Array<[string, string]> = [
+      ["Full Name", formData.student_name],
+      ["Email", formData.email],
+      ["Phone", `${INDIA_COUNTRY_CODE} ${formData.phone}`],
+      ["Percentile", formData.percentile],
+      ["Category", formData.category],
+      ["Branch Preference", formData.branch_preference],
+      ["Purpose of Meeting", reviewPurpose],
+      ["Date", reviewDate],
+      ["Time", `${reviewTime} IST`],
+      ["Duration", "20 minutes"],
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg-secondary)" }} className="px-4 py-8 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8">
+            <p className="section-label mb-2">Guidance</p>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
+              Review Your Booking
+            </h1>
+            <p className="text-sm" style={{ color: "var(--slate-500)" }}>
+              Please check your details below before confirming your 20-minute session.
+            </p>
+          </div>
+
+          {generalError && (
+            <div ref={errorRef} className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+              {generalError}
+            </div>
+          )}
+
+          <div className="rounded-2xl border p-6 sm:p-8" style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-sm)" }}>
+            <dl className="divide-y" style={{ borderColor: "var(--slate-100)" }}>
+              {reviewRows.map(([label, value]) => (
+                <div key={label} className="py-3 grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium" style={{ color: "var(--slate-500)" }}>{label}</dt>
+                  <dd className="text-sm font-semibold col-span-2" style={{ color: "var(--slate-900)" }}>{value || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                disabled={loading}
+                className="flex-1 py-3 px-6 rounded-xl font-semibold transition-colors disabled:opacity-50"
+                style={{ background: "var(--slate-100)", color: "var(--slate-700)" }}
+              >
+                Edit Details
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBooking}
+                disabled={loading}
+                className="flex-1 text-white py-3 px-6 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
+              >
+                {loading && (
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                )}
+                {loading ? "Scheduling…" : "Confirm & Book Session"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-secondary)" }} className="px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
@@ -491,9 +592,9 @@ export default function BookPage() {
             Book a Session
           </h1>
           <p className="text-sm" style={{ color: "var(--slate-500)" }}>
-            Schedule a one-on-one career guidance session with our expert
-            counselors. Get personalized advice on college selection and
-            admission strategies.
+            Schedule a free 20-minute one-on-one career guidance session with
+            our expert counselors. Get personalized advice on college
+            selection and admission strategies.
           </p>
         </div>
 
@@ -501,9 +602,9 @@ export default function BookPage() {
         <div className="rounded-xl border px-4 py-3 text-sm mb-6 flex items-start gap-3" style={{ background: "var(--success-50)", borderColor: "var(--success-200)", color: "var(--success-700)" }}>
           <span className="text-lg leading-none mt-0.5">🎥</span>
           <div>
-            <span className="font-semibold">Free session via Google Meet.</span>{" "}
+            <span className="font-semibold">Free 20-minute session via Google Meet.</span>{" "}
             You&apos;ll receive a confirmation email with the Meet link after
-            booking. Sessions are 30 minutes long.
+            booking.
           </div>
         </div>
 
@@ -514,7 +615,7 @@ export default function BookPage() {
         )}
 
         <div className="rounded-2xl border p-8" style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-sm)" }}>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleReviewSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
@@ -887,17 +988,11 @@ export default function BookPage() {
             <div className="mt-8">
               <button
                 type="submit"
-                disabled={loading || !slotConfig.enabled}
+                disabled={!slotConfig.enabled}
                 className="w-full text-white py-3 px-6 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
               >
-                {loading && (
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                )}
-                {!slotConfig.enabled ? "Bookings Closed" : loading ? "Scheduling…" : "Book Session"}
+                {!slotConfig.enabled ? "Bookings Closed" : "Review Booking"}
               </button>
             </div>
           </form>
