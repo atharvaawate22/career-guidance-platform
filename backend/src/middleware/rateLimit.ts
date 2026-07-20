@@ -114,6 +114,21 @@ export const bookingLimiter = rateLimit({
   },
 });
 
+export const chatbotLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: makeStore(),
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many messages, please slow down.',
+    },
+  },
+});
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,

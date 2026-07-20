@@ -74,6 +74,22 @@ export async function getPublicAnnouncement(
   }
 }
 
+export async function getPublicContactInfo(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const setting = await settingsRepository.getSetting('contact_info');
+    res.json({
+      success: true,
+      data: setting?.value ?? { email: '', phone: '' },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 // ── Admin endpoints ───────────────────────────────────────────────────────────
 
 export async function getAllSettings(

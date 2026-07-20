@@ -57,3 +57,8 @@ provisioned by applying `schema.sql` first, then letting the runner apply
 | `009_meeting_time_timestamptz.sql` | Convert `bookings.meeting_time` to `TIMESTAMPTZ`; add active-future partial index |
 | `010_platform_settings.sql` | Add `platform_settings` key/value table |
 | `011_bookings_meeting_time_unique.sql` | Unique index enforcing one active booking per time slot |
+| `012_cutoffs_redesign.sql` | Normalized colleges/courses/cutoffs schema |
+| `013_secure_legacy_tables.sql` | RLS lockdown for legacy tables kept only as revert backups |
+| `014_cap_schedule.sql` | `cap_schedule` table — structured CAP round dates for the chatbot (placeholder rows, `is_confirmed = false`, until DTE releases the official schedule) |
+| `015_document_checklist.sql` | `document_checklist` table — seeded CAP admission document list for the chatbot |
+| `016_unanswered_queries.sql` | `unanswered_queries` table — logs chatbot fallback queries as the Phase 2 RAG content backlog |

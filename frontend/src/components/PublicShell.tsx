@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import ChatWidget from "@/components/ChatWidget";
 
 export default function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -33,6 +34,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
         {children}
       </main>
       <Footer />
+      <ChatWidget />
     </div>
   );
 }

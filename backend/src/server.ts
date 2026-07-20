@@ -20,6 +20,9 @@ import resourcesRoutes from './modules/resources/resources.routes';
 import faqsRoutes from './modules/faqs/faqs.routes';
 import bookingRoutes from './modules/booking/booking.routes';
 import settingsRoutes from './modules/settings/settings.routes';
+import chatbotRoutes from './modules/chatbot/chatbot.routes';
+import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
+import { captureRawBody } from './modules/whatsapp/whatsapp.middleware';
 import db, { testConnection, query } from './config/database';
 import { getRedis } from './config/redis';
 import { runMigrations } from './config/migrations';
@@ -96,6 +99,14 @@ app.use(
   '/api/v1/admin/cutoffs',
   express.json({ limit: '20mb' }),
 );
+app.use(
+  // The WhatsApp webhook needs the raw request bytes to verify Meta's
+  // X-Hub-Signature-256 header (see whatsapp.middleware.ts) — JSON.parse
+  // output can't be re-serialized byte-identically, so the raw buffer must
+  // be captured at parse time, same reasoning as the admin/cutoffs override above.
+  '/api/v1/whatsapp/webhook',
+  express.json({ verify: captureRawBody }),
+);
 app.use(express.json({ limit: '50kb' }));
 app.use(
   cors({
@@ -144,6 +155,7 @@ app.get('/', (_req, res) => {
       guides: '/api/v1/guides',
       faqs: '/api/v1/faqs',
       bookings: '/api/v1/bookings',
+      chatbot: '/api/v1/chatbot/message',
       adminLogin: '/api/v1/admin/login',
     },
   });
@@ -234,6 +246,8 @@ app.use('/api/v1/faqs', referenceCache, faqsRoutes);
 app.use('/api/v1/bookings/slots', availabilityCache, publicBookingSlotsGetLimiter);
 app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/settings', contentCache, settingsRoutes);
+app.use('/api/v1/chatbot', chatbotRoutes); // POST — not CDN-cacheable; own rate limiter inside the route module
+app.use('/api/v1/whatsapp', whatsappRoutes); // Meta webhook — GET verification handshake + POST message receipt
 app.use('/api/v1/admin', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
 

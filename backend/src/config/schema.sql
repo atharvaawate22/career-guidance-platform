@@ -142,6 +142,24 @@ CREATE INDEX IF NOT EXISTS idx_bookings_status
 ON bookings(booking_status);
 
 -- ============================================================================
+-- TABLE: cap_schedule
+-- Purpose: Structured CAP round dates for the rule-based chatbot.
+-- Defined in migrations/014_cap_schedule.sql.
+-- ============================================================================
+
+-- ============================================================================
+-- TABLE: document_checklist
+-- Purpose: Seeded CAP admission document checklist for the chatbot.
+-- Defined in migrations/015_document_checklist.sql.
+-- ============================================================================
+
+-- ============================================================================
+-- TABLE: unanswered_queries
+-- Purpose: Logs chatbot fallback queries — the Phase 2 RAG content backlog.
+-- Defined in migrations/016_unanswered_queries.sql.
+-- ============================================================================
+
+-- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- Purpose: Protect Supabase Data API exposure while allowing intended public reads
 -- ============================================================================

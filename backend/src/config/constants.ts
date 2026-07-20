@@ -19,6 +19,20 @@ export const ACTIVE_CUTOFF_YEAR = Number(
 export const ACTIVE_CAP_ROUND = Number(process.env.ACTIVE_CAP_ROUND || '1');
 
 /**
+ * The year whose CAP *schedule* (registration/choice-filling/allotment dates)
+ * the chatbot quotes. Deliberately separate from ACTIVE_CUTOFF_YEAR: cutoff
+ * data is intentionally a year behind (last year's closing percentiles are
+ * used to predict this year's admissions), but the schedule the chatbot
+ * quotes must be for the admission cycle actually in progress right now —
+ * conflating the two would have the bot quoting last year's CAP dates.
+ * Defaults to the current calendar year; override if a cycle spans a
+ * year boundary in a way the default gets wrong.
+ */
+export const ACTIVE_CAP_SCHEDULE_YEAR = Number(
+  process.env.ACTIVE_CAP_SCHEDULE_YEAR || new Date().getFullYear(),
+);
+
+/**
  * Maximum number of array filter values accepted in a single request.
  * Applied to branches, cities, minority_types, minority_groups, etc.
  * Prevents clients from generating unbounded SQL via massive arrays.
