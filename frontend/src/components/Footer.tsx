@@ -45,14 +45,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 sm:col-span-4 lg:col-span-1 mb-4 lg:mb-0">
             <div className="flex items-center gap-2.5 mb-4">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white"
-                style={{
-                  background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
-                }}
-              >
-                C
-              </div>
+              <img src="/favicon.svg" alt="CET Hub" width={36} height={36} className="w-9 h-9" />
               <span className="text-lg font-bold text-white tracking-tight">
                 CET<span style={{ color: "var(--primary-400)" }}>Hub</span>
               </span>

@@ -107,15 +107,13 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 lg:h-[72px]">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white transition-transform duration-300 group-hover:scale-105"
-                style={{
-                  background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
-                  boxShadow: "0 2px 8px rgba(79,70,229,0.3)",
-                }}
-              >
-                C
-              </div>
+              <img
+                src="/favicon.svg"
+                alt="CET Hub"
+                width={36}
+                height={36}
+                className="w-9 h-9 transition-transform duration-300 group-hover:scale-105"
+              />
               <div className="flex flex-col leading-none">
                 <span
                   className="text-[17px] font-bold tracking-tight"

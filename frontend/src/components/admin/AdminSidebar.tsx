@@ -167,8 +167,8 @@ export default function AdminSidebar({
       >
         {/* Brand */}
         <div className={`h-16 flex items-center gap-3 border-b border-slate-700/50 flex-shrink-0 ${collapsed ? "px-4 justify-center" : "px-5"}`}>
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
-            <span className="text-white font-bold text-sm" style={{ fontFamily: "var(--font-display)" }}>C</span>
+          <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+            <img src="/favicon.svg" alt="CET Hub" width={36} height={36} className="w-9 h-9" />
           </div>
           {!collapsed && (
             <div className="overflow-hidden">

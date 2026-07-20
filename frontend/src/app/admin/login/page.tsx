@@ -137,8 +137,8 @@ function LoginForm() {
         <div className="relative z-10 flex flex-col justify-center px-16 xl:px-24">
           {/* Logo */}
           <div className="mb-10 animate-fade-up">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
-              <span className="text-white font-bold text-xl" style={{ fontFamily: "var(--font-display)" }}>C</span>
+            <div className="w-14 h-14 flex items-center justify-center mb-6">
+              <img src="/favicon.svg" alt="CET Hub" width={56} height={56} className="w-14 h-14" />
             </div>
             <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4" style={{ fontFamily: "var(--font-display)", lineHeight: 1.2 }}>
               CETHub
@@ -169,8 +169,8 @@ function LoginForm() {
         <div className="w-full max-w-md animate-fade-up">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20 mx-auto mb-4">
-              <span className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-display)" }}>C</span>
+            <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4">
+              <img src="/favicon.svg" alt="CET Hub" width={48} height={48} className="w-12 h-12" />
             </div>
             <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
               CETHub Admin
