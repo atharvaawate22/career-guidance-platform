@@ -1,4 +1,4 @@
-import { CutoffRow, CutoffFilters } from './cutoffs.types';
+import { CutoffRow, CutoffFilters, CollegeInfo } from './cutoffs.types';
 import { CutoffsRepository } from './cutoffs.repository';
 import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
 import { cacheGet, cacheSet } from '../../config/redis';
@@ -35,6 +35,29 @@ export class CutoffsService {
 
     const result = await cutoffsRepository.getCutoffs(normalizedFilters);
     await cacheSet(cacheKey, result, CUTOFFS_CACHE_TTL_SECONDS);
+    return { ...result, cached: false };
+  }
+
+  async getCollegeCutoffs(collegeCode: string): Promise<{
+    college: CollegeInfo | null;
+    rows: CutoffRow[];
+    cached: boolean;
+  }> {
+    const cacheKey = `cutoffs:college:v1:${ACTIVE_CUTOFF_YEAR}:${collegeCode}`;
+    const cached =
+      await cacheGet<{ college: CollegeInfo | null; rows: CutoffRow[] }>(
+        cacheKey,
+      );
+    if (cached) return { ...cached, cached: true };
+
+    const result = await cutoffsRepository.getCollegeCutoffs(
+      collegeCode,
+      ACTIVE_CUTOFF_YEAR,
+    );
+    // Don't cache misses for unknown codes — keeps junk keys out of Redis.
+    if (result.college) {
+      await cacheSet(cacheKey, result, CUTOFFS_CACHE_TTL_SECONDS);
+    }
     return { ...result, cached: false };
   }
 }

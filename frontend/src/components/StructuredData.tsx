@@ -12,7 +12,7 @@ export default function StructuredData() {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "Organization",
+        "@type": "EducationalOrganization",
         "@id": `${SITE_URL}/#organization`,
         name: SITE_NAME,
         alternateName: "MHT-CET Career Hub",

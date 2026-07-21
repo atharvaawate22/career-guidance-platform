@@ -20,6 +20,14 @@ export interface CutoffRow {
   percentile: number | null; // closing_percentile
 }
 
+/** College header info for the per-college cutoff pages. */
+export interface CollegeInfo {
+  college_code: string;
+  name: string;
+  status: string | null;
+  city: string | null;
+}
+
 export interface CutoffFilters {
   year: number;
   round?: number;

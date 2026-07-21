@@ -1,9 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { collegeSlug } from '@/lib/collegeSlug';
+import { fetchCutoffMeta } from '@/lib/serverCutoffs';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+const CUTOFF_YEAR = '2025';
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cethub.in';
 
-  return [
+  const staticEntries: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: new Date(),
@@ -47,4 +51,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
   ];
+
+  // Per-college cutoff pages. If the backend is unreachable at build/revalidate
+  // time, ship the static entries alone rather than failing the sitemap.
+  const meta = await fetchCutoffMeta(CUTOFF_YEAR);
+  const collegeEntries: MetadataRoute.Sitemap = (meta?.colleges ?? [])
+    .filter((c): c is { code: string; name: string } => !!c.code)
+    .map((c) => ({
+      url: `${baseUrl}/cutoffs/${collegeSlug(c.code, c.name)}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
+
+  return [...staticEntries, ...collegeEntries];
 }

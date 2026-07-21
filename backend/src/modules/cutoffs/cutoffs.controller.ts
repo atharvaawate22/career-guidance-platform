@@ -77,6 +77,42 @@ export class CutoffsController {
     }
   }
 
+  async getCollegeCutoffs(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const code = String(req.params.code || '').trim();
+      // DTE college codes are short numeric strings; reject junk early.
+      if (!/^[A-Za-z0-9]{1,10}$/.test(code)) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_COLLEGE_CODE', message: 'Invalid college code.' },
+        });
+        return;
+      }
+
+      const { college, rows, cached } =
+        await cutoffsService.getCollegeCutoffs(code);
+      if (!college) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'COLLEGE_NOT_FOUND', message: 'College not found.' },
+        });
+        return;
+      }
+
+      res.setHeader('X-Cache', cached ? 'HIT' : 'MISS');
+      res.json({
+        success: true,
+        data: { college, cutoffs: rows, year: ACTIVE_CUTOFF_YEAR },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getCutoffs(
     req: Request,
     res: Response,

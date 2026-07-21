@@ -1,5 +1,5 @@
 import { query } from '../../config/database';
-import { CutoffRow, CutoffFilters } from './cutoffs.types';
+import { CutoffRow, CutoffFilters, CollegeInfo } from './cutoffs.types';
 import {
   buildCategoryCondition,
   buildGenderCondition,
@@ -7,6 +7,11 @@ import {
 } from '../../utils/cutoffFilters';
 
 const RESULT_LIMIT = 500;
+
+// A single college is naturally bounded (branches × rounds × pools × category
+// columns), but well above the explorer's 500-row cap — the server-rendered
+// college pages need the complete set, so they get their own generous ceiling.
+const COLLEGE_RESULT_LIMIT = 2000;
 
 export class CutoffsRepository {
   async getCutoffs(
@@ -120,5 +125,60 @@ export class CutoffsRepository {
       ({ total_count: _totalCount, ...row }) => row,
     ) as CutoffRow[];
     return { rows, total };
+  }
+
+  /** Full closing-cutoff set for one college — powers the SSR college pages. */
+  async getCollegeCutoffs(
+    collegeCode: string,
+    year: number,
+  ): Promise<{ college: CollegeInfo | null; rows: CutoffRow[] }> {
+    const collegeResult = await query(
+      `SELECT college_code, name, status, city
+       FROM colleges
+       WHERE college_code = $1`,
+      [collegeCode],
+      { name: 'cutoffs.getCollegeInfo' },
+    );
+
+    const college = (collegeResult.rows[0] as CollegeInfo | undefined) ?? null;
+    if (!college) return { college: null, rows: [] };
+
+    const sql = `
+      WITH deduped AS (
+        SELECT DISTINCT ON (co.course_id, co.cap_round, co.allotment_pool, co.category_code)
+          co.id,
+          co.academic_year AS year,
+          col.college_code,
+          col.name           AS college_name,
+          col.status         AS college_status,
+          col.city,
+          c.choice_code,
+          c.course_name      AS branch,
+          c.branch_group,
+          co.cap_round,
+          co.stage,
+          co.allotment_pool,
+          co.category_code,
+          COALESCE(co.category, co.subquota) AS category,
+          co.gender,
+          co.closing_rank       AS cutoff_rank,
+          co.closing_percentile AS percentile
+        FROM cutoffs co
+        JOIN courses  c   ON c.id = co.course_id
+        JOIN colleges col ON col.college_code = c.college_code
+        WHERE co.academic_year = $1 AND col.college_code = $2
+        ORDER BY co.course_id, co.cap_round, co.allotment_pool, co.category_code,
+                 co.closing_rank DESC NULLS LAST
+      )
+      SELECT *
+      FROM deduped
+      ORDER BY branch ASC, cap_round ASC, category_code ASC
+      LIMIT ${COLLEGE_RESULT_LIMIT}
+    `;
+
+    const result = await query(sql, [year, collegeCode], {
+      name: 'cutoffs.getCollegeCutoffs',
+    });
+    return { college, rows: result.rows as CutoffRow[] };
   }
 }
