@@ -207,3 +207,69 @@ export async function logUnansweredQuery(
     { name: 'chatbot.logUnansweredQuery' },
   );
 }
+
+export interface UnansweredQueryGroup {
+  message: string;
+  count: number;
+  channels: string[];
+  first_seen: Date;
+  last_seen: Date;
+}
+
+export interface UnansweredQuerySummary {
+  total: number;
+  unique_messages: number;
+  website: number;
+  whatsapp: number;
+}
+
+/**
+ * Distinct unanswered messages within the last `days`, most-asked first.
+ *
+ * Grouped on a normalized form of the message — lower-cased, trimmed, and with
+ * internal whitespace runs collapsed — so trivial case/spacing variants of the
+ * same question collapse into one row with a real frequency count. This is the
+ * Phase 2 content backlog, so what matters is "how often is this asked", not
+ * each individual row. `contact_identifier` is intentionally NOT selected:
+ * prioritising content needs the questions, not who asked them.
+ */
+const NORMALIZED_MESSAGE = `regexp_replace(btrim(lower(raw_message)), '\\s+', ' ', 'g')`;
+
+export async function getUnansweredQueriesGrouped(
+  days: number,
+  limit: number,
+): Promise<UnansweredQueryGroup[]> {
+  const result = await query(
+    `SELECT
+       ${NORMALIZED_MESSAGE}            AS message,
+       COUNT(*)::int                    AS count,
+       array_agg(DISTINCT channel)      AS channels,
+       MIN(created_at)                  AS first_seen,
+       MAX(created_at)                  AS last_seen
+     FROM unanswered_queries
+     WHERE created_at >= NOW() - ($1::int * INTERVAL '1 day')
+     GROUP BY ${NORMALIZED_MESSAGE}
+     ORDER BY count DESC, last_seen DESC
+     LIMIT $2`,
+    [days, limit],
+    { name: 'chatbot.getUnansweredQueriesGrouped' },
+  );
+  return result.rows;
+}
+
+export async function getUnansweredQuerySummary(
+  days: number,
+): Promise<UnansweredQuerySummary> {
+  const result = await query(
+    `SELECT
+       COUNT(*)::int                                            AS total,
+       COUNT(DISTINCT ${NORMALIZED_MESSAGE})::int               AS unique_messages,
+       COUNT(*) FILTER (WHERE channel = 'website')::int         AS website,
+       COUNT(*) FILTER (WHERE channel = 'whatsapp')::int        AS whatsapp
+     FROM unanswered_queries
+     WHERE created_at >= NOW() - ($1::int * INTERVAL '1 day')`,
+    [days],
+    { name: 'chatbot.getUnansweredQuerySummary' },
+  );
+  return result.rows[0];
+}

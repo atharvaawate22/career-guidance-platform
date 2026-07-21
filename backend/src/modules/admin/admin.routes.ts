@@ -9,6 +9,7 @@ import * as guidesController from '../guides/guides.controller';
 import * as resourcesController from '../resources/resources.controller';
 import * as faqsController from '../faqs/faqs.controller';
 import * as settingsController from '../settings/settings.controller';
+import * as chatbotController from '../chatbot/chatbot.controller';
 import adminBookingsRoutes from './admin.bookings.routes';
 import adminUploadRoutes from './admin.upload.routes';
 
@@ -175,6 +176,14 @@ router.get(
   authMiddleware,
   requireAdminRole,
   settingsController.getAnalytics,
+);
+
+// ── Chatbot: unanswered-query backlog (Phase 2 content planning) ───────────────
+router.get(
+  '/unanswered-queries',
+  authMiddleware,
+  requireAdminRole,
+  chatbotController.getUnansweredQueries,
 );
 
 export default router;

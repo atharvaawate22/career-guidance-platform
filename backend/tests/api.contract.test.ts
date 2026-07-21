@@ -102,6 +102,14 @@ describe('API contract: public and auth boundary routes', () => {
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe('MISSING_TOKEN');
   });
+
+  it('protects admin unanswered-queries endpoint when unauthenticated', async () => {
+    const response = await request(app).get('/api/v1/admin/unanswered-queries');
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MISSING_TOKEN');
+  });
 });
 
 describe('API contract: admin booking endpoints', () => {

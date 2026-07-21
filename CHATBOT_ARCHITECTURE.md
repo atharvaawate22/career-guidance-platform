@@ -327,6 +327,24 @@ This is the explicit bridge from Phase 1 to Phase 2: the backlog of things
 students actually asked that the rule-based bot couldn't answer is exactly
 the content Phase 2's RAG corpus needs to cover, instead of guessing.
 
+The backlog is read through an authenticated admin endpoint,
+`GET /api/v1/admin/unanswered-queries` (`authMiddleware` + `requireAdminRole`,
+read-only, same shape as the existing `/admin/analytics`). It returns the
+questions **grouped by frequency**, most-asked first, so content work can be
+prioritised by demand rather than eyeballing raw rows:
+
+- Grouping key is a normalized message — `regexp_replace(btrim(lower(
+  raw_message)), '\s+', ' ', 'g')` — so case, edge whitespace, and internal
+  whitespace runs collapse into one row with a true count. ("What is the AUTO
+  FREEZE trap" and "  what is the auto freeze trap  " are one group.)
+- `contact_identifier` is never selected — prioritising content needs the
+  questions, not who asked them (it stays out of this read path entirely).
+- `?days=` (default 90, max 365) and `?limit=` (default 100, max 500) bound
+  the window; a summary block reports total / unique / per-channel counts.
+
+**Still deferred:** retention/purge for this table (see §6). The read path
+exists; the aging-out policy does not yet.
+
 ### 2.8 WhatsApp Cloud API wiring
 
 - `GET /api/v1/whatsapp/webhook` — Meta's one-time verification handshake
@@ -495,6 +513,11 @@ questions students asked that the rule-based bot couldn't answer become the
 prioritized content list. A query appearing here repeatedly is a strong
 signal it deserves a chunk in Phase 2's corpus (or, if it's actually a
 structured-data gap like the CAP-schedule table was, a Phase 1 fix instead).
+
+That "appearing repeatedly" signal is surfaced by the admin read endpoint
+described in [§2.7](#27-the-unanswered_queries-feedback-loop), which returns
+these questions grouped by frequency so the highest-demand gaps rise to the
+top on their own.
 
 ---
 
