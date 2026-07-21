@@ -204,12 +204,44 @@ The cost is one extra query per message (scoring every active FAQ in a single
 round trip over a table of tens of rows), which is well worth removing a whole
 class of confidently-wrong answers.
 
-**Known limitation (not fixed here):** `similarity()` is length-normalised, so
-a short query scores poorly against a long question regardless of how well it
-matches — "what is TFWS" scores 0.125 against "What is the Tuition Fee Waiver
-Scheme (TFWS)?" and falls through to the fallback. `word_similarity()` scores
-the same pair at 1.000 and is the obvious fix; deferred as a follow-up rather
-than swapped in mid-review.
+**Keyword-intent ordering (predictor before cutoff).** The intent regexes are
+tried in order, first match wins, and `PREDICTOR` is checked before `CUTOFF`
+on purpose. "which college can I get with 95 percentile" contains "percentile",
+which also triggers `CUTOFF` — and because a cutoff lookup names a specific
+college while a predictor question never carries a predictor phrase
+(chance/eligible/which college/predict), ordering predictor first captures the
+overlap without stealing genuine cutoff queries. Before this order that
+question hit `CUTOFF` and dead-ended on "Which college?" despite being exactly
+what the predictor answers.
+
+**Short-query rescue with `word_similarity()`.** `similarity()` is
+length-normalised, so a short query is diluted by the long FAQ question around
+the match: "what is TFWS" scores only 0.125 against "What is the Tuition Fee
+Waiver Scheme (TFWS)?" and used to fall through. `word_similarity()` is not
+length-normalised — it scores the best contiguous run — and rates that pair at
+1.000. It is added as a **rescue**, not a replacement, because measuring it
+across the real FAQ table showed it is too generous to trust as the primary
+signal (a structured lookup like "cutoff for COEP CS" scores 0.538 on a shared
+substring). Two guards keep the rescue safe, both derived from measured scores
+on the `word_similarity()` scale — deliberately re-measured rather than reusing
+the 0.35/0.20 numbers, which live on the `similarity()` scale:
+
+- **`WORD_SIM_RESCUE = 0.70`** — short exact-ish hits ("tfws", "float",
+  "e-scrutiny") land at 1.000; the highest non-matching query measured reaches
+  0.615, so 0.70 clears the gap with margin.
+- **A distinctive-token guard** — `word_similarity` rates a single generic
+  domain word at 1.000 against any FAQ that contains it ("the college" →
+  "college" → "How reliable is the College Predictor?" at 1.000). The rescue
+  only fires when the filtered query still holds a non-generic token after
+  `RESCUE_GENERIC_WORDS` (college, cutoff, branch, predictor, seat, …) are
+  removed; queries made only of generic words are already keyword-routed.
+- **Scope guard** — the rescue is consulted **only** on the no-keyword-intent
+  path, never to override a structured lookup, so its generosity can't hijack
+  a cutoff/date/document query.
+
+Measured result: "what is TFWS" / "tfws" / "what is float" / "what is
+e-scrutiny" now answer from the FAQ table; "branch", "seat", "good morning" and
+junk still fall through and log.
 
 ### 2.5 Cutoff lookups: one answer per course, never a silent pick
 
@@ -260,14 +292,42 @@ typed against the matched course names — either the full course name
 "cyber"). When the message is still ambiguous it lists everything; it never
 guesses.
 
-### 2.6 The `unanswered_queries` feedback loop
+### 2.6 College acronyms: unambiguous alias vs. ambiguous prompt
+
+Students type acronyms, not registered names ("COEP", not "COEP Technological
+University"), so `COLLEGE_ALIASES` maps each to a name fragment verified to
+resolve to exactly one row. But some acronyms are shared by several genuinely
+distinct, well-known colleges — resolving those to one silently is the same
+confidently-wrong failure as the cutoff bug above. Enumerated against the live
+`colleges` table:
+
+| Acronym | Plausible colleges | Decision |
+|---|---|---|
+| **MIT** | MIT Academy of Engineering (Alandi); Maharashtra Institute of Technology (Aurangabad / Thane); Marathwada Mitra Mandal's COE (Pune) | **ambiguous → prompt** |
+| **VIT** | Vishwakarma Institute of Technology (Pune); Vidyalankar Institute of Technology (Mumbai) | **ambiguous → prompt** |
+| **ICT** | Institute of Chemical Technology, Matunga (flagship) + a location-qualified off-campus | single flagship default |
+| COEP, VJTI, PICT, … | one dominant college each | single alias |
+
+MIT and VIT move to `AMBIGUOUS_COLLEGE_ACRONYMS`, where each maps to a list of
+candidates. The bot lists them and asks — unless the message already carries a
+distinguishing word (`resolveAmbiguousAcronym()` checks each candidate's
+keywords), so "VIT pune" resolves to Vishwakarma and "VIT mumbai" to
+Vidyalankar without a prompt, while a bare "VIT" asks. ICT and the rest keep a
+single flagship interpretation because their alternatives are branch campuses
+or colleges rarely called by the bare acronym — the same reason "COEP" safely
+means one college. "MIT maharashtra" resolves to the "Maharashtra Institute of
+Technology" hint, which itself matches two campuses (Aurangabad, Thane) and so
+lands on the ordinary second-level "which one did you mean?" list — correct,
+not a bug.
+
+### 2.7 The `unanswered_queries` feedback loop
 
 See [§5](#5-the-unanswered-query-feedback-loop) — every fallback is logged.
 This is the explicit bridge from Phase 1 to Phase 2: the backlog of things
 students actually asked that the rule-based bot couldn't answer is exactly
 the content Phase 2's RAG corpus needs to cover, instead of guessing.
 
-### 2.7 WhatsApp Cloud API wiring
+### 2.8 WhatsApp Cloud API wiring
 
 - `GET /api/v1/whatsapp/webhook` — Meta's one-time verification handshake
   (`hub.mode` / `hub.verify_token` / `hub.challenge`), checked against
@@ -294,7 +354,7 @@ the content Phase 2's RAG corpus needs to cover, instead of guessing.
   the codebase, and meant the whole pipeline could be built and verified
   (via a simulated webhook POST) before a real Meta Business App exists.
 
-### 2.8 Seed-data migrations must carry their own conflict target
+### 2.9 Seed-data migrations must carry their own conflict target
 
 Both new content tables ship with seed rows, and `migrations/README.md`
 requires migrations to be idempotent. `ON CONFLICT DO NOTHING` looks like it
@@ -449,20 +509,30 @@ justifies any of it yet:
   (structured vs. conceptual) becomes a measurable problem — right now a
   cheap pattern check is enough because the two categories rarely overlap in
   phrasing.
-- **College-name resolution** currently relies on a curated acronym alias
-  map (`COLLEGE_ALIASES` in `chatbot.constants.ts`), verified by hand against
-  the live `colleges` table (e.g. "COEP" now officially resolves to "COEP
-  Technological University", not the old "College of Engineering, Pune"
-  name a naive alias would have assumed). This is a real data-drift risk:
-  new colleges, renames, or acronym collisions will silently degrade match
-  quality over time. At meaningful scale this would move to embedding-based
-  entity resolution against the `colleges` table instead of a hand-maintained
-  map — but for ~20 well-known Maharashtra engineering colleges, curating and
-  spot-checking a static list against the live data was faster and more
-  predictable than standing up a fuzzy-entity-resolution system.
+- **College-name resolution** currently relies on curated acronym maps
+  (`COLLEGE_ALIASES` for one-college acronyms, `AMBIGUOUS_COLLEGE_ACRONYMS`
+  for shared ones — see §2.6), verified by hand against the live `colleges`
+  table (e.g. "COEP" now officially resolves to "COEP Technological
+  University", not the old "College of Engineering, Pune" name a naive alias
+  would have assumed). This is a real data-drift risk: new colleges, renames,
+  or acronym collisions will silently degrade match quality over time. At
+  meaningful scale this would move to embedding-based entity resolution
+  against the `colleges` table instead of a hand-maintained map — but for the
+  ~20 well-known Maharashtra engineering colleges students actually abbreviate,
+  curating and spot-checking a static list against the live data was faster
+  and more predictable than standing up a fuzzy-entity-resolution system.
 - **`cap_schedule` admin UI**: the table is currently seeded with placeholder
   rows for the cycle active when the migration was written and updated only
   by direct SQL. At any real usage volume this needs an admin-editable UI
   (matching the existing `platform_settings` pattern) so dates can be
   published the moment DTE releases them, instead of waiting on a code
   change.
+- **Chat-log retention and purge**: the privacy policy now discloses that
+  unanswered chatbot questions are logged (and, on WhatsApp, stored with the
+  sender's number — see the privacy page's *Chatbot and WhatsApp assistant*
+  section), but `unanswered_queries` has **no retention window or purge job
+  yet**. Everything else with PII carries one (bookings 2 years, guide leads
+  1 year). This is a deliberately deferred follow-up: a scheduled purge (e.g.
+  drop rows older than N months) plus a stated retention period on the privacy
+  page, kept together so the disclosure and the enforcement match. Deferred,
+  not forgotten.

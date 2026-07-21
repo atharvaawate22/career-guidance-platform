@@ -32,6 +32,13 @@ export interface FaqScoreRow {
   answer: string;
   sim_raw: number;
   sim_filtered: number;
+  /**
+   * word_similarity(filtered query, question): unlike similarity() this is not
+   * length-normalised, so a short query ("tfws") that appears as a strong
+   * contiguous run inside a long question scores high instead of being diluted.
+   * Used only as a rescue for short queries the length-normalised scores miss.
+   */
+  wsim_filtered: number;
 }
 
 /** Exact-ish substring match against the college name first (cheap, precise for full names). */
@@ -178,7 +185,8 @@ export async function scoreFaqs(
     `SELECT question,
             answer,
             similarity(question, $1) AS sim_raw,
-            similarity(question, $2) AS sim_filtered
+            similarity(question, $2) AS sim_filtered,
+            word_similarity($2, question) AS wsim_filtered
      FROM faqs
      WHERE is_active = true`,
     [rawText, filteredText],

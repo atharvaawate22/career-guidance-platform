@@ -91,10 +91,14 @@ export const COLLEGE_ALIASES: Record<string, string> = {
   pict: 'Pune Institute of Computer Technology',
   spit: 'Sardar Patel Institute of Technology',
   djsce: 'Dwarkadas J. Sanghvi College of Engineering',
+  // ICT/PVG/SCOE keep a single flagship interpretation on purpose: their
+  // alternatives are either location-qualified branch campuses of the same
+  // institution or colleges rarely referred to by the bare acronym, so the
+  // flagship is a safe default (like COEP). MIT and VIT are NOT — each is
+  // shared by multiple well-known, distinct colleges, so they live in
+  // AMBIGUOUS_COLLEGE_ACRONYMS below and prompt instead of guessing.
   ict: 'Institute of Chemical Technology, Matunga, Mumbai',
-  vit: 'Vishwakarma Institute of Technology',
   pvg: 'PVG',
-  mit: 'MIT Academy of Engineering',
   scoe: 'Sinhgad College of Engineering, Vadgaon',
   ltcoe: 'Lokmanya Tilak College of Engineering, Kopar Khairane',
   kjsce: 'K J Somaiya Institute of Technology',
@@ -103,4 +107,52 @@ export const COLLEGE_ALIASES: Record<string, string> = {
   fcrit: 'Conceicao Rodrigues College of Engineering',
   wce: 'Walchand College of Engineering, Sangli',
   walchand: 'Walchand College of Engineering, Sangli',
+};
+
+export interface AcronymCandidate {
+  /** Human-facing label shown in the disambiguation prompt. */
+  label: string;
+  /** Name fragment passed to searchCollegesByName to resolve this candidate. Verified against the live `colleges` table. */
+  hint: string;
+  /** Distinguishing words that, if present in the message, pick this candidate without a prompt. Must be unique within the acronym's candidate set. */
+  keywords: string[];
+}
+
+/**
+ * Acronyms shared by several genuinely distinct, well-known colleges. Unlike
+ * COLLEGE_ALIASES these are NOT resolved to one college silently — the bot
+ * lists the candidates and asks, unless the message already carries a word
+ * that distinguishes one. Verified against the live `colleges` table (see
+ * CHATBOT_ARCHITECTURE.md §2.9 for the enumeration this was built from).
+ */
+export const AMBIGUOUS_COLLEGE_ACRONYMS: Record<string, AcronymCandidate[]> = {
+  mit: [
+    {
+      label: 'MIT Academy of Engineering, Alandi (Pune) — "MITAOE"',
+      hint: 'MIT Academy of Engineering',
+      keywords: ['academy', 'alandi', 'mitaoe'],
+    },
+    {
+      label: 'Maharashtra Institute of Technology (Aurangabad / Thane)',
+      hint: 'Maharashtra Institute of Technology',
+      keywords: ['maharashtra', 'aurangabad', 'thane'],
+    },
+    {
+      label: "Marathwada Mitra Mandal's College of Engineering, Karvenagar (Pune)",
+      hint: "Marathwada Mitra Mandal's College of Engineering",
+      keywords: ['marathwada', 'mitra', 'mandal', 'karvenagar', 'mmcoe'],
+    },
+  ],
+  vit: [
+    {
+      label: 'Vishwakarma Institute of Technology, Bibwewadi (Pune)',
+      hint: 'Vishwakarma Institute of Technology',
+      keywords: ['vishwakarma', 'bibwewadi', 'pune'],
+    },
+    {
+      label: 'Vidyalankar Institute of Technology, Wadala (Mumbai)',
+      hint: 'Vidyalankar Institute of Technology',
+      keywords: ['vidyalankar', 'wadala', 'mumbai'],
+    },
+  ],
 };

@@ -11,7 +11,7 @@ export default function PrivacyPolicyPage() {
           Privacy Policy
         </h1>
         <p className="text-sm mb-8" style={{ color: "var(--slate-500)" }}>
-          Last updated: 20 May 2026
+          Last updated: 21 July 2026
         </p>
         <div
           className="rounded-2xl border p-6 sm:p-8 space-y-7 text-sm leading-7"
@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
         >
           <section>
             <h2 className="text-xl font-bold mb-2" style={{ color: "var(--slate-900)" }}>Data we collect</h2>
-            <p>CET Hub may collect name, email address, phone number, MHT-CET percentile, admission category, branch preferences, consultation booking details, and guide download details.</p>
+            <p>CET Hub may collect name, email address, phone number, MHT-CET percentile, admission category, branch preferences, consultation booking details, guide download details, and messages you send to our chatbot assistant (see the Chatbot and WhatsApp assistant section below).</p>
           </section>
           <section>
             <h2 className="text-xl font-bold mb-2" style={{ color: "var(--slate-900)" }}>Why we collect it</h2>
@@ -34,8 +34,17 @@ export default function PrivacyPolicyPage() {
             </ul>
           </section>
           <section>
+            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--slate-900)" }}>Chatbot and WhatsApp assistant</h2>
+            <p>CET Hub provides a rule-based assistant on this website and, when you choose to message us there, on WhatsApp. It answers questions about cutoffs, CAP dates, documents, and the admission process. To improve the answers it can give, we keep a log of questions the assistant could not answer:</p>
+            <ul className="list-disc pl-5 space-y-1 mt-2">
+              <li>On the website, these logged questions are stored without any identifier — they are not linked to you.</li>
+              <li>On WhatsApp, a question the assistant could not answer is stored together with the WhatsApp number it came from, because WhatsApp attaches it to every message. We use it only to understand and follow up on unanswered questions, never to message you first — every WhatsApp conversation begins with a message you send us.</li>
+            </ul>
+            <p className="mt-2">We do not use this assistant to provide guaranteed or official admission decisions, and its answers should be verified against official sources. The messages you send are processed to generate a reply and, in the limited case above, logged to improve coverage.</p>
+          </section>
+          <section>
             <h2 className="text-xl font-bold mb-2" style={{ color: "var(--slate-900)" }}>Sharing and storage</h2>
-            <p>We do not sell student data to third parties. Data is stored on servers in India or with providers that support compliance with Indian law. Operational providers may be used for hosting, email, calendar scheduling, and error tracking.</p>
+            <p>We do not sell student data to third parties. Data is stored on servers in India or with providers that support compliance with Indian law. Operational providers may be used for hosting, email, calendar scheduling, error tracking, and — for the WhatsApp assistant — the WhatsApp Business Platform (Meta).</p>
           </section>
           <section>
             <h2 className="text-xl font-bold mb-2" style={{ color: "var(--slate-900)" }}>Your rights</h2>

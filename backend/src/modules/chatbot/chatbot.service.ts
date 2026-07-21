@@ -20,6 +20,7 @@ import {
   BRANCH_ALIASES,
   CATEGORY_ALIASES,
   COLLEGE_ALIASES,
+  AMBIGUOUS_COLLEGE_ACRONYMS,
   DEFAULT_CATEGORY,
 } from './chatbot.constants';
 import { ChatChannel, ChatReply } from './chatbot.types';
@@ -64,19 +65,48 @@ const FAQ_STOPWORDS = new Set([
 
 /**
  * Minimum confidence for an FAQ answer to be used when no keyword intent
- * matched at all. Matches the previous SQL threshold.
+ * matched at all. On the `similarity()` scale. Matches the previous SQL
+ * threshold.
  */
 const FAQ_MIN_CONFIDENCE = 0.2;
 
 /**
- * Higher bar an FAQ must clear to OVERRIDE a matched keyword intent. Chosen
- * from measured scores against the live FAQ table: real conceptual questions
- * that the keyword router used to hijack score 0.41–0.79, while genuine
- * structured lookups ("cutoff for COEP CS", "when is round 2", "which
- * college can I get with 95 percentile") top out at 0.20. 0.35 sits in that
- * gap with margin on both sides.
+ * Higher bar an FAQ must clear to OVERRIDE a matched keyword intent. On the
+ * `similarity()` scale. Chosen from measured scores against the live FAQ
+ * table: real conceptual questions that the keyword router used to hijack
+ * score 0.41–0.79, while genuine structured lookups ("cutoff for COEP CS",
+ * "when is round 2", "which college can I get with 95 percentile") top out at
+ * 0.20. 0.35 sits in that gap with margin on both sides.
  */
 const FAQ_OVERRIDE_CONFIDENCE = 0.35;
+
+/**
+ * Rescue threshold on the `word_similarity()` scale — a DIFFERENT scale from
+ * the two above, re-measured from scratch rather than reusing 0.35/0.20.
+ *
+ * `similarity()` is length-normalised, so a short query is diluted by the long
+ * FAQ question around the match: "what is TFWS" scores only 0.125 against
+ * "What is the Tuition Fee Waiver Scheme (TFWS)?" and falls through the
+ * fallback despite being an exact hit. `word_similarity()` scores that pair at
+ * 1.000. Measured separation on the filtered query: short exact-ish hits
+ * ("tfws", "float", "e-scrutiny") land at 1.000; the highest non-matching
+ * query reaches 0.615, so 0.70 clears the gap with margin.
+ */
+const WORD_SIM_RESCUE = 0.7;
+
+/**
+ * word_similarity() is generous enough that a single GENERIC domain word,
+ * being a substring of some FAQ question, scores 1.000 on its own — "the
+ * college" → "college" matches "How reliable is the College Predictor?" at
+ * 1.000. So the rescue only fires when the filtered query still carries a
+ * DISTINCTIVE (non-generic) token after these are removed; queries made only
+ * of generic domain words are already handled by the keyword router.
+ */
+const RESCUE_GENERIC_WORDS = new Set([
+  'college', 'colleges', 'cutoff', 'cutoffs', 'branch', 'branches',
+  'predictor', 'predict', 'admission', 'admissions', 'seat', 'seats',
+  'exam', 'process', 'college.',
+]);
 
 /** Cap on how many distinct courses a single cutoff reply lists before deferring to /cutoffs — keeps WhatsApp replies readable. */
 const MAX_COURSES_LISTED = 8;
@@ -163,6 +193,43 @@ function findAliasToken(
   return undefined;
 }
 
+/**
+ * Handles acronyms shared by several distinct colleges (MIT, VIT). Returns:
+ *  - `{ resolved }`  when the message carries a word that distinguishes one
+ *    candidate (e.g. "MIT academy", "VIT mumbai") — resolve it normally.
+ *  - `{ prompt }`    when it's still ambiguous — ask rather than guess.
+ *  - `null`          when no ambiguous acronym is present — caller falls
+ *    through to ordinary college resolution.
+ *
+ * Deliberately never silently picks a default: a confident wrong college is
+ * exactly the failure this item exists to remove.
+ */
+async function resolveAmbiguousAcronym(
+  normalized: string,
+  words: string[],
+): Promise<{ resolved?: repo.CollegeMatch[]; prompt?: string } | null> {
+  for (const w of words) {
+    const candidates = AMBIGUOUS_COLLEGE_ACRONYMS[w];
+    if (!candidates) continue;
+
+    const distinguished = candidates.filter((c) =>
+      c.keywords.some((k) => normalized.includes(k)),
+    );
+    if (distinguished.length === 1) {
+      const matches = await repo.searchCollegesByName(distinguished[0].hint);
+      if (matches.length > 0) return { resolved: matches };
+    }
+
+    const list = candidates.map((c) => `- ${c.label}`).join('\n');
+    return {
+      prompt:
+        `"${w.toUpperCase()}" could mean a few different colleges — which did you mean?\n${list}\n\n` +
+        'Reply with a distinguishing word from the name (e.g. its location) plus your branch.',
+    };
+  }
+  return null;
+}
+
 async function resolveCollege(
   normalized: string,
   words: string[],
@@ -193,7 +260,14 @@ async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
 
   const categoryToken = findAliasToken(words, CATEGORY_ALIASES) ?? DEFAULT_CATEGORY;
   const branchHint = findAliasToken(words, BRANCH_ALIASES);
-  const collegeMatches = await resolveCollege(normalized, words);
+
+  // Shared acronyms (MIT, VIT) prompt for the specific college rather than
+  // silently resolving to one; skip straight to the prompt when still ambiguous.
+  const ambiguous = await resolveAmbiguousAcronym(normalized, words);
+  if (ambiguous?.prompt) {
+    return withMenu(ambiguous.prompt, true);
+  }
+  const collegeMatches = ambiguous?.resolved ?? (await resolveCollege(normalized, words));
 
   if (collegeMatches.length === 0) {
     return withMenu(
@@ -351,12 +425,28 @@ interface FaqCandidate {
   confidence: number;
 }
 
+interface FaqScoreResult {
+  /**
+   * The similarity()-scale candidate from the raw/filtered agreement rule.
+   * Its confidence is compared against FAQ_OVERRIDE_CONFIDENCE / FAQ_MIN_CONFIDENCE.
+   */
+  primary: FaqCandidate | null;
+  /**
+   * A rescue candidate from word_similarity() for short queries the
+   * length-normalised primary misses. `null` unless it clears WORD_SIM_RESCUE
+   * AND the filtered query carries a distinctive (non-generic) token.
+   * Deliberately only consulted on the no-keyword-intent path so its
+   * generosity can't hijack a structured lookup.
+   */
+  rescue: FaqCandidate | null;
+}
+
 /**
- * Best FAQ match for a message, with a confidence the router can weigh
- * against a keyword-intent match.
+ * Best FAQ match for a message across two scoring strategies.
  *
- * Scores each FAQ against both the raw message and a filler-stripped form,
- * then combines them by AGREEMENT rather than by taking the higher score:
+ * Primary (similarity(), length-normalised): scores each FAQ against both the
+ * raw message and a filler-stripped form, then combines them by AGREEMENT
+ * rather than by taking the higher score:
  *
  * - Both forms pick the same FAQ  -> confident; use the higher of the two
  *   scores. ("difference between percentile and percentage" agrees on its
@@ -368,34 +458,50 @@ interface FaqCandidate {
  *
  * Taking max() across both forms would reintroduce that float/freeze bug,
  * since the wrong raw match (0.364) outscores the right filtered one (0.274).
+ *
+ * Rescue (word_similarity(), not length-normalised): the best filtered-form
+ * word_similarity match, kept only when it clears WORD_SIM_RESCUE and the
+ * filtered query still has a distinctive token (see RESCUE_GENERIC_WORDS).
  */
-async function scoreBestFaq(normalized: string): Promise<FaqCandidate | null> {
+async function scoreBestFaq(normalized: string): Promise<FaqScoreResult> {
   const contentWords = normalized
     .split(/\s+/)
     .filter((w) => w && !FAQ_STOPWORDS.has(w));
   const filtered = contentWords.length > 0 ? contentWords.join(' ') : normalized;
 
   const rows = await repo.scoreFaqs(normalized, filtered);
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return { primary: null, rescue: null };
 
   let bestRaw = rows[0];
   let bestFiltered = rows[0];
+  let bestWord = rows[0];
   for (const row of rows) {
     if (Number(row.sim_raw) > Number(bestRaw.sim_raw)) bestRaw = row;
     if (Number(row.sim_filtered) > Number(bestFiltered.sim_filtered)) bestFiltered = row;
+    if (Number(row.wsim_filtered) > Number(bestWord.wsim_filtered)) bestWord = row;
   }
 
   const agree = bestRaw.question === bestFiltered.question;
-  if (agree) {
-    return {
-      answer: bestRaw.answer,
-      confidence: Math.max(Number(bestRaw.sim_raw), Number(bestRaw.sim_filtered)),
-    };
-  }
-  return {
-    answer: bestFiltered.answer,
-    confidence: Number(bestFiltered.sim_filtered),
-  };
+  const primary: FaqCandidate = agree
+    ? {
+        answer: bestRaw.answer,
+        confidence: Math.max(Number(bestRaw.sim_raw), Number(bestRaw.sim_filtered)),
+      }
+    : {
+        answer: bestFiltered.answer,
+        confidence: Number(bestFiltered.sim_filtered),
+      };
+
+  // Rescue only when the filtered query keeps a distinctive token — a query
+  // that is nothing but generic domain words ("the college") would score 1.000
+  // on word_similarity against any FAQ mentioning that word.
+  const hasDistinctiveToken = contentWords.some((w) => !RESCUE_GENERIC_WORDS.has(w));
+  const rescue: FaqCandidate | null =
+    hasDistinctiveToken && Number(bestWord.wsim_filtered) >= WORD_SIM_RESCUE
+      ? { answer: bestWord.answer, confidence: Number(bestWord.wsim_filtered) }
+      : null;
+
+  return { primary, rescue };
 }
 
 const MENU_TRIGGERS = new Set(['hi', 'hello', 'hey', 'hii', 'menu', 'help', 'start', 'options']);
@@ -408,14 +514,23 @@ const COUNSELOR_PATTERN = /\b(counselor|counsellor|talk to|human|real person|age
 type IntentHandler = (normalized: string) => ChatReply | Promise<ChatReply>;
 
 /**
- * Ordered keyword rules. Returns the matching handler (not its result) so the
- * caller can weigh it against FAQ confidence before committing to it.
+ * Ordered keyword rules — first match wins. Returns the matching handler (not
+ * its result) so the caller can weigh it against FAQ confidence before
+ * committing to it.
+ *
+ * PREDICTOR is checked BEFORE CUTOFF on purpose. A predictor question ("which
+ * college can I get with 95 percentile") contains the word "percentile", which
+ * also triggers CUTOFF — but a cutoff lookup names a specific college and
+ * never carries a predictor phrase (chance/eligible/which college/predict), so
+ * ordering predictor first captures the overlap without stealing genuine
+ * cutoff queries. Before this order, that question hit CUTOFF and dead-ended on
+ * "Which college?" despite being exactly what the predictor answers.
  */
 const KEYWORD_INTENTS: Array<{ pattern: RegExp; handler: IntentHandler }> = [
+  { pattern: PREDICTOR_PATTERN, handler: () => handlePredictorIntent() },
   { pattern: CUTOFF_PATTERN, handler: handleCutoffIntent },
   { pattern: CAP_DATE_PATTERN, handler: handleCapDatesIntent },
   { pattern: DOCUMENTS_PATTERN, handler: () => handleDocumentsIntent() },
-  { pattern: PREDICTOR_PATTERN, handler: () => handlePredictorIntent() },
   { pattern: COUNSELOR_PATTERN, handler: () => handleCounselorIntent() },
 ];
 
@@ -469,17 +584,27 @@ export async function getReply(
   // despite having exact FAQ entries. A confident FAQ match now wins; a weak
   // one still defers to the structured-lookup intent.
   const keywordIntent = detectKeywordIntent(normalized);
-  const faq = await scoreBestFaq(normalized);
+  const { primary, rescue } = await scoreBestFaq(normalized);
 
   if (keywordIntent) {
-    if (faq && faq.confidence >= FAQ_OVERRIDE_CONFIDENCE) {
-      return withMenu(faq.answer, true);
+    // Only the length-normalised primary can override a structured lookup.
+    // The word_similarity rescue is deliberately NOT consulted here — its
+    // generosity would let a structured query ("cutoff for COEP CS") match an
+    // FAQ on a shared substring and hijack the intent.
+    if (primary && primary.confidence >= FAQ_OVERRIDE_CONFIDENCE) {
+      return withMenu(primary.answer, true);
     }
     return keywordIntent(normalized);
   }
 
-  if (faq && faq.confidence >= FAQ_MIN_CONFIDENCE) {
-    return withMenu(faq.answer, true);
+  if (primary && primary.confidence >= FAQ_MIN_CONFIDENCE) {
+    return withMenu(primary.answer, true);
+  }
+
+  // No keyword intent and the primary score is weak — try the short-query
+  // word_similarity rescue before giving up ("what is TFWS", "what is float").
+  if (rescue) {
+    return withMenu(rescue.answer, true);
   }
 
   await repo.logUnansweredQuery(channel, rawMessage, contactIdentifier);
