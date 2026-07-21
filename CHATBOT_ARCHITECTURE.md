@@ -337,22 +337,36 @@ the content Phase 2's RAG corpus needs to cover, instead of guessing.
   would otherwise fan out into duplicate replies), then processes messages
   asynchronously: extract text → `chatbot.service.getReply()` → send the
   reply back via the Graph API.
-- **Signature verification**: incoming webhook POSTs are checked against
-  Meta's `X-Hub-Signature-256` header (HMAC-SHA256 over the raw request body,
-  keyed by `WHATSAPP_APP_SECRET`) so the endpoint can't be fed fake "incoming
-  messages" by anyone who finds the URL. This needs the *raw* request bytes
-  (JSON.parse output can't be re-serialized byte-identically), so the route
-  gets its own `express.json({ verify: captureRawBody })` ahead of the global
-  body parser — the same pattern already used in `server.ts` for the
+- **Signature verification, fail-closed**: incoming webhook POSTs are checked
+  against Meta's `X-Hub-Signature-256` header (HMAC-SHA256 over the raw request
+  body, keyed by `WHATSAPP_APP_SECRET`) so the endpoint can't be fed fake
+  "incoming messages" by anyone who finds the URL. This needs the *raw* request
+  bytes (JSON.parse output can't be re-serialized byte-identically), so the
+  route gets its own `express.json({ verify: captureRawBody })` ahead of the
+  global body parser — the same pattern already used in `server.ts` for the
   admin/cutoffs bulk-import endpoint's larger body limit.
-- **Graceful "not configured yet" mode**: `WHATSAPP_ACCESS_TOKEN` /
-  `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_APP_SECRET` are all optional. With
-  none set, the webhook still runs its full pipeline (verification handshake,
-  message receipt, chatbot logic, DB logging) — only the final "send it back
-  to WhatsApp" call is skipped and logged instead. This mirrors the existing
-  `EMAIL_PROVIDER=mock` / optional `GOOGLE_CLIENT_ID` pattern elsewhere in
-  the codebase, and meant the whole pipeline could be built and verified
-  (via a simulated webhook POST) before a real Meta Business App exists.
+
+  The app secret is set *independently* of the send credentials, so the check
+  keys off whether the bot can send, not just whether the secret is present:
+  - secret set → verify every request;
+  - secret unset **and** sends configured (`ACCESS_TOKEN` + `PHONE_NUMBER_ID`)
+    → **reject (500)**. This is a misconfigured live deployment — accepting
+    unsigned payloads while dispatching real messages is the exact hole to
+    avoid, so it fails closed rather than open;
+  - secret unset **and** sends not configured → skip, so the pipeline stays
+    testable in local/mock mode before any credentials exist.
+
+  `isSendConfigured()` is the single source of truth for "can the bot send",
+  shared between the sender and this check. Covered by
+  `tests/whatsapp.signature.test.ts`.
+- **Graceful "not configured yet" mode**: with no credentials set, the webhook
+  still runs its full pipeline (verification handshake, message receipt,
+  chatbot logic, DB logging) — only the final "send it back to WhatsApp" call
+  is skipped and logged. This mirrors the existing `EMAIL_PROVIDER=mock` /
+  optional `GOOGLE_CLIENT_ID` pattern elsewhere in the codebase, and meant the
+  whole pipeline could be built and verified (via a simulated webhook POST)
+  before a real Meta Business App exists. Note the fail-closed rule above: the
+  moment sends are switched on, the app secret stops being optional.
 
 ### 2.9 Seed-data migrations must carry their own conflict target
 

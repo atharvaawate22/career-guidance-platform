@@ -2,7 +2,13 @@ import logger from '../../utils/logger';
 
 const GRAPH_API_VERSION = 'v21.0';
 
-function isConfigured(): boolean {
+/**
+ * True once outgoing sends are wired up (access token + phone number id
+ * present). Exported so the webhook signature check can tell a live deployment
+ * apart from local mock mode: once we can actually send, an unsigned webhook is
+ * a security hole, not a convenience.
+ */
+export function isSendConfigured(): boolean {
   return Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
 }
 
@@ -15,7 +21,7 @@ function isConfigured(): boolean {
  * logging) before a real WhatsApp Business number is connected.
  */
 export async function sendTextMessage(to: string, body: string): Promise<boolean> {
-  if (!isConfigured()) {
+  if (!isSendConfigured()) {
     logger.warn(
       '[whatsapp] WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID not set — skipping send (mock mode)',
       { to, bodyPreview: body.slice(0, 80) },
