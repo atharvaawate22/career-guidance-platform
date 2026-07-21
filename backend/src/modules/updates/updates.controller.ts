@@ -21,15 +21,22 @@ const createUpdateSchema = z.object({
     .string()
     .trim()
     .optional(),
+  source_url: z
+    .string()
+    .trim()
+    .url('source_url must be a valid URL')
+    .max(500, 'source_url must be under 500 characters')
+    .optional(),
 });
 
 const updateUpdateSchema = z.object({
   title: z.string().trim().min(1, 'Title cannot be empty').max(300).optional(),
   content: z.string().trim().min(1, 'Content cannot be empty').max(10000).optional(),
   published_date: z.string().trim().optional(),
+  source_url: z.string().trim().url('source_url must be a valid URL').max(500).optional(),
 }).refine(
-  (data) => data.title !== undefined || data.content !== undefined || data.published_date !== undefined,
-  { message: 'At least one field (title, content, or published_date) is required' },
+  (data) => data.title !== undefined || data.content !== undefined || data.published_date !== undefined || data.source_url !== undefined,
+  { message: 'At least one field (title, content, published_date, or source_url) is required' },
 );
 
 export class UpdatesController {
@@ -70,11 +77,12 @@ export class UpdatesController {
         return;
       }
 
-      const { title, content, published_date } = parse.data;
+      const { title, content, published_date, source_url } = parse.data;
       const newUpdate = await updatesService.createUpdate({
         title: sanitizeText(title),
         content: sanitizeText(content),
         published_date: published_date || '',
+        source_url: source_url || null,
       });
 
       res.status(201).json({
@@ -108,11 +116,12 @@ export class UpdatesController {
         return;
       }
 
-      const { title, content, published_date } = parse.data;
+      const { title, content, published_date, source_url } = parse.data;
       const updatedUpdate = await updatesService.updateUpdate(String(id), {
         title: title ? sanitizeText(title) : title,
         content: content ? sanitizeText(content) : content,
         published_date,
+        source_url,
       });
 
       if (updatedUpdate === 'NO_FIELDS') {

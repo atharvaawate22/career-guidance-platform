@@ -10,6 +10,7 @@ interface Update {
   content: string;
   published_date: string;
   edited_at?: string;
+  source_url?: string | null;
 }
 
 /** Split a "[Category] Title" string into a badge label + the remaining title. */
@@ -233,14 +234,32 @@ export default function UpdatesPage() {
                                 />
                               )}
                             </div>
-                            {isLong && (
-                              <button
-                                onClick={() => toggleExpand(update.id)}
-                                className="text-xs font-semibold mt-2 transition-colors"
-                                style={{ color: "var(--primary-600)" }}
-                              >
-                                {isExpanded ? "Show less" : "Read more"}
-                              </button>
+                            {(isLong || update.source_url) && (
+                              <div className="flex items-center gap-4 mt-2">
+                                {isLong && (
+                                  <button
+                                    onClick={() => toggleExpand(update.id)}
+                                    className="text-xs font-semibold transition-colors"
+                                    style={{ color: "var(--primary-600)" }}
+                                  >
+                                    {isExpanded ? "Show less" : "Read more"}
+                                  </button>
+                                )}
+                                {update.source_url && (
+                                  <a
+                                    href={update.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs font-semibold transition-colors"
+                                    style={{ color: "var(--primary-600)" }}
+                                  >
+                                    View official notice
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M7 17L17 7M17 7H8M17 7V16" />
+                                    </svg>
+                                  </a>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>

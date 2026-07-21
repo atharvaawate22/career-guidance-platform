@@ -4,4 +4,5 @@ export interface Update {
   content: string;
   published_date: string;
   edited_at?: string;
+  source_url?: string | null;
 }

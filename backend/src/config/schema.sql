@@ -16,7 +16,10 @@ CREATE TABLE IF NOT EXISTS updates (
   content TEXT NOT NULL,
   published_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   edited_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  -- Link to the official notice this update summarizes. Nullable — added in
+  -- migrations/017_updates_source_url.sql, only populated going forward.
+  source_url TEXT
 );
 
 -- Index for chronological queries
@@ -157,6 +160,12 @@ ON bookings(booking_status);
 -- TABLE: unanswered_queries
 -- Purpose: Logs chatbot fallback queries — the Phase 2 RAG content backlog.
 -- Defined in migrations/016_unanswered_queries.sql.
+-- ============================================================================
+
+-- ============================================================================
+-- COLUMN: updates.source_url
+-- Purpose: Link to the official notice an update summarizes.
+-- Defined in migrations/017_updates_source_url.sql.
 -- ============================================================================
 
 -- ============================================================================

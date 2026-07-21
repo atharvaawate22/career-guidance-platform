@@ -24,6 +24,7 @@ export default function AdminUpdatesPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [publishedDate, setPublishedDate] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Delete
@@ -50,6 +51,7 @@ export default function AdminUpdatesPage() {
     setTitle("");
     setContent("");
     setPublishedDate("");
+    setSourceUrl("");
     setFormOpen(true);
   };
 
@@ -57,7 +59,8 @@ export default function AdminUpdatesPage() {
     setEditTarget(update);
     setTitle(update.title);
     setContent(update.content);
-    
+    setSourceUrl(update.source_url || "");
+
     if (update.published_date) {
       try {
         const d = new Date(update.published_date);
@@ -94,6 +97,9 @@ export default function AdminUpdatesPage() {
       } else if (editTarget) {
         // If editing and date is blank, retain the original date
         payload.published_date = editTarget.published_date;
+      }
+      if (sourceUrl.trim()) {
+        payload.source_url = sourceUrl.trim();
       }
 
       const res = await adminWriteFetch(url, {
@@ -237,6 +243,11 @@ export default function AdminUpdatesPage() {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Content</label>
             <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Write the update details..." className="admin-input min-h-[200px] resize-y" rows={8} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Official Notice URL (Optional)</label>
+            <input type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://cetcell.mahacet.org/..." className="admin-input" maxLength={500} />
+            <p className="text-xs text-slate-500 mt-1.5">Links to the official notice as &ldquo;View official notice&rdquo; on the public page</p>
           </div>
         </div>
       </SlideOver>
