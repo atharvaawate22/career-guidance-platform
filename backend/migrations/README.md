@@ -62,3 +62,4 @@ provisioned by applying `schema.sql` first, then letting the runner apply
 | `014_cap_schedule.sql` | `cap_schedule` table — structured CAP round dates for the chatbot (placeholder rows, `is_confirmed = false`, until DTE releases the official schedule) |
 | `015_document_checklist.sql` | `document_checklist` table — seeded CAP admission document list for the chatbot |
 | `016_unanswered_queries.sql` | `unanswered_queries` table — logs chatbot fallback queries as the Phase 2 RAG content backlog |
+| `018_seed_cap_faqs.sql` | Seed nine reviewed CAP-guidance FAQ rows + append the TFWS opt-in clause (Phase 2 step a; idempotent) |

@@ -420,6 +420,35 @@ function handleCounselorIntent(): ChatReply {
   );
 }
 
+/**
+ * Defer branches — the guardrails for the boundaries agreed for Phase 2:
+ * personalized recommendations and date/fee-specific numbers are never
+ * answered from static content, they point the student to the right tool or a
+ * consultation. These run BEFORE the keyword/FAQ router so they can't be
+ * mis-answered, and they exist now (ahead of the RAG path) so the same guards
+ * are in place when RAG lands. Date questions are already handled by the CAP
+ * schedule intent (which defers to /updates until DTE publishes), so the only
+ * uncovered "number" case here is fee amounts.
+ */
+function handlePersonalizedDefer(): ChatReply {
+  return withMenu(
+    'That depends on your specific percentile, category, and what you want from your degree — ' +
+      'the kind of decision worth personalising rather than getting a one-size-fits-all answer. ' +
+      'Use the College Predictor at /predictor to see which colleges fit your score, or book a free ' +
+      'session at /book to talk a branch or college choice through with a counselor.',
+    true,
+  );
+}
+
+function handleFeeDefer(): ChatReply {
+  return withMenu(
+    "Fee amounts change from cycle to cycle and vary by category, so I don't quote figures here. " +
+      'Please check the latest official amounts in /updates or the CAP information brochure on the ' +
+      'CET Cell website.',
+    true,
+  );
+}
+
 interface FaqCandidate {
   answer: string;
   confidence: number;
@@ -505,6 +534,22 @@ async function scoreBestFaq(normalized: string): Promise<FaqScoreResult> {
 }
 
 const MENU_TRIGGERS = new Set(['hi', 'hello', 'hey', 'hii', 'menu', 'help', 'start', 'options']);
+
+/**
+ * Personalized-recommendation questions ("which branch is best for me",
+ * "should I pick CS or IT for me"). Keyed on personal-reference phrases and
+ * explicit recommendation verbs, deliberately narrow so it does NOT catch
+ * "which college can I get with 95 percentile" (a predictor lookup — no
+ * "for me" / "best … for" / "should I pick") or mechanics questions like
+ * "should I float or freeze" (float/freeze aren't in the verb list).
+ */
+const PERSONALIZED_RECO_PATTERN =
+  /\bfor me\b|\bfor my (rank|percentile|score|marks|category|situation|case|profile)\b|\brecommend\b|\bsuggest (a |an |me )?(college|branch|course)\b|\bbest (college|branch|course) for\b|\bshould i (pick|choose|take|opt for|go for|prefer|select)\b/;
+
+/** Fee-amount questions. Dates are already deferred by the CAP-schedule intent, so this covers the one remaining "number" case. */
+const FEE_PATTERN =
+  /\bhow much (is|are|does|will|would|to pay|do i pay)\b|\bfee amount\b|\bfees? (amount|cost|structure|details)\b|\bseat acceptance fee\b|\bwhat (is|are) the fees?\b|\bcost of admission\b|\badmission fee\b/;
+
 const CUTOFF_PATTERN = /\b(cutoff|cut off|percentile)\b/;
 const CAP_DATE_PATTERN = /\b(cap round|cap date|round date|schedule|when is round|registration date|choice filling|seat allotment)\b/;
 const DOCUMENTS_PATTERN = /\b(document|documents|checklist|papers needed|required documents)\b/;
@@ -573,6 +618,15 @@ export async function getReply(
           true,
         );
     }
+  }
+
+  // Defer branches run before the keyword/FAQ router: personalized
+  // recommendations and fee amounts are never answered from static content.
+  if (PERSONALIZED_RECO_PATTERN.test(normalized)) {
+    return handlePersonalizedDefer();
+  }
+  if (FEE_PATTERN.test(normalized)) {
+    return handleFeeDefer();
   }
 
   // The keyword router and the FAQ search are evaluated together and compared
