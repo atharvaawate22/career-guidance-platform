@@ -2,7 +2,12 @@
 
 import { useState, useRef, useEffect, useId, useCallback } from "react";
 
-export interface SelectOption { value: string; label: string; }
+export interface SelectOption {
+  value: string;
+  label: string;
+  /** Renders as a non-selectable group heading; keyboard navigation skips it. */
+  heading?: boolean;
+}
 
 interface Props {
   id?: string;
@@ -35,11 +40,21 @@ export default function CustomSelect({
     setOpenAbove(window.innerHeight - r.bottom < 260 && r.top > window.innerHeight - r.bottom);
   }, []);
 
+  // Walk from `from` in direction `dir` to the nearest selectable (non-heading)
+  // option; -1 when none exists on that side.
+  const nearestSelectable = useCallback((from: number, dir: 1 | -1) => {
+    for (let i = from; i >= 0 && i < options.length; i += dir) {
+      if (!options[i].heading) return i;
+    }
+    return -1;
+  }, [options]);
+
   const openMenu = useCallback(() => {
     computeDir();
     setOpen(true);
-    setActiveIndex(Math.max(0, options.findIndex(o => o.value === value)));
-  }, [computeDir, options, value]);
+    const selected = options.findIndex(o => !o.heading && o.value === value);
+    setActiveIndex(selected >= 0 ? selected : nearestSelectable(0, 1));
+  }, [computeDir, options, value, nearestSelectable]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -81,14 +96,14 @@ export default function CustomSelect({
       if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") { e.preventDefault(); openMenu(); }
       return;
     }
-    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex(i => Math.min(options.length - 1, i + 1)); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIndex(i => Math.max(0, i - 1)); }
-    else if (e.key === "Home") { e.preventDefault(); setActiveIndex(0); }
-    else if (e.key === "End") { e.preventDefault(); setActiveIndex(options.length - 1); }
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex(i => { const n = nearestSelectable(i + 1, 1); return n === -1 ? i : n; }); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIndex(i => { const n = nearestSelectable(i - 1, -1); return n === -1 ? i : n; }); }
+    else if (e.key === "Home") { e.preventDefault(); setActiveIndex(nearestSelectable(0, 1)); }
+    else if (e.key === "End") { e.preventDefault(); setActiveIndex(nearestSelectable(options.length - 1, -1)); }
     else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       const opt = options[activeIndex];
-      if (opt) { onChange(opt.value); setOpen(false); }
+      if (opt && !opt.heading) { onChange(opt.value); setOpen(false); }
     }
   };
 
@@ -120,6 +135,18 @@ export default function CustomSelect({
           className={`absolute z-50 w-full overflow-y-auto max-h-64 ${openAbove ? "bottom-full mb-1" : "top-full mt-1"}`}
           style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)", borderRadius: ".5rem", boxShadow: "var(--shadow-lg)" }}>
           {options.map((opt, idx) => {
+            if (opt.heading) {
+              return (
+                <div key={opt.value} aria-hidden="true"
+                  className="px-3.5 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-widest select-none"
+                  style={{
+                    color: "var(--slate-500)",
+                    borderTop: idx > 0 ? "1px solid var(--slate-100)" : "none",
+                  }}>
+                  {opt.label}
+                </div>
+              );
+            }
             const isSel = opt.value === value;
             const isActive = idx === activeIndex;
             return (

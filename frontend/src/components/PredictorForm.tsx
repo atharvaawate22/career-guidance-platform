@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import PredictorResultCard from "@/components/PredictorResultCard";
 import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
-import { CUTOFF_CATEGORIES, sortBranches } from "@/lib/cutoffOptions";
+import { categorySelectOptions } from "@/lib/categoryOptions";
+import { buildBranchFamilyGroups, sortBranches } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
   MINORITY_TYPE_OPTIONS,
@@ -81,6 +82,7 @@ export default function PredictorForm() {
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const branchGroups = useMemo(() => buildBranchFamilyGroups(branchOptions), [branchOptions]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -115,11 +117,16 @@ export default function PredictorForm() {
     const g = sp.get("gender");
     if (r) { setInputMode("rank"); setRank(r); }
     else if (p) { setInputMode("percentile"); setPercentile(p); }
-    if (c) setCategory(c);
+    // TFWS is a seat scheme here (checkbox), not a category — map old links
+    // that carried category=TFWS onto the checkbox and let the user pick
+    // their actual reservation category before running.
+    const cat = c === "TFWS" ? null : c;
+    if (c === "TFWS") setIncludeTfws(true);
+    if (cat) setCategory(cat);
     if (g) setGender(g);
-    if ((r || p) && c && g) {
+    if ((r || p) && cat && g) {
       fromDeepLink.current = true;
-      void runPrediction({ mode: r ? "rank" : "percentile", percentile: p, rank: r, category: c, gender: g });
+      void runPrediction({ mode: r ? "rank" : "percentile", percentile: p, rank: r, category: cat, gender: g });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -309,7 +316,7 @@ export default function PredictorForm() {
                     <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Category <span style={{ color: "var(--danger-500)" }}>*</span></label>
                     <CustomSelect id="category" value={category}
                       onChange={v => { setCategory(v); setCategoryError(""); if (v === "TFWS") setIncludeTfws(false); }}
-                      options={[{ value: "", label: "Select Category" }, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))]}
+                      options={categorySelectOptions(["TFWS"], [{ value: "", label: "Select Category" }])}
                       placeholder="Select Category" />
                     {categoryError && (
                       <p className="text-xs mt-1.5 font-medium" style={{ color: "#DC2626" }}>{categoryError}</p>
@@ -390,7 +397,7 @@ export default function PredictorForm() {
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Preferred Branches</label>
                   <MultiSelect id="branches" value={selectedBranches} onChange={setSelectedBranches}
-                    options={branchOptions} placeholder="All Branches" />
+                    options={branchOptions} placeholder="All Branches" quickGroups={branchGroups} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: "var(--slate-700)" }}>Preferred Cities</label>

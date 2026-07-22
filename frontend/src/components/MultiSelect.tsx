@@ -4,6 +4,12 @@ import { useState, useRef, useEffect } from "react";
 
 type Opt = string | { value: string; label: string };
 
+/** One-click bulk selection row pinned above the options (e.g. a branch family). */
+export interface QuickGroup {
+  label: string;
+  values: string[];
+}
+
 interface Props {
   id?: string;
   value: string[];
@@ -11,9 +17,10 @@ interface Props {
   options: Opt[];
   placeholder?: string;
   disabled?: boolean;
+  quickGroups?: QuickGroup[];
 }
 
-export default function MultiSelect({ id, value, onChange, options, placeholder = "Select options…", disabled = false }: Props) {
+export default function MultiSelect({ id, value, onChange, options, placeholder = "Select options…", disabled = false, quickGroups }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +50,19 @@ export default function MultiSelect({ id, value, onChange, options, placeholder 
 
   const toggle = (v: string) => onChange(value.includes(v) ? value.filter(x => x !== v) : [...value, v]);
   const remove = (v: string) => onChange(value.filter(x => x !== v));
+
+  // Quick groups are hidden while searching — the user is after one specific
+  // option at that point, not a bulk action.
+  const visibleGroups = !search && quickGroups ? quickGroups.filter(g => g.values.length > 0) : [];
+  const toggleGroup = (group: QuickGroup) => {
+    const allSelected = group.values.every(v => value.includes(v));
+    if (allSelected) {
+      const drop = new Set(group.values);
+      onChange(value.filter(v => !drop.has(v)));
+    } else {
+      onChange(Array.from(new Set([...value, ...group.values])));
+    }
+  };
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -81,9 +101,37 @@ export default function MultiSelect({ id, value, onChange, options, placeholder 
           style={{ color: "var(--slate-900)", minWidth: "7rem", caretColor: "var(--primary-600)" }} />
       </div>
 
-      {open && !disabled && filtered.length > 0 && (
+      {open && !disabled && (filtered.length > 0 || visibleGroups.length > 0) && (
         <div className="absolute z-50 w-full mt-1 overflow-y-auto max-h-64"
           style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)", borderRadius: ".5rem", boxShadow: "var(--shadow-lg)" }}>
+          {visibleGroups.length > 0 && (
+            <>
+              {visibleGroups.map(group => {
+                const allSelected = group.values.every(v => value.includes(v));
+                return (
+                  <div key={group.label}
+                    onMouseDown={e => { e.preventDefault(); toggleGroup(group); }}
+                    className="px-3.5 py-2.5 cursor-pointer text-sm flex items-center justify-between gap-2 transition-colors"
+                    style={{
+                      background: allSelected ? "var(--primary-50)" : "transparent",
+                      color: "var(--primary-700)",
+                      fontWeight: 600,
+                    }}
+                    onMouseEnter={e => { if (!allSelected) e.currentTarget.style.background = "var(--slate-50)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = allSelected ? "var(--primary-50)" : "transparent"; }}>
+                    <span>
+                      {group.label}{" "}
+                      <span style={{ color: "var(--slate-500)", fontWeight: 400 }}>({group.values.length})</span>
+                    </span>
+                    <span className="text-xs shrink-0" style={{ color: "var(--primary-600)" }}>
+                      {allSelected ? "Clear" : "Select all"}
+                    </span>
+                  </div>
+                );
+              })}
+              <div style={{ borderTop: "1px solid var(--slate-100)" }} />
+            </>
+          )}
           {filtered.map(opt => (
             <div key={opt.value}
               onMouseDown={e => { e.preventDefault(); toggle(opt.value); setSearch(""); }}

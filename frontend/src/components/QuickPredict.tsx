@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CUTOFF_CATEGORIES } from "@/lib/cutoffOptions";
+import { CATEGORY_GROUPS } from "@/lib/categoryOptions";
 
 const GENDERS = ["Male", "Female"] as const;
 
@@ -107,9 +107,20 @@ export default function QuickPredict() {
               style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", color: category ? "var(--slate-900)" : "var(--slate-600)" }}
             >
               <option value="" disabled>Select</option>
-              {CUTOFF_CATEGORIES.map((c) => (
-                <option key={c} value={c} style={{ color: "var(--slate-900)" }}>{c}</option>
-              ))}
+              {CATEGORY_GROUPS.map((group) => {
+                // TFWS is a seat scheme, not a reservation category — the full
+                // predictor form models it as a checkbox, so a TFWS "category"
+                // deep-link would land on an apparently-empty required field.
+                const options = group.options.filter((o) => o.value !== "TFWS");
+                if (options.length === 0) return null;
+                return (
+                  <optgroup key={group.heading} label={group.heading}>
+                    {options.map((o) => (
+                      <option key={o.value} value={o.value} style={{ color: "var(--slate-900)" }}>{o.label}</option>
+                    ))}
+                  </optgroup>
+                );
+              })}
             </select>
           </div>
           <div>

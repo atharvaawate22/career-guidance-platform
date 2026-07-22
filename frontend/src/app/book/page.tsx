@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { categorySelectOptions } from "@/lib/categoryOptions";
 import { suggestEmailCorrection } from "@/lib/emailSuggestion";
 import { buildWaMeLink } from "@/lib/whatsapp";
 
@@ -751,22 +752,7 @@ export default function BookPage() {
                   value={formData.category}
                   onChange={(v) => { setFormData({ ...formData, category: v }); clearError("category"); }}
                   placeholder="Select category"
-                  options={[
-                    { value: "", label: "Select category" },
-                    { value: "OPEN", label: "OPEN" },
-                    { value: "SC", label: "SC" },
-                    { value: "ST", label: "ST" },
-                    { value: "VJ", label: "VJ (Vimukta Jati)" },
-                    { value: "NT1", label: "NT1 (Nomadic Tribe 1)" },
-                    { value: "NT2", label: "NT2 (Nomadic Tribe 2)" },
-                    { value: "NT3", label: "NT3 (Nomadic Tribe 3)" },
-                    { value: "OBC", label: "OBC" },
-                    { value: "EWS", label: "EWS" },
-                    { value: "TFWS", label: "TFWS (Tuition Fee Waiver)" },
-                    { value: "DEF_OPEN", label: "DEF OPEN (Defence)" },
-                    { value: "DEF_OBC", label: "DEF OBC (Defence OBC)" },
-                    { value: "PWD_OPEN", label: "PWD OPEN (Persons with Disability)" },
-                  ]}
+                  options={categorySelectOptions([], [{ value: "", label: "Select category" }])}
                 />
                 {fieldErrors.category && (
                   <p className="text-xs mt-1" style={{ color: "var(--danger-500)" }}>{fieldErrors.category}</p>

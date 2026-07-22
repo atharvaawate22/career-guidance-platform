@@ -7,7 +7,8 @@ import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import CutoffResultCard from "@/components/CutoffResultCard";
 import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
-import { CUTOFF_CATEGORIES, CAP_ROUNDS, sortBranches } from "@/lib/cutoffOptions";
+import { categorySelectOptions } from "@/lib/categoryOptions";
+import { buildBranchFamilyGroups, CAP_ROUNDS, sortBranches } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
   MINORITY_TYPE_OPTIONS,
@@ -77,6 +78,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
 
   const collegeOptions = meta.colleges;
   const branchOptions = useMemo(() => sortBranches(meta.branches), [meta.branches]);
+  const branchGroups = useMemo(() => buildBranchFamilyGroups(branchOptions), [branchOptions]);
   const cityOptions = meta.cities;
 
   const needsClientMetaFetch = meta.colleges.length === 0;
@@ -236,13 +238,13 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
                 <div>
                   <FilterLabel>Branch</FilterLabel>
                   <MultiSelect id="branch" value={selectedBranches} onChange={v => setSelectedBranches(v)}
-                    options={branchOptions} placeholder="All Branches" />
+                    options={branchOptions} placeholder="All Branches" quickGroups={branchGroups} />
                 </div>
                 <div>
                   <FilterLabel>Category</FilterLabel>
                   <CustomSelect id="category" value={category}
                     onChange={v => { setCategory(v); if (v === "TFWS") setIncludeTfws(false); }}
-                    options={[{ value: "", label: "All Categories" }, ...CUTOFF_CATEGORIES.filter(c => c !== "TFWS").map(c => ({ value: c, label: c }))]} />
+                    options={categorySelectOptions(["TFWS"], [{ value: "", label: "All Categories" }])} />
                 </div>
                 <div>
                   <FilterLabel>Gender <span style={{ color: "#EF4444" }}>*</span></FilterLabel>
