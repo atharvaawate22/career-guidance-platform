@@ -407,43 +407,120 @@ file three times against the live database: row count holds at 13.
 
 ---
 
-## 3. Phase 2 (planned, not yet built) — RAG for conceptual questions
+## 3. Phase 2 — RAG for conceptual questions
 
-This section documents the intended design so the "what we skipped and why"
-reasoning in §4 has a concrete plan to react against. None of this is
-implemented yet.
+**Status: split into two steps. Step (a) — the content classification, the new
+FAQ rows, and the router defer branches — is BUILT (migration 018 +
+`chatbot.service.ts`). Step (b) — the pgvector table, ingestion, and the
+Gemini-generated RAG answer path — is designed below but NOT yet built.**
 
-### 3.1 Query router
+### 3.1 What became FAQ vs. RAG — the scope decision
 
-A lightweight classifier — a keyword/pattern check first, escalating to a
-single cheap LLM call only if the pattern check is ambiguous — decides:
+The supplied CAP guidance was classified topic-by-topic against a single test:
+*does answering require synthesising two or more concepts, or does it compress
+to one Q&A pair?* Most of it compressed — so most of it became **FAQ rows**
+(step a), not RAG. RAG is reserved for the one genuinely synthesis-heavy
+cluster.
 
-- **(a) Structured data question** ("cutoff for COEP CS") → the existing
-  Phase 1 direct-SQL path. Phase 2 does not replace this; RAG is strictly
-  additive for the conceptual-question slice Phase 1's `faqs` fallback
-  doesn't already cover well.
-- **(b) Conceptual/procedural question** ("what's HU vs OHU") → RAG
-  retrieval.
+| Content | Home | Why |
+|---|---|---|
+| Freeze/Float/Slide mechanics + Auto-Freeze trap + seat-floor guarantee; float-betterment ↔ choice-modification interaction | **RAG corpus** (step b) | Real questions combine 2–3 rules — e.g. "I floated round 1 and got better in round 2, do I lose my round 1 seat?" (float + seat-floor), "why did the system lock me into my #1?" (auto-freeze + preference order). A flat definition can't answer these. |
+| Bare Freeze/Float/Slide definitions | FAQ (already existed, #7) | Compress to one row; the existing row already covers the safety-net idea. |
+| Option-form strategy, HU vs OHU, CAP round/quota structure, branch-change myth, agent scams, form-locking, ILS/against-vacancy seats, final-round-cutoff caveat, document timing | **FAQ rows** (step a, migration 018) | Each compresses cleanly to a single answer. |
+| Exam-format specifics, fee amounts, exact dates | **Defer** (never stored as fact) | Time-sensitive; route to /updates. |
+| Personalised recommendations ("which branch for *me*") | **Defer** | Needs the student's own percentile/category/preferences — a human/tool decision, not corpus content. |
 
-### 3.2 RAG pipeline
+**Why HU vs OHU is FAQ, not RAG** (it was originally proposed as RAG): the
+definition plus "your home-university region can make a college more reachable
+than the OHU cutoff suggests" is *one* coherent fact, not a multi-hop
+synthesis. The version that *would* need synthesis — "is COEP reachable for
+**me** as OHU?" — is a personalised-reachability question, which is correctly a
+**defer** case, not something either FAQ or RAG should own. So nothing about
+HU/OHU lands in the RAG corpus.
 
-1. **Chunk** the CAP guidance content (freeze/float rules, HU vs OHU, common
-   mistakes, the auto-freeze trap, etc.) into small, topic-scoped pieces.
-2. **Embed** each chunk with a free/open-source model
-   (`sentence-transformers`) or a cheap embedding API — the tradeoff to be
-   decided when this phase starts: self-hosted embedding avoids a per-call
-   cost but adds a model-serving dependency; a hosted embedding API is
-   simpler operationally for a corpus this small.
-3. **Store** chunks + embeddings in **pgvector**, added to the existing
-   Postgres instance — no new database. `pgcrypto` and `pg_trgm` are already
-   enabled on this database (`012_cutoffs_redesign.sql`), so there's direct
-   precedent for adding an extension here.
-4. **Retrieve**: embed the incoming question, run a cosine-similarity search
-   in pgvector, take the top 3–5 chunks.
-5. **Generate**: feed the retrieved chunks + question to an LLM for the final
-   answer. This is the one place in the whole system a paid/free-tier LLM
-   call is actually necessary — grounding the answer in retrieved chunks is
-   what makes it safe to let an LLM phrase the response at all.
+A content-review discipline was applied to every FAQ row: any structural fact
+that has changed year-to-year (the CAP round count — 3 in 2024, 4 in 2025/26)
+is **scoped to the current cycle in the text itself** with a note to verify in
+/updates for later years, so a student reading it in a future year gets a
+dated fact rather than a silently stale one. Figures that couldn't be
+independently confirmed as stable were omitted rather than asserted.
+
+### 3.2 Query router — layered so RAG fires last (and rarely)
+
+RAG is a *late* fallback, not a front door, which keeps LLM calls minimal:
+
+```
+message
+  ├─ structured? (cutoff / dates / documents keywords) ──── Phase 1 SQL
+  ├─ personalised-recommendation OR fee amount? ─────────── DEFER (built, step a)
+  ├─ conceptual → FAQ trigram (Phase 1). Confident hit? ─── return FAQ row
+  └─ conceptual, no FAQ match → RAG (step b):
+        embed question → pgvector top-3–5 → confidence floor
+             ├─ below floor ────────────────────────────── DEFER (never guess)
+             └─ above floor ── grounded generation → answer
+                   (still nothing) ───────────────────────── fallback + log
+```
+
+The **defer branches are already live** (step a): personalised-recommendation
+questions ("which branch is best for me") point to /predictor and /book;
+fee-amount questions point to /updates. They run *before* the keyword/FAQ
+router and are `matched: true`, so they are never logged as unanswered. Date
+questions were already deferred by the Phase-1 CAP-schedule intent.
+
+### 3.3 RAG pipeline (step b — designed, not built)
+
+1. **Chunk** only the seat-mechanics cluster (§3.1) — ~8–12 concept-scoped
+   chunks (~80–250 tokens each), each with a topic-label header prepended to
+   improve retrieval. The corpus is deliberately tiny; that smallness is what
+   validates the skipped techniques in §4.
+2. **Embed** with Supabase-native **`gte-small`** (384-dim) via an edge
+   function — no new vendor or API key, and no load on the free-tier Render
+   box. The pgvector column dimension is fixed to the model (384), so the
+   choice is locked before the table is created; switching later means a
+   re-embed.
+3. **Store** chunks + embeddings in **pgvector** on the existing Postgres —
+   no new database. `pgcrypto` and `pg_trgm` are already enabled
+   (`012_cutoffs_redesign.sql`), so adding an extension has precedent.
+4. **Retrieve**: embed the question, cosine-similarity search, top 3–5 chunks.
+5. **Generate** with **Google Gemini 2.5 Flash** (free tier), under three
+   grounding layers — see §3.4.
+
+### 3.4 Grounding, generation, and the Gemini decision
+
+The hard requirement — *answers draw only from retrieved chunks, never the
+model's own training knowledge; if retrieval isn't confident or the question
+touches a date/number, say so and point to /updates or a consultation, never
+guess* — is enforced by the **pipeline, not the model**, in three layers:
+
+1. **Router pre-filter** (§3.2): date/number/personalised questions never
+   reach generation at all.
+2. **Retrieval-confidence floor**: if the top chunk's similarity is below a
+   calibrated threshold (same approach as the Phase-1 FAQ thresholds), don't
+   generate — defer.
+3. **Strict generation prompt**: answer only from the provided context; if it
+   isn't there, say so and point to /updates or a consultation; never use
+   outside knowledge; never state a date, fee, or number unless it appears
+   verbatim in the context.
+
+Because those three do the safety work, the model choice is about phrasing
+quality, not the grounding guarantee. **Gemini 2.5 Flash (free tier)** is used
+for generation — the project already avoids paid API keys, and a Gemini key
+requires no credit card. The three safety layers are model-agnostic; only the
+integration adapter differs from an Anthropic one: the strict-grounding rule
+goes in Gemini's `systemInstruction` field, responses are parsed from
+`candidates[].content.parts[].text` with a `finishReason` guard, and a
+safety-blocked or empty Gemini response routes into the **same defer/fallback
+path** as a below-floor retrieval (never surfaced as an error). Gemini's
+thinking budget is set low for a short grounded answer.
+
+**Privacy note (Gemini free tier).** Unlike paid tiers, Gemini's free tier may
+use prompt/response data for model training. When step (b) ships, the
+user-facing privacy policy's *Chatbot and WhatsApp assistant* section (the same
+disclosure added for chat logging) gets one line: conceptual questions routed
+to the RAG assistant may be processed by a third-party model provider. That
+line is **held until (b) goes live** rather than added now — disclosing a data
+flow that doesn't yet exist would be inaccurate — but it's recorded here so it
+ships with the feature, not after it.
 
 ---
 
@@ -455,10 +532,10 @@ the actual size of this corpus.
 
 - **No hybrid retrieval** (dense vector search + sparse/BM25 keyword search).
   Hybrid retrieval solves recall problems in large, vocabulary-diverse
-  corpora. This CAP guidance corpus is a few dozen chunks and topically
-  narrow — dense vector search alone has strong recall at this scale, and
-  hybrid would add a second search system, merge/reranking logic, and tuning
-  effort without a measurable accuracy gain.
+  corpora. After the §3.1 scope decision this corpus is only ~10 chunks and
+  topically narrow — dense vector search alone has strong recall at this
+  scale, and hybrid would add a second search system, merge/reranking logic,
+  and tuning effort without a measurable accuracy gain.
 
 - **No reranking step** (e.g. cross-encoder reranking of retrieved chunks).
   Reranking matters when initial retrieval returns many marginally-relevant
