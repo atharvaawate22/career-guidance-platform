@@ -76,9 +76,9 @@ export const getOrLoadCutoffMeta = async (
   const cacheKey = buildCutoffMetaCacheKey(keyInput);
   // Version suffix lets us bust cached metadata on deploy: bumping it makes
   // lookups miss the stale Redis entries so fresh values reload from the DB.
-  // v3 — the cities dropdown is now sourced from city_normalized; this bypasses
-  // the v2 entry that was cached (from INITCAP(city)) before that fix landed.
-  const redisKey = `cutoffs:meta:v3:${cacheKey}`;
+  // v5 — swept the full branch_group list for duplicates/formatting bugs (& vs and,
+  // stray "(AI)and" spacing glitch, ALL CAPS one-offs, missing bracket spaces).
+  const redisKey = `cutoffs:meta:v5:${cacheKey}`;
   const cached = metaCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;

@@ -46,8 +46,11 @@ def canonical_subject(name):
     do NOT collapse the CSE family (or any family) into one coarse bucket."""
     s = re.sub(r'\s+', ' ', name.strip())
     s = re.sub(r'\s*\(\s*', ' (', s)   # "X(Y)" -> "X (Y)"
-    s = re.sub(r'\s*\)\s*', ')', s)
+    s = re.sub(r'\s*\)\s*', ') ', s)   # "X)Y" -> "X) Y" (was stripping the space, causing "(AI)and" splits)
     s = re.sub(r'\bEngg\.?\b', 'Engineering', s, flags=re.I)
+    s = re.sub(r'\s*&\s*', ' and ', s)  # "X & Y" -> "X and Y" (avoid duplicate branch_group spellings)
+    s = re.sub(r'\bArtificial Intelligence \(AI\)', 'Artificial Intelligence', s, flags=re.I)  # redundant acronym gloss
+    s = re.sub(r'\s+', ' ', s)  # collapse any doubled spaces introduced above
     return s.strip(' .')
 
 
