@@ -2,16 +2,19 @@
 
 This document tracks the design of the CET Hub chatbot feature: a rule-based
 (Phase 1) assistant that answers MHT-CET admission questions on two channels
-— the website and WhatsApp — with a RAG layer (Phase 2) planned for
-conceptual/procedural questions once Phase 1 ships.
+— the website and WhatsApp — plus a RAG layer (Phase 2) for the conceptual
+questions Phase 1's keyword/FAQ matching can't cover.
 
 It exists to capture *why* decisions were made, including what was
 deliberately **not** built and why, so this reasoning survives past the code
 itself — useful both for future maintenance and for explaining the scoping
 choices in a technical interview.
 
-**Status: Phase 1 is implemented and verified end-to-end. Phase 2 (RAG) is
-designed below but not yet built.**
+**Status: both phases are implemented and verified end-to-end.** Phase 1
+(§2) is the rule-based bot across website + WhatsApp. Phase 2 (§3) is FAQ
+content + defer branches (step a) plus the pgvector/Gemini RAG pipeline
+(step b), wired in as the final fallback after Phase 1's keyword router and
+FAQ match have both declined.
 
 ---
 
@@ -409,10 +412,12 @@ file three times against the live database: row count holds at 13.
 
 ## 3. Phase 2 — RAG for conceptual questions
 
-**Status: split into two steps. Step (a) — the content classification, the new
-FAQ rows, and the router defer branches — is BUILT (migration 018 +
-`chatbot.service.ts`). Step (b) — the pgvector table, ingestion, and the
-Gemini-generated RAG answer path — is designed below but NOT yet built.**
+**Status: both steps are BUILT and verified end-to-end. Step (a) — the content
+classification, the new FAQ rows, and the router defer branches (migration
+018 + `chatbot.service.ts`). Step (b) — the pgvector table (migration 020),
+the `embed` Supabase Edge Function, ingestion of the 10 seat-mechanics
+chunks, retrieval with a calibrated confidence floor, and the Gemini
+generation adapter, wired into `getReply()` as the final fallback.**
 
 ### 3.1 What became FAQ vs. RAG — the scope decision
 
@@ -483,7 +488,7 @@ fee-amount questions point to /updates. They run *before* the keyword/FAQ
 router and are `matched: true`, so they are never logged as unanswered. Date
 questions were already deferred by the Phase-1 CAP-schedule intent.
 
-### 3.3 RAG pipeline (step b — designed, not built)
+### 3.3 RAG pipeline (step b)
 
 1. **Chunk** only the seat-mechanics cluster (§3.1) — ~8–12 concept-scoped
    chunks (~80–250 tokens each), each with a topic-label header prepended to
@@ -498,7 +503,7 @@ questions were already deferred by the Phase-1 CAP-schedule intent.
    no new database. `pgcrypto` and `pg_trgm` are already enabled
    (`012_cutoffs_redesign.sql`), so adding an extension has precedent.
 4. **Retrieve**: embed the question, cosine-similarity search, top 3–5 chunks.
-5. **Generate** with **Google Gemini 2.5 Flash** (free tier), under three
+5. **Generate** with **Gemini 3.5 Flash** (free tier), under three
    grounding layers — see §3.4.
 
 ### 3.4 Grounding, generation, and the Gemini decision
@@ -519,7 +524,7 @@ guess* — is enforced by the **pipeline, not the model**, in three layers:
    verbatim in the context.
 
 Because those three do the safety work, the model choice is about phrasing
-quality, not the grounding guarantee. **Gemini 2.5 Flash (free tier)** is used
+quality, not the grounding guarantee. **Gemini 3.5 Flash (free tier)** is used
 for generation — the project already avoids paid API keys, and a Gemini key
 requires no credit card. The three safety layers are model-agnostic; only the
 integration adapter differs from an Anthropic one: the strict-grounding rule
@@ -527,7 +532,23 @@ goes in Gemini's `systemInstruction` field, responses are parsed from
 `candidates[].content.parts[].text` with a `finishReason` guard, and a
 safety-blocked or empty Gemini response routes into the **same defer/fallback
 path** as a below-floor retrieval (never surfaced as an error). Gemini's
-thinking budget is set low for a short grounded answer.
+thinking budget is set low (`thinkingBudget: 0`) for a short grounded answer,
+and the generation call carries a 10s client-side timeout so a slow/overloaded
+provider response can't stall a chatbot reply indefinitely — a timeout is
+treated the same as any other generation failure.
+
+**Model note.** The plan above originally named Gemini 2.5 Flash. By the time
+step (b) was implemented, that model (and `gemini-2.5-flash-lite`) returned
+`404 "no longer available to new users"` against a freshly-created API key,
+and `gemini-2.0-flash` was deprecated (shut down 2026-06-01) and `429`d on
+this key. Verified live against the actual key before committing to a
+replacement: **Gemini 3.5 Flash** (launched 2026-05-19) is what actually
+works, and Google's pricing page confirms a genuine free tier (free
+input/output tokens, ~1,500 requests/day, 15 RPM, no card required) with the
+same "may be used to improve products" caveat already accounted for below.
+During implementation the free tier was also observed intermittently
+returning `503 "high demand"` — handled by the same defer path as any other
+generation failure, not a bug.
 
 **Privacy note (Gemini free tier).** Unlike paid tiers, Gemini's free tier may
 use prompt/response data for model training. When step (b) ships, the
@@ -540,53 +561,66 @@ ships with the feature, not after it.
 
 ### 3.5 Step (b) build checklist — the concrete work, in order
 
-Nothing in this list is built yet. Each item should follow the project's
-verification discipline (live before/after evidence, flag uncertainty, no
-unrelated files in commits). Suggested order:
+Each item followed the project's verification discipline (live before/after
+evidence, flag uncertainty, no unrelated files in commits).
 
-1. **Migration: pgvector + chunks table.** New migration adds
-   `CREATE EXTENSION IF NOT EXISTS vector;` and a `rag_chunks` table —
-   `id`, `topic_label`, `source_section`, `content` (text), `embedding`
-   (`vector(384)` for `gte-small`), timestamps. Idempotent, same discipline as
-   014/015/018. RLS: no public read policy (read only from the backend, like
-   `unanswered_queries`).
-2. **Author + chunk the corpus.** Only the §3.1 seat-mechanics cluster:
-   Freeze / Float / Slide, the Auto-Freeze trap, the seat-floor guarantee, and
-   the choice-betterment ↔ option-form-editing mechanics. ~8–12 concept-scoped
-   chunks, ~80–250 tokens, each with a topic-label header prepended. Re-run the
-   §3.1 content-review bar on every chunk (mechanics, not cycle-variable
-   numbers, so it should pass clean — but verify, don't assume).
-3. **Embedding ingestion.** A one-time, offline script that embeds each chunk
-   with Supabase-native `gte-small` (384-dim) and writes the vector to
-   `rag_chunks`. Ingestion is offline; only *query* embedding happens at
-   request time. Re-runnable (upsert by chunk identity) when content changes.
-4. **Retrieval + confidence floor.** `chatbot.repository.ts`: embed the
-   incoming question, cosine-similarity search over `rag_chunks`, top 3–5.
-   Calibrate a confidence floor against live data the same way the Phase-1 FAQ
-   thresholds were calibrated; below the floor → defer (never generate).
-5. **Gemini generation adapter.** A new module (mirror the `whatsapp` adapter's
-   shape): call Gemini 2.5 Flash, put the strict-grounding rule in
-   `systemInstruction` (answer only from the provided chunks; never use outside
-   knowledge; never state a date, fee, or number unless it appears verbatim in
-   the context; otherwise say you don't have specifics and point to /updates or
-   a consultation). Parse `candidates[].content.parts[].text` with a
-   `finishReason` guard; **route a safety-blocked or empty response into the
-   same defer/fallback path as a below-floor retrieval** — never surface it as
-   an error. Low thinking budget. `GEMINI_API_KEY` optional in `.env.example`;
-   no key → the RAG step no-ops into the existing fallback (mirror the
-   `EMAIL_PROVIDER=mock` / WhatsApp-not-configured pattern).
-6. **Wire into `getReply()`.** RAG is the **final fallback**: it runs only
-   after the keyword router, the defer branches, and the FAQ trigram match have
-   all declined — i.e. replace the `logUnansweredQuery` + generic-fallback tail
-   for conceptual questions with "try RAG; if RAG defers or returns nothing,
-   then log + generic fallback." Still log to `unanswered_queries` when RAG
-   can't answer, so the backlog stays honest.
-7. **Privacy disclosure.** Add the held line from §3.4 to the live
+1. ✅ **Migration: pgvector + chunks table.** `020_rag_chunks.sql` adds
+   `CREATE EXTENSION IF NOT EXISTS vector;` and `rag_chunks` — `id`,
+   `topic_label` (unique, the upsert key), `source_section`, `content`,
+   `embedding vector(384)`, timestamps. RLS enabled, no public policy (same
+   as `unanswered_queries`) — verified live: `rls_enabled: true`,
+   `policy_count: 0`. No ANN index — a plain sequential scan over ~10 rows is
+   both fast enough and more accurate than ivfflat/hnsw at this size.
+2. ✅ **Author + chunk the corpus.** Source: `docs/rag-source-content.md`
+   (verbatim CAP 2026 Process Guide §3–4, previously only in chat history —
+   now committed so it isn't lost again). 10 chunks — Freeze, Float, Slide,
+   the seat-floor guarantee, the Auto-Freeze trap, choice-count guidance,
+   order-is-priority, more-choices-is-flexibility, between-rounds editing
+   eligibility, and betterment mechanics — split by question shape rather
+   than the source's paragraph breaks (e.g. the seat-floor guarantee and the
+   Auto-Freeze trap are their own chunks because they're the two synthesis
+   questions this corpus exists to answer). Reviewed and approved before
+   ingestion.
+3. ✅ **Embedding ingestion.** `backend/scripts/ingest_rag_chunks.ts` —
+   batches all 10 chunks into one call to the `embed` Edge Function, upserts
+   by `topic_label`. Re-runnable when content changes. Ingestion is offline;
+   only *query* embedding happens at request time, via the same function.
+4. ✅ **Retrieval + confidence floor.** `chatbot.repository.ts`'s
+   `searchRagChunks()` embeds the question and does a cosine-similarity
+   search over `rag_chunks`, top 5. `RAG_CONFIDENCE_FLOOR = 0.85` in
+   `chatbot.service.ts`, calibrated 2026-07-23 against 10 in-corpus synthesis
+   questions (top-1 similarity 0.8720–0.9424) and 10 out-of-corpus/near-miss
+   questions (top-1 similarity 0.7628–0.8308) — a small first-pass sample,
+   not permanently correct; revisit if real RAG-deferred traffic in
+   `unanswered_queries` suggests otherwise. All top-5 chunks are passed to
+   generation regardless of individual score once the top chunk clears the
+   floor — a legitimately relevant 2nd/3rd chunk is exactly what a multi-hop
+   synthesis question needs, and the strict-grounding prompt handles
+   filtering out anything genuinely irrelevant.
+5. ✅ **Gemini generation adapter.** `chatbot/gemini.service.ts` mirrors
+   `whatsapp.service.ts`'s mock-mode shape: `GEMINI_API_KEY` unset → logs and
+   returns `null` (RAG defers) rather than throwing. The strict-grounding
+   rule lives in `systemInstruction`; responses are parsed from
+   `candidates[].content.parts[].text` with a `finishReason` guard;
+   safety-blocked/empty responses route into the same defer path as a
+   below-floor retrieval. Low thinking budget (`thinkingBudget: 0`). A 10s
+   client-side timeout (`AbortController`) was added after a live test hung
+   past what's acceptable for a chat reply — timeout is treated as any other
+   generation failure. **Model note:** built against **Gemini 3.5 Flash**, not
+   the originally-planned 2.5 Flash — see §3.4's model note for why.
+6. ✅ **Wire into `getReply()`.** RAG runs as the final fallback, after the
+   keyword router, the defer branches, and the FAQ trigram match (primary +
+   rescue) have all declined. Replaces the old
+   `logUnansweredQuery` + generic-fallback tail for the conceptual/no-match
+   case with "try RAG; if it defers or returns nothing, log + generic
+   fallback" — still logs to `unanswered_queries` when RAG can't answer.
+7. ✅ **Privacy disclosure.** Added to the live
    `frontend/src/app/privacy/page.tsx` *Chatbot and WhatsApp assistant*
-   section: conceptual questions routed to the RAG assistant may be processed
-   by a third-party model provider (Gemini free tier, which may use data for
-   training). This ships **with** this step, not before it.
-8. **Verify end-to-end.** Synthesis questions that a flat FAQ can't answer
+   section: conceptual questions the rule-based logic and FAQ don't cover may
+   be answered via Google's Gemini API, grounded only in the site's own
+   admission guidance, and that the free tier may process the question/answer
+   to improve Google's models. Verified rendering live in the browser.
+8. ✅ **Verify end-to-end.** Synthesis questions that a flat FAQ can't answer
    ("I floated round 1 and got better in round 2, do I lose my round 1 seat?")
    → grounded RAG answer; out-of-corpus / date / fee / personalised questions →
    defer, never a hallucinated fact; regression that all Phase-1 intents, the
@@ -712,6 +746,36 @@ justifies any of it yet:
   (matching the existing `platform_settings` pattern) so dates can be
   published the moment DTE releases them, instead of waiting on a code
   change.
+- **WhatsApp webhook rate limiting + `msg.id` dedup**: flagged in an earlier
+  review, not yet fixed. `chatbotLimiter` (`middleware/rateLimit`) is wired
+  into `chatbot.routes.ts` (the website endpoint) but never applied to
+  `whatsapp.routes.ts` — the WhatsApp webhook has no rate limiting at all.
+  Separately, `whatsapp.controller.ts`'s `receiveMessage` never checks
+  Meta's `msg.id` against anything already processed, so a retried delivery
+  (Meta is at-least-once, and retries aggressively on slow/non-2xx
+  responses — see §2.8) would be processed and answered a second time:
+  a duplicate WhatsApp reply sent to the student, and, if it happened to
+  fall through to the fallback path, a duplicate `unanswered_queries` row.
+  Fix is two independent, low-risk additions: apply a rate limiter to the
+  webhook route, and short-circuit `receiveMessage` when `msg.id` has
+  already been seen (e.g. a short-TTL Redis set, matching the project's
+  existing Redis-for-caching pattern).
+- **Ladies-quota cutoff data is unreachable via the chatbot**: flagged in an
+  earlier review, not yet fixed, and not something this session's RAG work
+  touched. `getCutoffAnswer()` (`chatbot.repository.ts`) filters
+  `co.gender IS DISTINCT FROM 'L'` unconditionally — General-seat cutoffs
+  only — and neither `chatbot.constants.ts` nor `chatbot.service.ts` has any
+  keyword detection for "ladies quota" or similar phrasing. A student who
+  asks specifically about a ladies-quota seat gets the General-category
+  cutoff back with no indication that a different, ladies-only number
+  exists or was excluded. This isn't a rounding error: verified live against
+  `cutoffs` — `gender = 'L'` rows are **33.7%** of all 92,050 rows (`G` is
+  51.0%, `NULL` is 15.3%), so roughly a third of the table is silently
+  unreachable through this path. Fix needs a ladies-quota keyword/intent,
+  a `categoryToken`-style flag threaded into `getCutoffAnswer()` to switch
+  the gender filter instead of hardcoding it out, and a disclosure line when
+  a student asks in General terms at a college/branch where a ladies-quota
+  row also exists.
 - **Chat-log retention and purge**: the privacy policy now discloses that
   unanswered chatbot questions are logged (and, on WhatsApp, stored with the
   sender's number — see the privacy page's *Chatbot and WhatsApp assistant*

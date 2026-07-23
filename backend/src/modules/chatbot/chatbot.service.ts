@@ -12,6 +12,7 @@
  * session/state infrastructure before there's a proven need for it.
  */
 import * as repo from './chatbot.repository';
+import * as gemini from './gemini.service';
 import { ACTIVE_CUTOFF_YEAR, ACTIVE_CAP_SCHEDULE_YEAR } from '../../config/constants';
 import {
   MENU_OPTIONS,
@@ -110,6 +111,26 @@ const RESCUE_GENERIC_WORDS = new Set([
 
 /** Cap on how many distinct courses a single cutoff reply lists before deferring to /cutoffs — keeps WhatsApp replies readable. */
 const MAX_COURSES_LISTED = 8;
+
+/** Top-N chunks retrieved for RAG generation context. */
+const RAG_TOP_K = 5;
+
+/**
+ * Retrieval-confidence floor on the top retrieved chunk's cosine similarity
+ * (`1 - cosine distance`). Below the floor, RAG defers rather than generating
+ * — never guess from a weak match.
+ *
+ * Measured 2026-07-23 against the live rag_chunks table: 10 in-corpus
+ * synthesis questions (one per chunk, e.g. "I floated round 1 and got better
+ * in round 2, do I lose my round 1 seat?") scored 0.8720-0.9424 on their
+ * correct chunk; 10 out-of-corpus/near-miss questions (documents, TFWS, fee
+ * amounts, junk text — several of which are actually intercepted earlier in
+ * the router anyway) scored 0.7628-0.8308. 0.85 sits in that gap with margin
+ * on both sides. This is a small (20-question) first-pass calibration, not a
+ * permanently-correct number — revisit if real RAG-deferred traffic (logged
+ * to unanswered_queries below the floor) suggests it needs adjusting.
+ */
+const RAG_CONFIDENCE_FLOOR = 0.85;
 
 /**
  * Narrows several matched courses to one using the extra words the student
@@ -449,6 +470,24 @@ function handleFeeDefer(): ChatReply {
   );
 }
 
+/**
+ * The final fallback (§3.2 in CHATBOT_ARCHITECTURE.md): only reached once the
+ * keyword router and the FAQ trigram match (primary + rescue) have all
+ * declined, so this only runs for conceptual questions with no FAQ coverage.
+ * Retrieval failure, a below-floor top match, a safety-blocked/empty Gemini
+ * response, or an unconfigured GEMINI_API_KEY all return null the same way —
+ * the caller treats every one of those identically as "RAG couldn't answer"
+ * and falls through to the existing log + generic fallback, never guessing
+ * and never surfacing an infrastructure error to the student.
+ */
+async function tryRag(rawMessage: string): Promise<string | null> {
+  const chunks = await repo.searchRagChunks(rawMessage, RAG_TOP_K);
+  if (chunks.length === 0 || chunks[0].similarity < RAG_CONFIDENCE_FLOOR) {
+    return null;
+  }
+  return gemini.generateGroundedAnswer(rawMessage, chunks);
+}
+
 interface FaqCandidate {
   answer: string;
   confidence: number;
@@ -659,6 +698,14 @@ export async function getReply(
   // word_similarity rescue before giving up ("what is TFWS", "what is float").
   if (rescue) {
     return withMenu(rescue.answer, true);
+  }
+
+  // Last resort: RAG over the seat-mechanics corpus (Phase 2 step b). Runs
+  // only here — after the keyword router and every FAQ path have declined —
+  // so it fires rarely, on genuinely uncovered conceptual questions.
+  const ragAnswer = await tryRag(rawMessage);
+  if (ragAnswer) {
+    return withMenu(ragAnswer, true);
   }
 
   await repo.logUnansweredQuery(channel, rawMessage, contactIdentifier);

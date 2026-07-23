@@ -169,6 +169,13 @@ ON bookings(booking_status);
 -- ============================================================================
 
 -- ============================================================================
+-- TABLE: rag_chunks
+-- Purpose: pgvector storage for the Phase 2 RAG corpus (seat-mechanics
+-- cluster) — retrieved and passed to Gemini as grounding context.
+-- Defined in migrations/020_rag_chunks.sql.
+-- ============================================================================
+
+-- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- Purpose: Protect Supabase Data API exposure while allowing intended public reads
 -- ============================================================================

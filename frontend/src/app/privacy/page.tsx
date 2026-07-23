@@ -40,6 +40,7 @@ export default function PrivacyPolicyPage() {
               <li>On the website, these logged questions are stored without any identifier — they are not linked to you.</li>
               <li>On WhatsApp, a question the assistant could not answer is stored together with the WhatsApp number it came from, because WhatsApp attaches it to every message. We use it only to understand and follow up on unanswered questions, never to message you first — every WhatsApp conversation begins with a message you send us.</li>
             </ul>
+            <p className="mt-2">For some conceptual questions our rule-based logic and FAQ answers don&apos;t cover (for example, how CAP&apos;s Freeze/Float/Slide options interact), the assistant may generate a response using Google&apos;s Gemini API, grounded only in our own written admission guidance. Under Gemini&apos;s free tier, the question and generated response may be processed by Google to help improve their models.</p>
             <p className="mt-2">We do not use this assistant to provide guaranteed or official admission decisions, and its answers should be verified against official sources. The messages you send are processed to generate a reply and, in the limited case above, logged to improve coverage.</p>
           </section>
           <section>

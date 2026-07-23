@@ -1,5 +1,6 @@
 import { query } from '../../config/database';
 import { buildCategoryCondition } from '../../utils/cutoffFilters';
+import logger from '../../utils/logger';
 
 export interface CollegeMatch {
   college_code: string;
@@ -255,6 +256,84 @@ export async function getUnansweredQueriesGrouped(
     { name: 'chatbot.getUnansweredQueriesGrouped' },
   );
   return result.rows;
+}
+
+export interface RagChunkMatch {
+  topicLabel: string;
+  sourceSection: string;
+  content: string;
+  /** Cosine similarity (1 - cosine distance) against the query embedding. */
+  similarity: number;
+}
+
+/**
+ * Embeds text via the `embed` Supabase Edge Function (gte-small, 384-dim).
+ * Returns null on any failure (missing config, network error, non-2xx, bad
+ * shape) rather than throwing — the caller treats a null embedding as
+ * "retrieval unavailable" and defers, the same way a below-floor similarity
+ * score does. RAG never surfaces an infrastructure hiccup as an error to the
+ * student.
+ */
+async function embedQuery(text: string): Promise<number[] | null> {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    logger.warn('[chatbot] SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set — RAG retrieval skipped');
+    return null;
+  }
+
+  try {
+    const res = await fetch(`${process.env.SUPABASE_URL}/functions/v1/embed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      logger.error('[chatbot] embed function returned non-2xx', {
+        status: res.status,
+        body: await res.text().catch(() => ''),
+      });
+      return null;
+    }
+    const { embedding } = (await res.json()) as { embedding?: number[] };
+    if (!Array.isArray(embedding) || embedding.length !== 384) {
+      logger.error('[chatbot] embed function returned an unexpected shape', { embedding });
+      return null;
+    }
+    return embedding;
+  } catch (error) {
+    logger.error('[chatbot] embed function call failed', error);
+    return null;
+  }
+}
+
+/**
+ * Top-N RAG chunks by cosine similarity to the student's message. Returns []
+ * (never throws) when embedding fails, so the caller's confidence-floor check
+ * naturally treats "couldn't embed" the same as "nothing matched well enough" —
+ * both defer rather than generate.
+ */
+export async function searchRagChunks(text: string, limit = 5): Promise<RagChunkMatch[]> {
+  const embedding = await embedQuery(text);
+  if (!embedding) return [];
+
+  const vectorLiteral = `[${embedding.join(',')}]`;
+  const result = await query(
+    `SELECT topic_label, source_section, content,
+            1 - (embedding <=> $1::vector) AS similarity
+     FROM rag_chunks
+     ORDER BY embedding <=> $1::vector
+     LIMIT $2`,
+    [vectorLiteral, limit],
+    { name: 'chatbot.searchRagChunks' },
+  );
+  return result.rows.map((r) => ({
+    topicLabel: r.topic_label,
+    sourceSection: r.source_section,
+    content: r.content,
+    similarity: Number(r.similarity),
+  }));
 }
 
 export async function getUnansweredQuerySummary(

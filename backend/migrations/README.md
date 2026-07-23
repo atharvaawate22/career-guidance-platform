@@ -64,3 +64,4 @@ provisioned by applying `schema.sql` first, then letting the runner apply
 | `016_unanswered_queries.sql` | `unanswered_queries` table — logs chatbot fallback queries as the Phase 2 RAG content backlog |
 | `018_seed_cap_faqs.sql` | Seed nine reviewed CAP-guidance FAQ rows + append the TFWS opt-in clause (Phase 2 step a; idempotent) |
 | `019_faq_eligibility_closer.sql` | Append a "confirm against the official brochure" hedge to the Class XII eligibility FAQ (FAQ-audit outcome; idempotent) |
+| `020_rag_chunks.sql` | `rag_chunks` table (`pgvector`) — Phase 2 step (b) RAG corpus storage |
