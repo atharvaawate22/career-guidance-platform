@@ -106,7 +106,7 @@ export async function createBooking(
     const nowMinutesIST = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
     const todayStr = nowIST.toISOString().slice(0, 10);
     const inQuietWindow =
-      nowMinutesIST >= QUIET_WINDOW_START_MINUTES || nowMinutesIST < QUIET_WINDOW_END_MINUTES;
+      nowMinutesIST >= QUIET_WINDOW_START_MINUTES || nowMinutesIST <= QUIET_WINDOW_END_MINUTES;
     if (inQuietWindow && MORNING_SLOTS.includes(slotStr)) {
       const morningPassed = nowMinutesIST >= MORNING_CUTOFF_MINUTES;
       const quietTargetDate = morningPassed

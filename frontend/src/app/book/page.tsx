@@ -163,7 +163,7 @@ function getAvailableSlots(dateStr: string, config: SlotConfig) {
   }
 
   const inQuietWindow =
-    nowMinutes >= QUIET_WINDOW_START_MINUTES || nowMinutes < QUIET_WINDOW_END_MINUTES;
+    nowMinutes >= QUIET_WINDOW_START_MINUTES || nowMinutes <= QUIET_WINDOW_END_MINUTES;
   if (inQuietWindow) {
     const morningPassed = nowMinutes >= MORNING_CUTOFF_MINUTES;
     const quietTargetDate = morningPassed ? addDays(todayIST, 1) : todayIST;
