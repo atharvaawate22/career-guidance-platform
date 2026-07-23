@@ -746,20 +746,23 @@ justifies any of it yet:
   (matching the existing `platform_settings` pattern) so dates can be
   published the moment DTE releases them, instead of waiting on a code
   change.
-- **WhatsApp webhook rate limiting + `msg.id` dedup**: flagged in an earlier
-  review, not yet fixed. `chatbotLimiter` (`middleware/rateLimit`) is wired
-  into `chatbot.routes.ts` (the website endpoint) but never applied to
-  `whatsapp.routes.ts` — the WhatsApp webhook has no rate limiting at all.
-  Separately, `whatsapp.controller.ts`'s `receiveMessage` never checks
-  Meta's `msg.id` against anything already processed, so a retried delivery
-  (Meta is at-least-once, and retries aggressively on slow/non-2xx
-  responses — see §2.8) would be processed and answered a second time:
-  a duplicate WhatsApp reply sent to the student, and, if it happened to
-  fall through to the fallback path, a duplicate `unanswered_queries` row.
-  Fix is two independent, low-risk additions: apply a rate limiter to the
-  webhook route, and short-circuit `receiveMessage` when `msg.id` has
-  already been seen (e.g. a short-TTL Redis set, matching the project's
-  existing Redis-for-caching pattern).
+- ✅ **WhatsApp webhook rate limiting + `msg.id` dedup**: flagged in an
+  earlier review, now fixed. `whatsappWebhookLimiter` (`middleware/rateLimit`)
+  is keyed on the sender's `wa_id` rather than IP (every request here comes
+  from Meta's servers, not the student's), and — unlike every other limiter
+  in the file — its handler returns `200` on limit-exceeded instead of `429`,
+  since Meta treats any non-200 as delivery failure and would retry into the
+  exact burst the limiter exists to stop. `isDuplicateMessage()`
+  (`whatsapp.service.ts`) is an atomic Redis `SET...NX` keyed by `msg.id`,
+  TTL 7 days to match Meta's actual max retry window; fails open (processes
+  the message) if Redis is unavailable. Verified live: the rate limiter
+  correctly counts down and stays `200` even once tripped (34 requests from
+  one `wa_id`, cap enforced, zero `429`s); the dedup logic was verified in
+  the no-Redis-configured fallback path only — **not yet against a real
+  Redis instance** (no local Docker available when this shipped); the
+  `SET...NX` semantics are standard and the code typechecks, but the atomic
+  check-and-mark itself hasn't been watched running live. Worth confirming
+  once this is running somewhere with real Redis (e.g. after deploy).
 - **Ladies-quota cutoff data is unreachable via the chatbot**: flagged in an
   earlier review, not yet fixed, and not something this session's RAG work
   touched. `getCutoffAnswer()` (`chatbot.repository.ts`) filters
