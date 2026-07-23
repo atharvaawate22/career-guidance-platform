@@ -15,9 +15,8 @@ const META_YEAR = process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025";
 
 // Default fallback — only used if settings API is unreachable
 const DEFAULT_TIME_SLOTS = [
-  "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00",
-  "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
-  "17:00", "17:30",
+  "11:00", "11:30", "12:00", "12:30", "13:00",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
 ];
 const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -125,13 +124,22 @@ function nextWorkingDay(dateStr: string, config: SlotConfig): string {
 
 const MIN_BOOKING_LEAD_MINUTES = 180; // 3-hour minimum lead time before a slot can be booked
 
+// Quiet window (10 PM–10 AM): a booking made in this stretch could go
+// unnoticed until well after it needs prep, so pre-lunch slots are hidden
+// for whichever date is next up — today if its morning slots haven't
+// happened yet, otherwise tomorrow.
+const QUIET_WINDOW_START_MINUTES = 22 * 60;
+const QUIET_WINDOW_END_MINUTES = 10 * 60;
+const MORNING_CUTOFF_MINUTES = 13 * 60; // last pre-lunch slot start
+const MORNING_SLOTS = ["11:00", "11:30", "12:00", "12:30", "13:00"];
+
 function getMinDate(config: SlotConfig) {
   const nowIST = getNowIST();
   const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
   const todayIST = nowIST.toISOString().slice(0, 10);
   // Find latest slot time to determine if today is still valid
   const sortedSlots = [...config.slots].sort();
-  const lastSlot = sortedSlots[sortedSlots.length - 1] || "17:30";
+  const lastSlot = sortedSlots[sortedSlots.length - 1] || "17:00";
   const [lastH, lastM] = lastSlot.split(":").map(Number);
   const baseDate =
     nowMinutes + MIN_BOOKING_LEAD_MINUTES > lastH * 60 + lastM
@@ -143,12 +151,28 @@ function getMinDate(config: SlotConfig) {
 function getAvailableSlots(dateStr: string, config: SlotConfig) {
   const nowIST = getNowIST();
   const todayIST = nowIST.toISOString().slice(0, 10);
-  if (dateStr !== todayIST) return config.slots;
   const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
-  return config.slots.filter((slot) => {
-    const [h, m] = slot.split(":").map(Number);
-    return h * 60 + m >= nowMinutes + MIN_BOOKING_LEAD_MINUTES;
-  });
+
+  let slots = config.slots;
+
+  if (dateStr === todayIST) {
+    slots = slots.filter((slot) => {
+      const [h, m] = slot.split(":").map(Number);
+      return h * 60 + m >= nowMinutes + MIN_BOOKING_LEAD_MINUTES;
+    });
+  }
+
+  const inQuietWindow =
+    nowMinutes >= QUIET_WINDOW_START_MINUTES || nowMinutes < QUIET_WINDOW_END_MINUTES;
+  if (inQuietWindow) {
+    const morningPassed = nowMinutes >= MORNING_CUTOFF_MINUTES;
+    const quietTargetDate = morningPassed ? addDays(todayIST, 1) : todayIST;
+    if (dateStr === quietTargetDate) {
+      slots = slots.filter((slot) => !MORNING_SLOTS.includes(slot));
+    }
+  }
+
+  return slots;
 }
 
 function getMonthDates(monthKey: string) {

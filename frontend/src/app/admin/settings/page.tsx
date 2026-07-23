@@ -100,7 +100,7 @@ export default function AdminSettingsPage() {
 
   const [bookingSlots, setBookingSlots] = useState<BookingSlotConfig>({
     enabled: true, slot_duration_minutes: 30,
-    slots: ["10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30"],
+    slots: ["11:00","11:30","12:00","12:30","13:00","14:00","14:30","15:00","15:30","16:00","16:30","17:00"],
     working_days: [1,2,3,4,5], special_open_dates: [], special_closed_dates: [],
   });
   const [announcement, setAnnouncement] = useState<AnnouncementConfig>({ enabled: false, text: "", type: "info", pages: [] });

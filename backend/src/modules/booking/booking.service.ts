@@ -93,6 +93,36 @@ export async function createBooking(
       };
     }
 
+    // ── Guard: quiet window (10 PM–10 AM) ──────────────────────────────────
+    // A booking made in this stretch could go unnoticed until well after it
+    // needs prep, so pre-lunch slots are blocked for whichever date is next
+    // up — today if its morning slots haven't happened yet, else tomorrow.
+    // Mirrors the same rule enforced on the frontend.
+    const QUIET_WINDOW_START_MINUTES = 22 * 60;
+    const QUIET_WINDOW_END_MINUTES = 10 * 60;
+    const MORNING_CUTOFF_MINUTES = 13 * 60; // last pre-lunch slot start
+    const MORNING_SLOTS = ['11:00', '11:30', '12:00', '12:30', '13:00'];
+    const nowIST = new Date(Date.now() + istOffset);
+    const nowMinutesIST = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    const todayStr = nowIST.toISOString().slice(0, 10);
+    const inQuietWindow =
+      nowMinutesIST >= QUIET_WINDOW_START_MINUTES || nowMinutesIST < QUIET_WINDOW_END_MINUTES;
+    if (inQuietWindow && MORNING_SLOTS.includes(slotStr)) {
+      const morningPassed = nowMinutesIST >= MORNING_CUTOFF_MINUTES;
+      const quietTargetDate = morningPassed
+        ? new Date(nowIST.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        : todayStr;
+      if (dateStr === quietTargetDate) {
+        return {
+          success: false,
+          error: {
+            code: 'SLOT_UNAVAILABLE',
+            message: 'Morning slots are not available for bookings made overnight. Please choose an afternoon slot.',
+          },
+        };
+      }
+    }
+
     // ── Guard: email domain must actually exist ──────────────────────────────
     // Catches typos like "gmail.con" that pass format validation but can never
     // receive the confirmation email. Fails open on transient DNS errors.
