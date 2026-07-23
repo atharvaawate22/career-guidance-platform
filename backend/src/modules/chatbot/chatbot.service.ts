@@ -38,6 +38,10 @@ const NAME_STOPWORDS = new Set([
   'percentile', 'college', 'branch', 'and', 'please', 'tell', 'about',
   'difference', 'between', 'mean', 'means', 'explain', 'does', 'do', 'vs',
   'versus', 'how', 'or',
+  // Ladies-quota phrasing ("ladies quota cutoff for COEP CS") — these are
+  // noise for college-name extraction, same reasoning as 'cutoff'/'branch'
+  // above. See LADIES_QUOTA_PATTERN.
+  'ladies', 'quota', 'women', 'womens', 'female',
 ]);
 
 /**
@@ -276,11 +280,24 @@ async function resolveCollege(
   return repo.searchCollegesByTrigram(hint);
 }
 
+/**
+ * Detects a request for ladies-quota (gender = 'L') cutoff data specifically,
+ * as opposed to the General-seat default. Roughly a third of all cutoff rows
+ * are ladies-quota — previously unreachable through the chatbot because
+ * getCutoffAnswer() unconditionally excluded them, so a student asking about
+ * ladies quota silently got the General-category number back with no
+ * indication it wasn't what they asked for.
+ */
+const LADIES_QUOTA_PATTERN =
+  /\bladies\b|\bwomen'?s?\s+(quota|seat|seats|category)\b|\bfemale\s+(quota|seat|seats|category)\b/;
+
 async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
   const words = normalized.split(/\s+/).filter(Boolean);
 
   const categoryToken = findAliasToken(words, CATEGORY_ALIASES) ?? DEFAULT_CATEGORY;
   const branchHint = findAliasToken(words, BRANCH_ALIASES);
+  const ladiesQuota = LADIES_QUOTA_PATTERN.test(normalized);
+  const categoryLabel = ladiesQuota ? `${categoryToken} category (Ladies quota)` : `${categoryToken} category`;
 
   // Shared acronyms (MIT, VIT) prompt for the specific college rather than
   // silently resolving to one; skip straight to the prompt when still ambiguous.
@@ -317,12 +334,13 @@ async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
     collegeMatches[0].college_code,
     branchHint,
     categoryToken,
+    ladiesQuota,
   );
 
   if (rows.length === 0) {
     return withMenu(
-      `No ${categoryToken} category cutoff data found for ${collegeMatches[0].name} in that branch for ${ACTIVE_CUTOFF_YEAR}. ` +
-        'Try the full Cutoff Finder at /cutoffs for other categories or years.',
+      `No ${categoryLabel} cutoff data found for ${collegeMatches[0].name} in that branch for ${ACTIVE_CUTOFF_YEAR}. ` +
+        `Try the full Cutoff Finder at /cutoffs for other categories, years${ladiesQuota ? ', or quotas' : ''}.`,
       true,
     );
   }
@@ -353,7 +371,7 @@ async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
       .map((r) => `Round ${r.cap_round}: ${formatPercentile(r.percentile)}`)
       .join('\n');
     return withMenu(
-      `${collegeName} — ${courseName}\n${categoryToken} category, ${ACTIVE_CUTOFF_YEAR}:\n${lines}\n\n${footer}`,
+      `${collegeName} — ${courseName}\n${categoryLabel}, ${ACTIVE_CUTOFF_YEAR}:\n${lines}\n\n${footer}`,
       true,
     );
   }
@@ -376,7 +394,7 @@ async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
       : '';
 
   return withMenu(
-    `${collegeName} — ${categoryToken} category, ${ACTIVE_CUTOFF_YEAR}.\n` +
+    `${collegeName} — ${categoryLabel}, ${ACTIVE_CUTOFF_YEAR}.\n` +
       `"${branchHint}" matches ${perCourse.length} branches here, and their cutoffs differ — ` +
       `so here's each one:\n${lines}${overflow}\n\n` +
       'Reply with a more specific branch name for the full round-by-round breakdown. ' +

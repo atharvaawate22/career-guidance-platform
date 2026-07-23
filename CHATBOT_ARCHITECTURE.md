@@ -763,22 +763,27 @@ justifies any of it yet:
   `SET...NX` semantics are standard and the code typechecks, but the atomic
   check-and-mark itself hasn't been watched running live. Worth confirming
   once this is running somewhere with real Redis (e.g. after deploy).
-- **Ladies-quota cutoff data is unreachable via the chatbot**: flagged in an
-  earlier review, not yet fixed, and not something this session's RAG work
-  touched. `getCutoffAnswer()` (`chatbot.repository.ts`) filters
-  `co.gender IS DISTINCT FROM 'L'` unconditionally — General-seat cutoffs
-  only — and neither `chatbot.constants.ts` nor `chatbot.service.ts` has any
-  keyword detection for "ladies quota" or similar phrasing. A student who
-  asks specifically about a ladies-quota seat gets the General-category
-  cutoff back with no indication that a different, ladies-only number
-  exists or was excluded. This isn't a rounding error: verified live against
-  `cutoffs` — `gender = 'L'` rows are **33.7%** of all 92,050 rows (`G` is
-  51.0%, `NULL` is 15.3%), so roughly a third of the table is silently
-  unreachable through this path. Fix needs a ladies-quota keyword/intent,
-  a `categoryToken`-style flag threaded into `getCutoffAnswer()` to switch
-  the gender filter instead of hardcoding it out, and a disclosure line when
-  a student asks in General terms at a college/branch where a ladies-quota
-  row also exists.
+- ✅ **Ladies-quota cutoff data unreachable via the chatbot**: flagged in an
+  earlier review, now fixed. `LADIES_QUOTA_PATTERN` (`chatbot.service.ts`)
+  detects "ladies"/"women's quota"/"female quota" phrasing; `getCutoffAnswer()`
+  (`chatbot.repository.ts`) takes a `ladiesQuota` flag that flips
+  `co.gender IS DISTINCT FROM 'L'` to `co.gender = 'L'` — never both mixed in
+  one reply, so the student is never left guessing which number is which.
+  The reply text labels the category as `"OPEN category (Ladies quota)"`
+  when requested, and the no-data message is worded distinctly ("...other
+  categories, years, or quotas") so a genuine absence of ladies-quota data
+  reads as "not found," never as a silent fallback to General. "Ladies",
+  "quota", "women", "womens", "female" were also added to `NAME_STOPWORDS`
+  so this phrasing doesn't pollute college-name extraction. Verified live
+  against COEP Computer Science (2025, OPEN category), where General and
+  Ladies rounds are genuinely different numbers: "cutoff for coep cs" still
+  returns the General figures (99.8985/99.8379/99.8159/99.6725 — unchanged,
+  confirming no regression); "ladies quota cutoff for coep cs" returns the
+  correct Ladies figures (99.9013/99.8477/99.8222) labeled `(Ladies quota)`,
+  matching the live `cutoffs` table exactly. Also verified the no-data path
+  directly against `getCutoffAnswer()` for a college/branch with General
+  rows but zero Ladies rows — returns `[]` for `ladiesQuota: true` rather
+  than silently falling back to General.
 - **Chat-log retention and purge**: the privacy policy now discloses that
   unanswered chatbot questions are logged (and, on WhatsApp, stored with the
   sender's number — see the privacy page's *Chatbot and WhatsApp assistant*

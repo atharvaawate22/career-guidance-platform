@@ -91,16 +91,21 @@ export async function searchCollegesByTrigram(
  * single course, which is what it actually means; the caller then decides
  * how to present multiple matched courses rather than silently picking one.
  *
- * Ladies-only rows are excluded (General-seat cutoffs by default); the reply
- * points to /cutoffs for gender/minority/year filters.
+ * Gender defaults to General-seat cutoffs (ladies-only rows excluded) unless
+ * `ladiesQuota` is set, in which case it flips to ladies-only rows
+ * specifically — never both mixed in one reply, since a mixed list would
+ * leave the student unable to tell which number is which. The reply text
+ * still points to /cutoffs for the full gender/minority/year filter set.
  */
 export async function getCutoffAnswer(
   academicYear: number,
   collegeCode: string,
   branchHint: string,
   categoryToken: string,
+  ladiesQuota = false,
 ): Promise<ChatCutoffRow[]> {
   const cat = buildCategoryCondition(categoryToken, false, 4, 'co');
+  const genderCondition = ladiesQuota ? `co.gender = 'L'` : `co.gender IS DISTINCT FROM 'L'`;
   const sql = `
     SELECT college_name, branch, cap_round, percentile
     FROM (
@@ -117,7 +122,7 @@ export async function getCutoffAnswer(
       WHERE co.academic_year = $1
         AND col.college_code = $2
         AND (c.course_name ILIKE '%' || $3 || '%' OR c.branch_group ILIKE '%' || $3 || '%')
-        AND co.gender IS DISTINCT FROM 'L'
+        AND ${genderCondition}
         ${cat.condition ? `AND ${cat.condition}` : ''}
       ORDER BY c.id, co.cap_round, co.closing_rank DESC NULLS LAST
     ) closing
