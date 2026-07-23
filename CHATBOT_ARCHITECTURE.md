@@ -445,6 +445,22 @@ is **scoped to the current cycle in the text itself** with a note to verify in
 dated fact rather than a silently stale one. Figures that couldn't be
 independently confirmed as stable were omitted rather than asserted.
 
+**What shipped, and the audit.** The nine new rows plus a one-sentence
+opt-in clause on the existing TFWS row landed in `018_seed_cap_faqs.sql`
+(idempotent — `WHERE NOT EXISTS` per exact question; append only when absent).
+The same bar was then applied *retroactively* to the 16 pre-existing FAQ rows,
+which predate this discipline and were already live. Result: 14 were clean
+(conceptual/definitional, or already hedged with "confirm against the official
+brochure"); two carried hard external-policy figures and were independently
+verified as currently correct — the 45%/40% Class XII minimums and the NCL
+"31 March of the admission year" validity. The NCL row uses a *relative*
+formula ("of the admission year") that stays accurate across cycles, so it was
+left as-is; the eligibility row's figures were correct but lacked a hedge, so
+`019_faq_eligibility_closer.sql` appended the same brochure-confirmation closer
+(idempotent). No transpositions or permanent-statements-of-cycle-variable-facts
+were found in the existing rows. This is the "clean, verified FAQ foundation"
+that step (b) builds on.
+
 ### 3.2 Query router — layered so RAG fires last (and rarely)
 
 RAG is a *late* fallback, not a front door, which keeps LLM calls minimal:
@@ -521,6 +537,61 @@ to the RAG assistant may be processed by a third-party model provider. That
 line is **held until (b) goes live** rather than added now — disclosing a data
 flow that doesn't yet exist would be inaccurate — but it's recorded here so it
 ships with the feature, not after it.
+
+### 3.5 Step (b) build checklist — the concrete work, in order
+
+Nothing in this list is built yet. Each item should follow the project's
+verification discipline (live before/after evidence, flag uncertainty, no
+unrelated files in commits). Suggested order:
+
+1. **Migration: pgvector + chunks table.** New migration adds
+   `CREATE EXTENSION IF NOT EXISTS vector;` and a `rag_chunks` table —
+   `id`, `topic_label`, `source_section`, `content` (text), `embedding`
+   (`vector(384)` for `gte-small`), timestamps. Idempotent, same discipline as
+   014/015/018. RLS: no public read policy (read only from the backend, like
+   `unanswered_queries`).
+2. **Author + chunk the corpus.** Only the §3.1 seat-mechanics cluster:
+   Freeze / Float / Slide, the Auto-Freeze trap, the seat-floor guarantee, and
+   the choice-betterment ↔ option-form-editing mechanics. ~8–12 concept-scoped
+   chunks, ~80–250 tokens, each with a topic-label header prepended. Re-run the
+   §3.1 content-review bar on every chunk (mechanics, not cycle-variable
+   numbers, so it should pass clean — but verify, don't assume).
+3. **Embedding ingestion.** A one-time, offline script that embeds each chunk
+   with Supabase-native `gte-small` (384-dim) and writes the vector to
+   `rag_chunks`. Ingestion is offline; only *query* embedding happens at
+   request time. Re-runnable (upsert by chunk identity) when content changes.
+4. **Retrieval + confidence floor.** `chatbot.repository.ts`: embed the
+   incoming question, cosine-similarity search over `rag_chunks`, top 3–5.
+   Calibrate a confidence floor against live data the same way the Phase-1 FAQ
+   thresholds were calibrated; below the floor → defer (never generate).
+5. **Gemini generation adapter.** A new module (mirror the `whatsapp` adapter's
+   shape): call Gemini 2.5 Flash, put the strict-grounding rule in
+   `systemInstruction` (answer only from the provided chunks; never use outside
+   knowledge; never state a date, fee, or number unless it appears verbatim in
+   the context; otherwise say you don't have specifics and point to /updates or
+   a consultation). Parse `candidates[].content.parts[].text` with a
+   `finishReason` guard; **route a safety-blocked or empty response into the
+   same defer/fallback path as a below-floor retrieval** — never surface it as
+   an error. Low thinking budget. `GEMINI_API_KEY` optional in `.env.example`;
+   no key → the RAG step no-ops into the existing fallback (mirror the
+   `EMAIL_PROVIDER=mock` / WhatsApp-not-configured pattern).
+6. **Wire into `getReply()`.** RAG is the **final fallback**: it runs only
+   after the keyword router, the defer branches, and the FAQ trigram match have
+   all declined — i.e. replace the `logUnansweredQuery` + generic-fallback tail
+   for conceptual questions with "try RAG; if RAG defers or returns nothing,
+   then log + generic fallback." Still log to `unanswered_queries` when RAG
+   can't answer, so the backlog stays honest.
+7. **Privacy disclosure.** Add the held line from §3.4 to the live
+   `frontend/src/app/privacy/page.tsx` *Chatbot and WhatsApp assistant*
+   section: conceptual questions routed to the RAG assistant may be processed
+   by a third-party model provider (Gemini free tier, which may use data for
+   training). This ships **with** this step, not before it.
+8. **Verify end-to-end.** Synthesis questions that a flat FAQ can't answer
+   ("I floated round 1 and got better in round 2, do I lose my round 1 seat?")
+   → grounded RAG answer; out-of-corpus / date / fee / personalised questions →
+   defer, never a hallucinated fact; regression that all Phase-1 intents, the
+   defer branches, and the FAQ path still work. Typecheck, lint, full test
+   suite green before committing.
 
 ---
 
