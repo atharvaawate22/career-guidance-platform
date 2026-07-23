@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import ComboBox from "@/components/ComboBox";
 import CustomSelect from "@/components/CustomSelect";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 import { categorySelectOptions } from "@/lib/categoryOptions";
+import { sortBranches } from "@/lib/cutoffOptions";
 import { suggestEmailCorrection } from "@/lib/emailSuggestion";
 import { buildWaMeLink } from "@/lib/whatsapp";
+
+// Same meta endpoint/year the predictor and cutoff explorer use for their
+// branch lists, so all three stay in sync automatically.
+const META_YEAR = process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025";
 
 // Default fallback — only used if settings API is unreachable
 const DEFAULT_TIME_SLOTS = [
@@ -188,6 +194,18 @@ export default function BookPage() {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [meetingPurposeOption, setMeetingPurposeOption] = useState("");
   const [waLink, setWaLink] = useState<string | null>(null);
+  const [branchOptions, setBranchOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?year=${META_YEAR}`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setBranchOptions(sortBranches(d.data.branches ?? []));
+      })
+      .catch(() => { /* ComboBox still works as free text if this fails */ });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/v1/settings/contact-info`)
@@ -254,6 +272,8 @@ export default function BookPage() {
     if (suggestedEmail)
       newFieldErrors.email = `Please enter a valid email address. Did you mean ${suggestedEmail}?`;
     if (!formData.category) newFieldErrors.category = "Please select your reservation category.";
+    if (formData.branch_preference.trim().length < 2)
+      newFieldErrors.branch_preference = "Please enter your branch preference.";
     if (!meetingPurposeOption) newFieldErrors.meeting_purpose = "Please select the purpose of your session.";
     if (meetingPurposeOption === "Other" && !formData.meeting_purpose.trim())
       newFieldErrors.meeting_purpose_text = "Please describe what you need help with.";
@@ -383,13 +403,6 @@ export default function BookPage() {
     if (name === "student_name") {
       // Names: letters, spaces, hyphens, apostrophes
       const cleaned = value.replace(/[^a-zA-Z\s'-]/g, "");
-      setFormData({ ...formData, [name]: cleaned });
-      return;
-    }
-
-    if (name === "branch_preference") {
-      // Branch names include &, /, (, ), digits e.g. "Electronics & Telecom"
-      const cleaned = value.replace(/[^a-zA-Z0-9\s'&/()\.\-]/g, "");
       setFormData({ ...formData, [name]: cleaned });
       return;
     }
@@ -763,17 +776,22 @@ export default function BookPage() {
                 <label className="block font-medium mb-2 text-sm" style={{ color: "var(--slate-700)" }}>
                   Branch Preference <span style={{ color: "var(--danger-500)" }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  name="branch_preference"
-                  required
-                  minLength={2}
-                  maxLength={100}
+                <ComboBox
+                  id="branch_preference"
                   value={formData.branch_preference}
-                  onChange={handleInputChange}
-                  className="input-base"
-                  placeholder="Computer Engineering"
+                  onChange={(v) => {
+                    // Branch names include &, /, (, ), digits e.g. "Electronics & Telecom"
+                    const cleaned = v.replace(/[^a-zA-Z0-9\s'&/()\.\-]/g, "");
+                    setFormData({ ...formData, branch_preference: cleaned });
+                    clearError("branch_preference");
+                  }}
+                  options={branchOptions}
+                  maxLength={100}
+                  placeholder="e.g. Computer Engineering"
                 />
+                {fieldErrors.branch_preference && (
+                  <p className="text-xs mt-1" style={{ color: "var(--danger-500)" }}>{fieldErrors.branch_preference}</p>
+                )}
               </div>
 
               <div>
