@@ -1,6 +1,46 @@
 import logger from '../../utils/logger';
+import { getRedis } from '../../config/redis';
 
 const GRAPH_API_VERSION = 'v21.0';
+
+/**
+ * Meta retries a failed webhook delivery for up to 7 days (exponential
+ * backoff) before discarding it — https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview.
+ * The dedup TTL matches that worst case so a very late redelivery still gets
+ * caught.
+ */
+const MSG_ID_DEDUP_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+/**
+ * True if this message id has already been processed. WhatsApp's Cloud API
+ * delivery is at-least-once, not exactly-once, so a redelivered message must
+ * not be answered a second time (duplicate reply to the student, and a
+ * duplicate row in unanswered_queries if it falls through to the fallback
+ * path). `SET ... NX` is atomic — first caller to mark a given id wins, no
+ * check-then-set race between near-simultaneous redeliveries.
+ *
+ * When Redis isn't configured (or errors), this returns false — never dedup
+ * — rather than risk dropping a real student's message over a cache hiccup.
+ * Matches the "cache failure must never break the request" rule used
+ * elsewhere in this codebase (see config/redis.ts).
+ */
+export async function isDuplicateMessage(msgId: string): Promise<boolean> {
+  const client = getRedis();
+  if (!client) return false;
+  try {
+    const result = await client.set(
+      `whatsapp:msgid:${msgId}`,
+      '1',
+      'EX',
+      MSG_ID_DEDUP_TTL_SECONDS,
+      'NX',
+    );
+    return result === null;
+  } catch (error) {
+    logger.error('[whatsapp] dedup check failed', error);
+    return false;
+  }
+}
 
 /**
  * True once outgoing sends are wired up (access token + phone number id

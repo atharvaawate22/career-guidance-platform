@@ -129,6 +129,39 @@ export const chatbotLimiter = rateLimit({
   },
 });
 
+/**
+ * Every request to the WhatsApp webhook originates from Meta's own servers,
+ * not the student's IP — an IP-keyed limiter (the default, used by every
+ * other limiter here) would rate-limit "Meta" as a single caller rather than
+ * any individual student. Key on the sender's WhatsApp number instead.
+ * Requests with no extractable message (e.g. status-update webhooks) share
+ * one generic bucket, which is fine since receiveMessage() already no-ops on
+ * non-text messages.
+ *
+ * Unlike every other limiter here, this one must NOT return 429: Meta treats
+ * any non-200 response as delivery failure and retries aggressively (see
+ * whatsapp.controller.ts's comment on responding 200 immediately), so a 429
+ * would make Meta retry the exact burst this limiter exists to throttle.
+ * Acknowledge with 200 and silently drop the message instead.
+ */
+export const whatsappWebhookLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: makeStore(),
+  keyGenerator: (req) => {
+    const body = req.body as {
+      entry?: Array<{ changes?: Array<{ value?: { messages?: Array<{ from?: string }> } }> }>;
+    };
+    const from = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
+    return from ?? 'no-message';
+  },
+  handler: (_req, res) => {
+    res.sendStatus(200);
+  },
+});
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,

@@ -40,6 +40,14 @@ export async function receiveMessage(req: Request, res: Response): Promise<void>
     for (const msg of messages) {
       if (msg.type !== 'text' || !msg.text?.body) continue;
 
+      // At-least-once delivery: Meta can redeliver the same message (retries
+      // for up to 7 days). Skip anything we've already answered rather than
+      // reply twice.
+      if (await whatsappService.isDuplicateMessage(msg.id)) {
+        logger.info('[whatsapp] skipping duplicate message', { id: msg.id, from: msg.from });
+        continue;
+      }
+
       const reply = await chatbotService.getReply(msg.text.body, 'whatsapp', msg.from);
       // The menu text already lists numbered options; every other reply gets
       // a short nudge instead of repeating the full menu on each message.
