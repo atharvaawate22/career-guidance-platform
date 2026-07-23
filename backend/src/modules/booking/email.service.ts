@@ -235,6 +235,7 @@ Booking Details:
 ----------------
 Date: ${date}
 Time: ${time}
+Duration: 20 minutes
 
 Category: ${booking.category}
 Branch Preference: ${booking.branchPreference}
@@ -247,12 +248,16 @@ ${booking.meetLink}
 Please join the meeting at the scheduled time using the link above.
 
 Important Notes:
+- Sessions run for 20 minutes, so please join a couple of minutes early
 - Keep your percentile card ready for reference
 - Prepare any specific questions about admissions
 - The counselor will guide you through college options
 
+If you need to reschedule or cancel, please contact us.
+
 Best regards,
-MHT CET Guidance Team
+CET Hub Team
+https://www.cethub.in
   `.trim();
 }
 
@@ -280,55 +285,64 @@ function formatEmailHTML(booking: BookingConfirmation): string {
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .header { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; padding: 28px 30px 26px; text-align: center; border-radius: 10px 10px 0 0; }
+    .brand { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; }
+    .brand-name { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
     .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
     .detail-row { margin: 10px 0; }
-    .label { font-weight: bold; color: #667eea; }
+    .label { font-weight: bold; color: #4f46e5; }
+    .duration-badge { display: inline-block; background: #eef2ff; color: #4338ca; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
     .meet-link { display: inline-block; background: #1a73e8; color: #ffffff !important; padding: 14px 32px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; font-size: 15px; letter-spacing: 0.3px; }
     .notes { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
     .footer { text-align: center; color: #666; margin-top: 20px; font-size: 12px; }
+    .footer a { color: #4f46e5; text-decoration: none; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>✅ Booking Confirmed!</h1>
+      <div class="brand">
+        <img src="https://www.cethub.in/logo-mark.svg" alt="" width="28" height="28" style="display: block;" />
+        <span class="brand-name">CET<span style="opacity: 0.75;">Hub</span></span>
+      </div>
+      <h1 style="margin: 0; font-size: 22px;">✅ Booking Confirmed!</h1>
     </div>
     <div class="content">
       <p>Dear <strong>${booking.studentName}</strong>,</p>
       <p>Your consultation booking has been confirmed!</p>
-      
+
       <div class="details">
         <h3>Booking Details</h3>
         <div class="detail-row"><span class="label">Date:</span> ${date}</div>
-        <div class="detail-row"><span class="label">Time:</span> ${time}</div>
+        <div class="detail-row"><span class="label">Time:</span> ${time}<span class="duration-badge">20 min</span></div>
         <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
         <div class="detail-row"><span class="label">Category:</span> ${booking.category}</div>
         <div class="detail-row"><span class="label">Branch Preference:</span> ${booking.branchPreference}</div>
         <div class="detail-row"><span class="label">Purpose of Meeting:</span> ${booking.meetingPurpose}</div>
         <div class="detail-row"><span class="label">Your Percentile:</span> ${booking.percentile}</div>
       </div>
-      
+
       <div style="text-align: center;">
         <a href="${booking.meetLink}" class="meet-link">Join Google Meet</a>
       </div>
-      
+
       <div class="notes">
         <strong>Important Notes:</strong>
         <ul>
+          <li>Sessions run for 20 minutes, so please join a couple of minutes early</li>
           <li>Keep your percentile card ready for reference</li>
           <li>Prepare any specific questions about admissions</li>
           <li>The counselor will guide you through college options</li>
         </ul>
       </div>
-      
-      <p>If you need to reschedule, please contact us.</p>
-      
-      <p>Best regards,<br><strong>MHT CET Guidance Team</strong></p>
+
+      <p>Need to reschedule or cancel? Please contact us.</p>
+
+      <p>Best regards,<br><strong>CET Hub Team</strong></p>
     </div>
     <div class="footer">
-      <p>This is an automated email. Please do not reply to this message.</p>
+      <p>This is an automated email from <a href="https://www.cethub.in">cethub.in</a>. Please do not reply to this message.</p>
     </div>
   </div>
 </body>
@@ -358,14 +372,14 @@ async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
       process.env.GOOGLE_CALENDAR_ID ||
       '';
 
-    const subject = 'Booking Confirmed - MHT CET Guidance';
+    const subject = 'Booking Confirmed - CET Hub';
     const encodedSubject = `=?UTF-8?B?${Buffer.from('✅ ' + subject).toString('base64')}?=`;
     const htmlBody = formatEmailHTML(booking);
     const textBody = formatEmailContent(booking);
 
     // Build RFC 2822 message
     const messageParts = [
-      `From: MHT CET Guidance <${from}>`,
+      `From: CET Hub <${from}>`,
       `To: ${booking.email}`,
       `Subject: ${encodedSubject}`,
       'MIME-Version: 1.0',
@@ -420,7 +434,7 @@ async function sendTemplateViaGmailAPI(
     const encodedSubject = `=?UTF-8?B?${Buffer.from(template.subject).toString('base64')}?=`;
 
     const messageParts = [
-      `From: MHT CET Guidance <${from}>`,
+      `From: CET Hub <${from}>`,
       `To: ${to}`,
       `Subject: ${encodedSubject}`,
       'MIME-Version: 1.0',
@@ -493,7 +507,7 @@ async function sendViaSMTP(booking: BookingConfirmation): Promise<boolean> {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: booking.email,
-      subject: '✅ Consultation Booking Confirmed - MHT CET Guidance',
+      subject: '✅ Consultation Booking Confirmed - CET Hub',
       text: mailContent,
       html: formatEmailHTML(booking),
     });
