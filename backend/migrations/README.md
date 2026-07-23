@@ -63,3 +63,4 @@ provisioned by applying `schema.sql` first, then letting the runner apply
 | `015_document_checklist.sql` | `document_checklist` table — seeded CAP admission document list for the chatbot |
 | `016_unanswered_queries.sql` | `unanswered_queries` table — logs chatbot fallback queries as the Phase 2 RAG content backlog |
 | `018_seed_cap_faqs.sql` | Seed nine reviewed CAP-guidance FAQ rows + append the TFWS opt-in clause (Phase 2 step a; idempotent) |
+| `019_faq_eligibility_closer.sql` | Append a "confirm against the official brochure" hedge to the Class XII eligibility FAQ (FAQ-audit outcome; idempotent) |
