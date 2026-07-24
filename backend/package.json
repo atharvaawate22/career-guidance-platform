@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "migrate": "ts-node src/config/migrations.ts",
+    "ingest:rag": "ts-node scripts/ingest_rag_chunks.ts",
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
     "start:prod": "pm2 start ecosystem.config.js --env production",

@@ -9,8 +9,8 @@ export async function postMessage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const { message } = req.body as { message: string };
-    const reply = await chatbotService.getReply(message, 'website');
+    const { message, sessionId } = req.body as { message: string; sessionId?: string };
+    const reply = await chatbotService.getReply(message, 'website', undefined, sessionId);
     res.json({ success: true, data: reply });
   } catch (error) {
     next(error);

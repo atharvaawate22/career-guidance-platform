@@ -15,6 +15,11 @@ interface ChatMessage {
   quickReplies?: QuickReply[];
 }
 
+const TEASER_DELAY_MS = 2200;
+const SESSION_ID_KEY = "avani_session_id";
+const TEASER_DISMISSED_KEY = "avani_teaser_dismissed";
+const OPENED_KEY = "avani_opened";
+
 function IconChat() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,9 +28,9 @@ function IconChat() {
   );
 }
 
-function IconClose() {
+function IconClose({ size = 22 }: { size?: number }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
@@ -39,11 +44,45 @@ function IconWhatsApp() {
   );
 }
 
-async function sendChatMessage(message: string): Promise<{ text: string; quickReplies?: QuickReply[] }> {
+/** Avani's avatar — a plain gradient initial, no external asset. */
+function Avatar({ size = 32 }: { size?: number }) {
+  return (
+    <div
+      className="rounded-full flex items-center justify-center text-white font-semibold shrink-0"
+      style={{
+        width: size,
+        height: size,
+        fontSize: Math.round(size * 0.42),
+        background: "linear-gradient(135deg, var(--primary-500), var(--primary-700))",
+      }}
+    >
+      A
+    </div>
+  );
+}
+
+function getOrCreateSessionId(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    let id = sessionStorage.getItem(SESSION_ID_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem(SESSION_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return undefined;
+  }
+}
+
+async function sendChatMessage(
+  message: string,
+  sessionId?: string,
+): Promise<{ text: string; quickReplies?: QuickReply[] }> {
   const r = await fetch(`${API_BASE_URL}/api/v1/chatbot/message`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, ...(sessionId ? { sessionId } : {}) }),
   });
   const d = await r.json();
   if (!d.success) throw new Error(d.error?.message || "Chat request failed");
@@ -52,10 +91,12 @@ async function sendChatMessage(message: string): Promise<{ text: string; quickRe
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
+  const [showTeaser, setShowTeaser] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [waLink, setWaLink] = useState<string | null>(null);
+  const [sessionId] = useState<string | undefined>(getOrCreateSessionId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
 
@@ -71,17 +112,58 @@ export default function ChatWidget() {
   }, []);
 
   useEffect(() => {
+    let alreadySeen = false;
+    try {
+      alreadySeen = sessionStorage.getItem(OPENED_KEY) === "1" || sessionStorage.getItem(TEASER_DISMISSED_KEY) === "1";
+    } catch {
+      alreadySeen = false;
+    }
+    if (alreadySeen) return;
+    const timer = setTimeout(() => setShowTeaser(true), TEASER_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const markOpened = () => {
+    try {
+      sessionStorage.setItem(OPENED_KEY, "1");
+    } catch {
+      // Best-effort — not opening on repeat visits is a minor cosmetic gap, not worth failing over.
+    }
+  };
+
+  const dismissTeaser = () => {
+    setShowTeaser(false);
+    try {
+      sessionStorage.setItem(TEASER_DISMISSED_KEY, "1");
+    } catch {
+      // See markOpened.
+    }
+  };
+
+  const openFromTeaser = () => {
+    setShowTeaser(false);
+    markOpened();
+    setOpen(true);
+  };
+
+  const toggleOpen = () => {
+    setShowTeaser(false);
+    if (!open) markOpened();
+    setOpen((v) => !v);
+  };
+
+  useEffect(() => {
     if (open && !startedRef.current) {
       startedRef.current = true;
       setLoading(true);
-      sendChatMessage("menu")
+      sendChatMessage("menu", sessionId)
         .then((reply) => setMessages([{ role: "bot", text: reply.text, quickReplies: reply.quickReplies }]))
         .catch(() =>
           setMessages([{ role: "bot", text: "Sorry, I couldn't connect. Please try again in a moment." }]),
         )
         .finally(() => setLoading(false));
     }
-  }, [open]);
+  }, [open, sessionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -94,7 +176,7 @@ export default function ChatWidget() {
     setInput("");
     setLoading(true);
     try {
-      const reply = await sendChatMessage(trimmed);
+      const reply = await sendChatMessage(trimmed, sessionId);
       setMessages((prev) => [...prev, { role: "bot", text: reply.text, quickReplies: reply.quickReplies }]);
     } catch {
       setMessages((prev) => [
@@ -108,9 +190,46 @@ export default function ChatWidget() {
 
   return (
     <>
+      {showTeaser && !open && (
+        <div className="fixed bottom-24 right-5 z-50 max-w-[250px] animate-fade-up">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={openFromTeaser}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") openFromTeaser();
+            }}
+            className="relative rounded-2xl rounded-br-sm px-4 py-3 pr-7 text-sm leading-relaxed cursor-pointer"
+            style={{
+              background: "var(--bg-primary)",
+              border: "1px solid var(--slate-200)",
+              boxShadow: "0 8px 28px rgba(15,23,42,0.16)",
+              color: "var(--slate-800)",
+            }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissTeaser();
+              }}
+              aria-label="Dismiss"
+              className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full transition-colors"
+              style={{ color: "var(--slate-400)" }}
+            >
+              <IconClose size={12} />
+            </button>
+            <div className="flex items-center gap-2 mb-1">
+              <Avatar size={20} />
+              <span className="text-xs font-semibold" style={{ color: "var(--primary-700)" }}>Avani</span>
+            </div>
+            Hi, I&apos;m Avani — got a question about MHT-CET admissions?
+          </div>
+        </div>
+      )}
+
       <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close chat" : "Open chat"}
+        onClick={toggleOpen}
+        aria-label={open ? "Close chat" : "Open chat with Avani"}
         aria-expanded={open}
         className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-200 hover:scale-105 active:scale-95"
         style={{
@@ -124,7 +243,7 @@ export default function ChatWidget() {
       {open && (
         <div
           role="dialog"
-          aria-label="CET Hub chat assistant"
+          aria-label="Avani, CET Hub's admissions assistant"
           className="fixed bottom-24 right-5 z-50 w-[92vw] max-w-[380px] rounded-2xl flex flex-col overflow-hidden animate-scale-in"
           style={{
             height: "min(70vh, 560px)",
@@ -138,9 +257,18 @@ export default function ChatWidget() {
             className="px-4 py-3.5 flex items-center justify-between shrink-0"
             style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
           >
-            <div>
-              <p className="text-sm font-semibold text-white">CET Hub Assistant</p>
-              <p className="text-[11px] text-white/75">Cutoffs · CAP dates · documents</p>
+            <div className="flex items-center gap-2.5">
+              <div className="relative shrink-0">
+                <Avatar size={36} />
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse-dot"
+                  style={{ background: "#22c55e", border: "2px solid var(--primary-600)" }}
+                />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white leading-tight">Avani</p>
+                <p className="text-[11px] text-white/75 leading-tight">Your MHT-CET admissions guide</p>
+              </div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -154,8 +282,9 @@ export default function ChatWidget() {
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-3" style={{ background: "var(--bg-secondary)" }}>
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-[85%]">
+              <div key={i} className={`flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                {m.role === "bot" && <Avatar size={24} />}
+                <div className="max-w-[80%]">
                   <div
                     className="px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line"
                     style={
@@ -173,7 +302,7 @@ export default function ChatWidget() {
                           key={qr.number}
                           onClick={() => handleSend(String(qr.number))}
                           disabled={loading}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                          className="px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-50"
                           style={{ background: "var(--primary-50)", color: "var(--primary-700)", border: "1px solid var(--primary-200)" }}
                         >
                           {qr.number}. {qr.label}
@@ -185,8 +314,9 @@ export default function ChatWidget() {
               </div>
             ))}
             {loading && (
-              <div className="flex justify-start">
-                <div className="px-3.5 py-2.5 rounded-2xl" style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)" }}>
+              <div className="flex items-end gap-2 justify-start">
+                <Avatar size={24} />
+                <div className="px-3.5 py-2.5 rounded-2xl" style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)", borderBottomLeftRadius: 4 }}>
                   <div className="flex gap-1">
                     <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--slate-400)", animationDelay: "0ms" }} />
                     <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--slate-400)", animationDelay: "150ms" }} />
@@ -221,7 +351,7 @@ export default function ChatWidget() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your question..."
+              placeholder="Ask Avani anything..."
               maxLength={500}
               disabled={loading}
               className="flex-1 px-3.5 py-2.5 rounded-xl text-sm outline-none disabled:opacity-60"

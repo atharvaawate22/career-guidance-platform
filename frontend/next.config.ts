@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Security and caching headers applied to every response.
   async headers() {
-    return [
+    const baseHeaders = [
       {
         source: "/(.*)",
         headers: [
@@ -21,8 +21,17 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
       },
-      {
-        // Static assets — aggressive long-term caching (Next.js includes content hash in filenames)
+    ];
+
+    // Production only: static assets get aggressive long-term caching because
+    // Next.js content-hashes production filenames, so a code change always
+    // gets a new URL. In dev, Turbopack's chunk URLs are path-stable (NOT
+    // content-hashed) — an `immutable, max-age=1yr` header there tells the
+    // browser to never revalidate a chunk again for an entire year, so a
+    // long-lived dev browser profile can get permanently stuck serving a
+    // pre-edit version of a component with no reload able to fix it.
+    if (process.env.NODE_ENV === "production") {
+      baseHeaders.push({
         source: "/_next/static/(.*)",
         headers: [
           {
@@ -30,8 +39,10 @@ const nextConfig: NextConfig = {
             value: "public, max-age=31536000, immutable",
           },
         ],
-      },
-    ];
+      });
+    }
+
+    return baseHeaders;
   },
 };
 

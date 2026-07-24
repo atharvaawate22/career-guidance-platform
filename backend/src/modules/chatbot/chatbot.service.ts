@@ -4,15 +4,19 @@
  * webhook call getReply() and render the ChatReply into their own output
  * format; no channel-specific logic lives here.
  *
- * Deliberately stateless: no per-session/per-user conversation state is
- * stored anywhere (no Redis session, no DB row). The root menu numbers are
- * globally fixed and never nested, so a bare "1"–"6" reply is unambiguous
- * without remembering what was shown before. This keeps Phase 1 genuinely
- * rule-based (each message is classified independently) and avoids building
- * session/state infrastructure before there's a proven need for it.
+ * Mostly stateless: each message is still classified independently, and the
+ * root menu numbers are globally fixed and never nested, so a bare "1"–"6"
+ * reply is unambiguous without remembering what was shown before. The one
+ * scoped exception is cutoff-lookup slot memory (see CHAT_SLOTS_TTL_SECONDS
+ * below) — a short-TTL Redis entry, keyed by a client-generated sessionId,
+ * remembering the last resolved college/branch/category so a bare follow-up
+ * like "computer" after "cutoff for COEP" doesn't have to repeat the college.
+ * Only the website channel supplies a sessionId; WhatsApp gets the same
+ * stateless behavior as before.
  */
 import * as repo from './chatbot.repository';
 import * as gemini from './gemini.service';
+import { cacheGet, cacheSet } from '../../config/redis';
 import { ACTIVE_CUTOFF_YEAR, ACTIVE_CAP_SCHEDULE_YEAR } from '../../config/constants';
 import {
   MENU_OPTIONS,
@@ -291,11 +295,33 @@ async function resolveCollege(
 const LADIES_QUOTA_PATTERN =
   /\bladies\b|\bwomen'?s?\s+(quota|seat|seats|category)\b|\bfemale\s+(quota|seat|seats|category)\b/;
 
-async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
-  const words = normalized.split(/\s+/).filter(Boolean);
+/** Remembered cutoff-lookup context for a chat session — see the file header comment. */
+interface ChatSlots {
+  collegeCode?: string;
+  collegeName?: string;
+  branchHint?: string;
+  categoryToken?: string;
+}
 
-  const categoryToken = findAliasToken(words, CATEGORY_ALIASES) ?? DEFAULT_CATEGORY;
-  const branchHint = findAliasToken(words, BRANCH_ALIASES);
+/** Short — a follow-up is expected within the same conversational burst, not a returning-visitor's next session. */
+const CHAT_SLOTS_TTL_SECONDS = 20 * 60;
+
+function slotsKey(sessionId: string): string {
+  return `chatbot:slots:${sessionId}`;
+}
+
+async function loadSlots(sessionId: string | undefined): Promise<ChatSlots> {
+  if (!sessionId) return {};
+  return (await cacheGet<ChatSlots>(slotsKey(sessionId))) ?? {};
+}
+
+async function handleCutoffIntent(normalized: string, sessionId?: string): Promise<ChatReply> {
+  const words = normalized.split(/\s+/).filter(Boolean);
+  const slots = await loadSlots(sessionId);
+
+  const explicitCategory = findAliasToken(words, CATEGORY_ALIASES);
+  const categoryToken = explicitCategory ?? slots.categoryToken ?? DEFAULT_CATEGORY;
+  const branchHint = findAliasToken(words, BRANCH_ALIASES) ?? slots.branchHint;
   const ladiesQuota = LADIES_QUOTA_PATTERN.test(normalized);
   const categoryLabel = ladiesQuota ? `${categoryToken} category (Ladies quota)` : `${categoryToken} category`;
 
@@ -305,7 +331,13 @@ async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
   if (ambiguous?.prompt) {
     return withMenu(ambiguous.prompt, true);
   }
-  const collegeMatches = ambiguous?.resolved ?? (await resolveCollege(normalized, words));
+  let collegeMatches = ambiguous?.resolved ?? (await resolveCollege(normalized, words));
+
+  // Nothing in THIS message named a college — fall back to what the session
+  // last resolved, so a bare "computer" after "cutoff for COEP" still works.
+  if (collegeMatches.length === 0 && slots.collegeCode && slots.collegeName) {
+    collegeMatches = [{ college_code: slots.collegeCode, name: slots.collegeName }];
+  }
 
   if (collegeMatches.length === 0) {
     return withMenu(
@@ -320,6 +352,19 @@ async function handleCutoffIntent(normalized: string): Promise<ChatReply> {
       `I found a few matches — which one did you mean?\n${names}\n\nTry again with the full college name.`,
       true,
     );
+  }
+
+  // Exactly one college resolved (this message or remembered) — worth
+  // remembering from here on, even if the branch still isn't known yet.
+  if (sessionId) {
+    const newSlots: ChatSlots = {
+      ...slots,
+      collegeCode: collegeMatches[0].college_code,
+      collegeName: collegeMatches[0].name,
+    };
+    if (branchHint) newSlots.branchHint = branchHint;
+    if (explicitCategory) newSlots.categoryToken = explicitCategory;
+    await cacheSet(slotsKey(sessionId), newSlots, CHAT_SLOTS_TTL_SECONDS);
   }
 
   if (!branchHint) {
@@ -471,19 +516,45 @@ function handleCounselorIntent(): ChatReply {
  */
 function handlePersonalizedDefer(): ChatReply {
   return withMenu(
-    'That depends on your specific percentile, category, and what you want from your degree — ' +
-      'the kind of decision worth personalising rather than getting a one-size-fits-all answer. ' +
-      'Use the College Predictor at /predictor to see which colleges fit your score, or book a free ' +
-      'session at /book to talk a branch or college choice through with a counselor.',
+    "That really depends on your percentile, category, and what you actually want from your degree — " +
+      "it's too personal a call for me to flatten into one generic answer. Try the College Predictor at " +
+      '/predictor to see which colleges fit your score, or book a free session at /book and talk it ' +
+      'through properly with a counselor.',
     true,
   );
 }
 
-function handleFeeDefer(): ChatReply {
+/**
+ * The seat acceptance fee is flat across every category and depends only on
+ * how many times the student has accepted a NEW seat in CAP (1st / 2nd via
+ * Betterment / 3rd via Betterment) — see migrations/021_fee_schedule.sql for
+ * the sourced figures. There's no category to ask for, and the full answer
+ * is short enough to just state directly rather than slot-filling first.
+ */
+async function handleFeeIntent(): Promise<ChatReply> {
+  const rows = await repo.getFeeSchedule(ACTIVE_CAP_SCHEDULE_YEAR);
+  const confirmed = rows.filter((r) => r.is_confirmed);
+
+  if (confirmed.length === 0) {
+    return withMenu(
+      `I don't have the official ${ACTIVE_CAP_SCHEDULE_YEAR} seat acceptance fee published yet. ` +
+        'Check /updates or the CAP information brochure on the CET Cell website for the latest amounts.',
+      true,
+    );
+  }
+
+  const lines = confirmed
+    .map((r) => `${r.seat_sequence}. ${r.label}: ₹${r.amount_inr.toLocaleString('en-IN')}`)
+    .join('\n');
+  const source = confirmed.find((r) => r.source_url)?.source_url;
+
   return withMenu(
-    "Fee amounts change from cycle to cycle and vary by category, so I don't quote figures here. " +
-      'Please check the latest official amounts in /updates or the CAP information brochure on the ' +
-      'CET Cell website.',
+    `The CAP ${ACTIVE_CAP_SCHEDULE_YEAR} seat acceptance fee is the same for every category — it only ` +
+      "depends on how many times you've accepted a new seat:\n\n" +
+      `${lines}\n\n` +
+      "It's non-refundable and paid separately each time you accept a seat. Your first-ever allotment " +
+      "is always ₹1,000 no matter which CAP round it happens in." +
+      (source ? `\n\nSource: ${source}` : ''),
     true,
   );
 }
@@ -603,7 +674,7 @@ const MENU_TRIGGERS = new Set(['hi', 'hello', 'hey', 'hii', 'menu', 'help', 'sta
 const PERSONALIZED_RECO_PATTERN =
   /\bfor me\b|\bfor my (rank|percentile|score|marks|category|situation|case|profile)\b|\brecommend\b|\bsuggest (a |an |me )?(college|branch|course)\b|\bbest (college|branch|course) for\b|\bshould i (pick|choose|take|opt for|go for|prefer|select)\b/;
 
-/** Fee-amount questions. Dates are already deferred by the CAP-schedule intent, so this covers the one remaining "number" case. */
+/** Fee-amount questions — routed to handleFeeIntent() (real, sourced figures; see migrations/021_fee_schedule.sql). */
 const FEE_PATTERN =
   /\bhow much (is|are|does|will|would|to pay|do i pay)\b|\bfee amount\b|\bfees? (amount|cost|structure|details)\b|\bseat acceptance fee\b|\bwhat (is|are) the fees?\b|\bcost of admission\b|\badmission fee\b/;
 
@@ -613,7 +684,7 @@ const DOCUMENTS_PATTERN = /\b(document|documents|checklist|papers needed|require
 const PREDICTOR_PATTERN = /\b(chance|chances|eligible|eligibility|which college|predict|predictor)\b/;
 const COUNSELOR_PATTERN = /\b(counselor|counsellor|talk to|human|real person|agent|call me|speak to)\b/;
 
-type IntentHandler = (normalized: string) => ChatReply | Promise<ChatReply>;
+type IntentHandler = (normalized: string, sessionId?: string) => ChatReply | Promise<ChatReply>;
 
 /**
  * Ordered keyword rules — first match wins. Returns the matching handler (not
@@ -630,6 +701,7 @@ type IntentHandler = (normalized: string) => ChatReply | Promise<ChatReply>;
  */
 const KEYWORD_INTENTS: Array<{ pattern: RegExp; handler: IntentHandler }> = [
   { pattern: PREDICTOR_PATTERN, handler: () => handlePredictorIntent() },
+  { pattern: FEE_PATTERN, handler: () => handleFeeIntent() },
   { pattern: CUTOFF_PATTERN, handler: handleCutoffIntent },
   { pattern: CAP_DATE_PATTERN, handler: handleCapDatesIntent },
   { pattern: DOCUMENTS_PATTERN, handler: () => handleDocumentsIntent() },
@@ -647,6 +719,7 @@ export async function getReply(
   rawMessage: string,
   channel: ChatChannel,
   contactIdentifier?: string,
+  sessionId?: string,
 ): Promise<ChatReply> {
   const normalized = rawMessage.trim().toLowerCase();
 
@@ -677,13 +750,13 @@ export async function getReply(
     }
   }
 
-  // Defer branches run before the keyword/FAQ router: personalized
-  // recommendations and fee amounts are never answered from static content.
+  // Personalized-recommendation questions are never answered from static
+  // content — this defer still runs before the keyword/FAQ router. Fee
+  // questions used to get the same unconditional treatment, but now that the
+  // real amounts are looked up (see handleFeeIntent/FEE_PATTERN in
+  // KEYWORD_INTENTS below) there's no reason to intercept them early.
   if (PERSONALIZED_RECO_PATTERN.test(normalized)) {
     return handlePersonalizedDefer();
-  }
-  if (FEE_PATTERN.test(normalized)) {
-    return handleFeeDefer();
   }
 
   // The keyword router and the FAQ search are evaluated together and compared
@@ -705,7 +778,7 @@ export async function getReply(
     if (primary && primary.confidence >= FAQ_OVERRIDE_CONFIDENCE) {
       return withMenu(primary.answer, true);
     }
-    return keywordIntent(normalized);
+    return keywordIntent(normalized, sessionId);
   }
 
   if (primary && primary.confidence >= FAQ_MIN_CONFIDENCE) {
@@ -716,6 +789,26 @@ export async function getReply(
   // word_similarity rescue before giving up ("what is TFWS", "what is float").
   if (rescue) {
     return withMenu(rescue.answer, true);
+  }
+
+  // A bare reply like "computer" or "obc" never contains "cutoff"/"percentile",
+  // so CUTOFF_PATTERN (and therefore the whole keyword router) never fires for
+  // it — without this, a session that just asked "which branch?" for a
+  // remembered college would dead-end every follow-up straight into the
+  // generic fallback. Deliberately narrow (EVERY word must be a recognised
+  // branch/category alias, not just one) so it only catches genuine bare
+  // slot-answers, never a real question that happens to contain one of those
+  // words ("what is TFWS" is already resolved by the rescue above).
+  if (sessionId) {
+    const pendingSlots = await loadSlots(sessionId);
+    if (pendingSlots.collegeCode) {
+      const words = normalized.split(/\s+/).filter(Boolean);
+      const isPureSlotAnswer =
+        words.length > 0 && words.every((w) => BRANCH_ALIASES[w] || CATEGORY_ALIASES[w]);
+      if (isPureSlotAnswer) {
+        return handleCutoffIntent(normalized, sessionId);
+      }
+    }
   }
 
   // Last resort: RAG over the seat-mechanics corpus (Phase 2 step b). Runs

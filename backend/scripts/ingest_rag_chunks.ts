@@ -1,15 +1,22 @@
 /**
- * One-time (re-runnable) ingestion of the Phase 2 RAG corpus into
- * rag_chunks. Embeds all 10 chunks in a single batched call to the `embed`
- * Supabase Edge Function (gte-small, 384-dim) and upserts by topic_label, so
- * re-running after an edit to a chunk's text updates that row in place
- * instead of appending a duplicate.
+ * Re-runnable ingestion of the RAG corpus into rag_chunks: the 10 hand-
+ * curated CAP-mechanics chunks below, PLUS a live chunk per row of the
+ * `updates` and `resources` tables — so RAG (and therefore Gemini's grounded
+ * answers) stays aware of whatever is actually published on /updates and
+ * /resources, not just the original curated set. Everything is embedded in
+ * one batched call to the `embed` Supabase Edge Function (gte-small,
+ * 384-dim) and upserted by topic_label, so re-running after an edit updates
+ * that row in place instead of appending a duplicate. Rows for
+ * updates/resources that have since been deleted or deactivated are removed
+ * from rag_chunks at the end of each run, so stale content never lingers.
  *
- * Source text: docs/rag-source-content.md (CAP 2026 Process Guide §3-4).
- * Chunk boundaries reviewed and approved against that source — see
- * CHATBOT_ARCHITECTURE.md §3.5 item 2.
+ * Curated chunks' source text: docs/rag-source-content.md (CAP 2026 Process
+ * Guide §3-4). Chunk boundaries reviewed and approved against that source —
+ * see CHATBOT_ARCHITECTURE.md §3.5 item 2.
  *
- * Run from backend/:  npx ts-node scripts/ingest_rag_chunks.ts
+ * The daily `mhtcet-updates-watch` scheduled task re-runs this after adding
+ * any new /updates rows, so newly published notices become searchable within
+ * the same day. Also runnable on demand: `npm run ingest:rag` from backend/.
  */
 import path from 'path';
 import dotenv from 'dotenv';
@@ -117,6 +124,61 @@ function toVectorLiteral(embedding: number[]): string {
   return `[${embedding.join(',')}]`;
 }
 
+/** Free-tier `embed` edge function runs out of compute on a large single batch — split into small sequential batches instead. */
+const EMBED_BATCH_SIZE = 8;
+
+async function embedAll(texts: string[]): Promise<number[][]> {
+  const out: number[][] = [];
+  for (let i = 0; i < texts.length; i += EMBED_BATCH_SIZE) {
+    const batch = texts.slice(i, i + EMBED_BATCH_SIZE);
+    out.push(...(await embedBatch(batch)));
+  }
+  return out;
+}
+
+/** One chunk per `updates` row — official notices, in Avani's ground-truth corpus. */
+async function fetchUpdateChunks(pool: Pool): Promise<ChunkSeed[]> {
+  const { rows } = await pool.query<{
+    id: string;
+    title: string;
+    content: string;
+    published_date: string;
+    source_url: string | null;
+  }>('SELECT id, title, content, published_date, source_url FROM updates ORDER BY published_date DESC');
+
+  return rows.map((r) => ({
+    topicLabel: `update:${r.id}`,
+    sourceSection: 'updates',
+    content:
+      `Official CET Cell update — ${r.title}\n` +
+      `Published: ${new Date(r.published_date).toISOString().slice(0, 10)}\n` +
+      r.content +
+      (r.source_url ? `\nOfficial source: ${r.source_url}` : ''),
+  }));
+}
+
+/** One chunk per active `resources` row — official documents/links listed on /resources. */
+async function fetchResourceChunks(pool: Pool): Promise<ChunkSeed[]> {
+  const { rows } = await pool.query<{
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    file_url: string;
+  }>(
+    'SELECT id, title, description, category, file_url FROM resources WHERE is_active = true ORDER BY created_at DESC',
+  );
+
+  return rows.map((r) => ({
+    topicLabel: `resource:${r.id}`,
+    sourceSection: 'resources',
+    content:
+      `Official resource — ${r.title} (${r.category})\n` +
+      r.description +
+      (r.file_url ? `\nDocument link: ${r.file_url}` : ''),
+  }));
+}
+
 async function main() {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY must be set in backend/.env');
@@ -125,26 +187,35 @@ async function main() {
     throw new Error('DATABASE_URL must be set in backend/.env');
   }
 
-  console.log(`Embedding ${CHUNKS.length} chunks via the embed edge function...`);
-  const embeddings = await embedBatch(CHUNKS.map((c) => c.content));
-  if (embeddings.length !== CHUNKS.length) {
-    throw new Error(`Expected ${CHUNKS.length} embeddings, got ${embeddings.length}`);
-  }
-  for (const e of embeddings) {
-    if (e.length !== 384) {
-      throw new Error(`Expected 384-dim embedding, got ${e.length}`);
-    }
-  }
-  console.log('All embeddings received, 384-dim each.');
-
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
   });
 
   try {
-    for (let i = 0; i < CHUNKS.length; i++) {
-      const chunk = CHUNKS[i];
+    const [updateChunks, resourceChunks] = await Promise.all([
+      fetchUpdateChunks(pool),
+      fetchResourceChunks(pool),
+    ]);
+    const allChunks = [...CHUNKS, ...updateChunks, ...resourceChunks];
+
+    console.log(
+      `Embedding ${allChunks.length} chunks (${CHUNKS.length} curated + ${updateChunks.length} updates + ` +
+        `${resourceChunks.length} resources) via the embed edge function, in batches of ${EMBED_BATCH_SIZE}...`,
+    );
+    const embeddings = await embedAll(allChunks.map((c) => c.content));
+    if (embeddings.length !== allChunks.length) {
+      throw new Error(`Expected ${allChunks.length} embeddings, got ${embeddings.length}`);
+    }
+    for (const e of embeddings) {
+      if (e.length !== 384) {
+        throw new Error(`Expected 384-dim embedding, got ${e.length}`);
+      }
+    }
+    console.log('All embeddings received, 384-dim each.');
+
+    for (let i = 0; i < allChunks.length; i++) {
+      const chunk = allChunks[i];
       await pool.query(
         `INSERT INTO rag_chunks (topic_label, source_section, content, embedding, updated_at)
          VALUES ($1, $2, $3, $4::vector, NOW())
@@ -156,6 +227,20 @@ async function main() {
         [chunk.topicLabel, chunk.sourceSection, chunk.content, toVectorLiteral(embeddings[i])],
       );
       console.log(`Upserted: ${chunk.topicLabel}`);
+    }
+
+    // Drop chunks for updates/resources that were deleted or deactivated since
+    // the last run, so RAG can never ground an answer on stale content.
+    const staleUpdates = await pool.query(
+      `DELETE FROM rag_chunks WHERE topic_label LIKE 'update:%' AND substring(topic_label from 8) NOT IN (SELECT id::text FROM updates)`,
+    );
+    const staleResources = await pool.query(
+      `DELETE FROM rag_chunks WHERE topic_label LIKE 'resource:%' AND substring(topic_label from 10) NOT IN (SELECT id::text FROM resources WHERE is_active = true)`,
+    );
+    if ((staleUpdates.rowCount ?? 0) > 0 || (staleResources.rowCount ?? 0) > 0) {
+      console.log(
+        `Removed ${staleUpdates.rowCount ?? 0} stale update chunk(s) and ${staleResources.rowCount ?? 0} stale resource chunk(s).`,
+      );
     }
 
     const { rows } = await pool.query('SELECT count(*)::int AS count FROM rag_chunks');

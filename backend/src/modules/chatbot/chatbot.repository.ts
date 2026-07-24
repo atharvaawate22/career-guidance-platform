@@ -28,6 +28,15 @@ export interface DocumentChecklistRow {
   description: string | null;
 }
 
+export interface FeeScheduleRow {
+  seat_sequence: number;
+  label: string;
+  amount_inr: number;
+  is_confirmed: boolean;
+  notes: string | null;
+  source_url: string | null;
+}
+
 export interface FaqScoreRow {
   question: string;
   answer: string;
@@ -154,6 +163,18 @@ export async function getCapSchedule(
      ORDER BY cap_round ASC, start_date ASC NULLS LAST`,
     values,
     { name: 'chatbot.getCapSchedule' },
+  );
+  return result.rows;
+}
+
+export async function getFeeSchedule(academicYear: number): Promise<FeeScheduleRow[]> {
+  const result = await query(
+    `SELECT seat_sequence, label, amount_inr, is_confirmed, notes, source_url
+     FROM fee_schedule
+     WHERE academic_year = $1
+     ORDER BY seat_sequence ASC`,
+    [academicYear],
+    { name: 'chatbot.getFeeSchedule' },
   );
   return result.rows;
 }
