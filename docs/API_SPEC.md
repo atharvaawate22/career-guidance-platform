@@ -9,8 +9,9 @@
 - No business logic inside controllers
 - All validation handled at API boundary
 
-Base URL (example):
-`/api`
+Base URL: `/api/v1` — this prefix is live and enforced, not aspirational.
+Any request under `/api/*` that isn't `/api/v1/*` is rejected by
+`backend/src/server.ts` before reaching a route handler.
 
 ---
 
@@ -18,14 +19,16 @@ Base URL (example):
 
 ### Success Response
 
+```
 {
 "success": true,
 "data": { ... }
 }
-
+```
 
 ### Error Response
 
+```
 {
 "success": false,
 "error": {
@@ -33,9 +36,9 @@ Base URL (example):
 "message": "Descriptive error message"
 }
 }
+```
 
-
-All endpoints must follow this format.
+All endpoints follow this format.
 
 ---
 
@@ -43,65 +46,30 @@ All endpoints must follow this format.
 
 ### 3.1 Get CET Updates
 
-**GET** `/api/updates`
+**GET** `/api/v1/updates`
 
-Query Parameters (optional):
-- page
-- limit
-
-Response:
-
-{
-"success": true,
-"data": [
-{
-"id": "uuid",
-"title": "Update title",
-"content": "Update content",
-"official_link": "url",
-"published_date": "YYYY-MM-DD"
-}
-]
-}
-
-
----
+Query Parameters (optional): `page`, `limit`
 
 ### 3.2 Get Cutoffs
 
-**GET** `/api/cutoffs`
+**GET** `/api/v1/cutoffs`
 
-Query Parameters:
-- year
-- branch
-- category
-- gender
-- home_university
-- college_name
+Query parameters filter by college/course/category/CAP round rather than the
+old flat branch/percentile shape — see
+[`CUTOFFS_DB_REDESIGN.md`](CUTOFFS_DB_REDESIGN.md) §3 for the current
+`colleges` / `courses` / `cutoffs` schema and response fields
+(`cap_round`, `allotment_pool`, `category_code`, `closing_rank`,
+`closing_percentile`, etc).
 
-Response:
-
-{
-"success": true,
-"data": [
-{
-"college_name": "College Name",
-"branch": "Computer Engineering",
-"category": "OPEN",
-"percentile": 95.34
-}
-]
-}
-
-
----
+**GET** `/api/v1/cutoffs/meta` — filter metadata (available years, colleges, categories)
 
 ### 3.3 College Predictor
 
-**POST** `/api/predict`
+**POST** `/api/v1/predict`
 
 Request Body:
 
+```
 {
 "percentile": 92.5,
 "category": "OPEN",
@@ -109,10 +77,11 @@ Request Body:
 "home_university": "SPPU",
 "preferred_branches": ["Computer Engineering", "IT"]
 }
-
+```
 
 Response:
 
+```
 {
 "success": true,
 "data": {
@@ -121,155 +90,114 @@ Response:
 "dream": [ ... ]
 }
 }
+```
 
+Classification logic handled entirely within the predictor service
+(`backend/src/modules/predictor`).
 
-Classification logic handled entirely within predictor service.
+### 3.4 Booking
+
+**GET** `/api/v1/bookings/slots` — available slots
+**POST** `/api/v1/bookings` — create a booking
+
+Response includes a `booking_id` and a Google Meet link (mock link generated
+if Google Calendar credentials are not configured). Booking still returns
+success if the confirmation email fails to send; the failure is logged
+internally.
+
+### 3.5 Guides
+
+**GET** `/api/v1/guides` — list guides
+**POST** `/api/v1/guides/download` — download (lead capture; `guide_id` in body)
+
+### 3.6 Resources
+
+**GET** `/api/v1/resources`
+
+### 3.7 FAQs
+
+**GET** `/api/v1/faqs`
+
+### 3.8 Settings (public)
+
+**GET** `/api/v1/settings/booking-slots`
+**GET** `/api/v1/settings/announcement`
+**GET** `/api/v1/settings/contact-info`
+
+### 3.9 Chatbot
+
+**POST** `/api/v1/chatbot`
+
+Rule-based FAQ matching first; if confidence is below threshold, falls
+through to RAG retrieval + Gemini generation
+(`backend/src/modules/chatbot/gemini.service.ts`). Unanswered/low-confidence
+queries are logged to `unanswered_queries` for admin review. See
+[`CHATBOT_ARCHITECTURE.md`](../CHATBOT_ARCHITECTURE.md) for the full
+decision flow, confidence thresholds, and RAG pipeline.
+
+### 3.10 WhatsApp Webhook
+
+**GET** `/api/v1/whatsapp/webhook` — Meta verification handshake
+**POST** `/api/v1/whatsapp/webhook` — incoming message receipt
+
+Rate-limited per `wa_id` (not IP); always returns `200` even when
+rate-limited, since Meta treats non-200 as delivery failure and retries.
+Incoming `msg.id` is deduped via Redis (`SET NX`, 7-day TTL); fails open
+(processes the message) if Redis is unavailable. See
+[`CHATBOT_ARCHITECTURE.md`](../CHATBOT_ARCHITECTURE.md) §6.
 
 ---
 
-### 3.4 Create Booking
+## 4. Auth Endpoints
 
-**POST** `/api/bookings`
+**POST** `/api/v1/admin/login`
 
 Request Body:
 
-{
-"student_name": "Name",
-"email": "email@example.com
-",
-"phone": "1234567890",
-"percentile": 90.25,
-"category": "OBC",
-"branch_preference": "Computer Engineering",
-"meeting_time": "2026-06-20T14:00:00Z"
-}
-
-Response:
-
-{
-"success": true,
-"data": {
-"booking_id": "uuid",
-"meet_link": "https://meet.google.com/
-..."
-}
-}
-
-
-If email fails, booking still returns success but logs failure internally.
-
----
-
-### 3.5 Download Guide (Lead Capture)
-
-**POST** `/api/guides/download`
-
-Request Body:
-
-{
-"guide_id": "uuid",
-"name": "Student Name",
-"email": "email@example.com
-",
-"percentile": 88.5
-}
-
-Response:
-
-{
-"success": true,
-"data": {
-"file_url": "https://..."
-}
-}
-
-
----
-
-## 4. Admin Endpoints
-
-All admin endpoints require authentication and role-based authorization.
-
-Authentication:
-JWT-based token validation via middleware.
-
----
-
-### 4.1 Create Update
-
-**POST** `/api/admin/updates`
-
-Request Body:
-{
-"title": "Update title",
-"content": "Detailed update content",
-"official_link": "https://...",
-"published_date": "YYYY-MM-DD"
-}
-
-
----
-
-### 4.2 Upload / Insert Cutoff Data
-
-**POST** `/api/admin/cutoffs`
-
-Request Body:
-Array of cutoff records.
-
----
-
-### 4.3 View Bookings
-
-**GET** `/api/admin/bookings`
-
-Query Parameters:
-- status
-- date_range
-
----
-
-### 4.4 Manage Guides
-
-**POST** `/api/admin/guides`
-**PUT** `/api/admin/guides/:id`
-**DELETE** `/api/admin/guides/:id`
-
----
-
-## 5. Authentication Endpoints (Admin)
-
-### Login
-
-**POST** `/api/admin/login`
-
-Request Body:
+```
 {
 "email": "admin@example.com",
 "password": "password"
 }
+```
 
+Response sets an httpOnly session cookie (JWT-based).
 
-Response:
-{
-"success": true,
-"data": {
-"token": "jwt-token"
-}
-}
+**GET** `/api/v1/admin/session` — current session status
 
+---
+
+## 5. Admin Endpoints
+
+All admin endpoints require authentication (session cookie) and
+role-based authorization.
+
+- **Updates**: `POST /api/v1/admin/updates`, `PUT /api/v1/admin/updates/:id`, `DELETE /api/v1/admin/updates/:id`
+- **Guides**: `GET/POST /api/v1/admin/guides`, `GET /api/v1/admin/guides/downloads`, `PATCH /api/v1/admin/guides/:id/toggle`, `DELETE /api/v1/admin/guides/:id`
+- **Resources**: `GET/POST /api/v1/admin/resources`, `PATCH /api/v1/admin/resources/:id/toggle`, `DELETE /api/v1/admin/resources/:id`
+- **FAQs**: `GET/POST /api/v1/admin/faqs`, `PUT /api/v1/admin/faqs/:id`, `PATCH /api/v1/admin/faqs/:id/toggle`, `DELETE /api/v1/admin/faqs/:id`
+- **Settings**: `GET /api/v1/admin/settings`, `PUT /api/v1/admin/settings/:key`
+- **Analytics**: `GET /api/v1/admin/analytics`
+- **Unanswered chatbot queries**: `GET /api/v1/admin/unanswered-queries`
+- **Bookings**: `GET /api/v1/admin/bookings`, `PATCH /api/v1/admin/bookings/:id`, `DELETE /api/v1/admin/bookings/:id`
+- **Cutoffs upload**: `POST /api/v1/admin/*` (see `admin.upload.routes.ts`)
+
+Route files: `backend/src/modules/admin/admin.routes.ts`,
+`admin.bookings.routes.ts`, `admin.upload.routes.ts`.
 
 ---
 
 ## 6. Rate Limiting
 
-The following endpoints must have rate limiting:
+Rate-limited endpoints (`backend/src/middleware/rateLimit.ts`):
 
-- `/api/predict`
-- `/api/bookings`
-- `/api/guides/download`
-
-Prevents abuse and bot traffic.
+- `/api/v1/predict`
+- `/api/v1/bookings` (POST), `/api/v1/bookings/slots` (GET)
+- `/api/v1/guides/download`
+- `/api/v1/cutoffs` (public read limiter)
+- `/api/v1/admin/login` (auth limiter)
+- `/api/v1/whatsapp/webhook` (per-`wa_id`, always 200 — see §3.10)
+- `/api/v1/chatbot` (own rate limiter inside the route module)
 
 ---
 
@@ -286,17 +214,13 @@ Examples:
 - EMAIL_DELIVERY_FAILED
 - INTERNAL_SERVER_ERROR
 
-All errors must use predefined codes.
-
 ---
 
-## 8. Versioning Strategy
+## 8. Versioning
 
-Future-proofing:
-
-`/api/v1/...`
-
-New versions should not break existing contracts.
+`/api/v1/...` is the live and only supported prefix today — not a future
+plan. New breaking versions would be introduced as `/api/v2/...` alongside
+it, not as an in-place change.
 
 ---
 

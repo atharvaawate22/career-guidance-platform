@@ -59,11 +59,17 @@ The system is organized by features instead of technical layers.
 
 /src
 /modules
+/auth
 /predictor
 /cutoffs
 /updates
 /booking
 /guides
+/resources
+/faqs
+/settings
+/chatbot
+/whatsapp
 /admin
 /shared
 /config
@@ -176,6 +182,41 @@ All admin routes must be protected by role-based middleware.
 
 ---
 
+### Auth Module
+
+Session login/logout for admin users; JWT-based session cookie issuance and
+validation.
+
+### Resources Module
+
+Public downloadable resource listing, admin upload/toggle/delete — parallel
+to, but distinct from, the Guides module.
+
+### FAQs Module
+
+Public FAQ listing; admin CRUD. Backs the chatbot's rule-based matching
+layer (see Chatbot Module below) as well as the public FAQ page.
+
+### Settings Module
+
+Admin-editable `platform_settings` (booking slots, announcement banner,
+contact info), exposed read-only to the public via `/api/v1/settings/*`.
+
+### Chatbot Module
+
+Rule-based FAQ matching first; below-threshold queries fall through to RAG
+retrieval + Gemini generation over `rag_chunks` (pgvector embeddings).
+Unanswered/low-confidence queries are logged to `unanswered_queries` for
+admin review. Full decision flow and confidence thresholds are documented in
+[`CHATBOT_ARCHITECTURE.md`](../CHATBOT_ARCHITECTURE.md).
+
+### WhatsApp Module
+
+Meta Cloud API webhook — reuses the chatbot module's answering logic for a
+WhatsApp channel. Rate-limited per `wa_id`, with Redis-based `msg.id` dedup.
+
+---
+
 ## 5. Error Isolation Strategy
 
 Each module handles its own errors using:
@@ -222,23 +263,13 @@ Service → Controller
 
 ## 7. Feature Toggles
 
-Features can be enabled or disabled using environment flags:
-
-- FEATURE_PREDICTOR
-- FEATURE_BOOKING
-- FEATURE_UPDATES
-- FEATURE_GUIDES
-
-When disabled:
-
-- Routes are not registered
-- Module services are not initialized
-
-This allows:
-
-- Controlled rollout
-- Temporary feature suspension
-- Clean deactivation without code removal
+There is currently no environment-based feature-flag system. All modules'
+routes are registered unconditionally in `server.ts`. Individual external
+integrations degrade gracefully when unconfigured instead (e.g. no
+`GEMINI_API_KEY` → chatbot skips RAG generation and falls back; no
+`REDIS_URL` → caching/rate-limiting/dedup disabled gracefully; no Google
+Calendar credentials → mock meeting links). Module-level enable/disable
+flags remain a possible future addition, not a current capability.
 
 ---
 
@@ -249,9 +280,15 @@ Each module interacts only with its own tables.
 Example separation:
 
 - bookings → Booking module
-- cutoff_data → Cutoff module
+- colleges / courses / cutoffs → Cutoffs module (normalized schema; the
+  legacy flat `cutoff_data` table is RLS-locked and retained only as a
+  revert backup — see [`CUTOFFS_DB_REDESIGN.md`](CUTOFFS_DB_REDESIGN.md))
 - updates → Updates module
-- downloads → Guides module
+- guide_downloads → Guides module
+- resources → Resources module
+- faqs, unanswered_queries, rag_chunks → Chatbot module
+- cap_schedule, document_checklist → content used by Predictor/Booking/Chatbot
+- platform_settings → Settings module
 - admin_users → Admin module
 
 Cross-table access must be minimal and justified.
@@ -323,18 +360,14 @@ New modules must follow the same architecture pattern and isolation principles.
 ## 13. Observability, Performance Baselines, and SLOs
 
 ### 13.1 Performance Baseline profiling
-The project maintains a lightweight backend API latency profiling workflow inside CI for trend visibility. When `DATABASE_URL` is configured:
-1. Backend app is built and started.
-2. Endpoint profiler runs against:
-   - `GET /api/v1/cutoffs` (filtered)
-   - `POST /api/v1/predict`
-   - `GET /api/v1/cutoffs/meta`
-3. Latency benchmarks (avg, p50, p95, min, max) are captured as the `backend-profile-baseline` artifact.
-4. Developers can analyze changes in p95 values release-to-release to identify performance regressions before merging.
-5. Local profiling can be executed from the backend directory using:
-   ```bash
-   npm run profile:endpoints
-   ```
+Endpoint latency profiling (`npm run profile:endpoints`, from the backend
+directory) exists as a local script — it is **not** wired into CI. The
+backend's CI job (`.github/workflows/ci.yml`) only runs `npm ci`, lint,
+typecheck, and test; it does not build/start the app, run the profiler, or
+upload a `backend-profile-baseline` artifact. Profiling against
+`GET /api/v1/cutoffs`, `POST /api/v1/predict`, and `GET /api/v1/cutoffs/meta`
+is a manual, developer-run step today. Wiring it into CI remains a possible
+future improvement, not a current capability.
 
 ### 13.2 Service Level Objectives (SLOs) & Alert Thresholds
 Pragmatic service-level goals suitable for student-project production deployment:

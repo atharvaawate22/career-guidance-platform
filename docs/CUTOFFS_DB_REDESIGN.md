@@ -2,7 +2,18 @@
 
 **Date:** 2026-06-15
 **Author:** Senior engineering review
-**Status:** PLAN — approved direction, not yet implemented. Save-doc-only at owner's request.
+**Status:** EXECUTED — Phases 1–5 (schema, parser, loader, backend rewire)
+have landed as written (migration `012_cutoffs_redesign.sql`, live
+`colleges`/`courses`/`cutoffs` tables and `cutoffs.repository.ts`). Phase 6
+(§5, cutover) shipped with a **different, more conservative strategy** than
+originally planned: this doc's Phase 6 specifies a migration
+`013_drop_cutoff_data.sql` that drops the old table outright. The actual
+migration `013` is `013_secure_legacy_tables.sql`, which instead RLS-locks
+`cutoff_data` and keeps it as a revert backup rather than dropping it (see
+`backend/src/config/schema.sql`, which explicitly documents it as
+"kept in the live database only as a revert backup and is intentionally NOT
+recreated by this baseline"). Treat §5 below as historical planning intent,
+not as a description of what migration `013` actually contains.
 **Source data:** `cutoff_pdfs/Round 1.pdf` … `Round 4.pdf` — official MHT-CET CAP **Cut Off Lists**, A.Y. 2025-26.
 
 > Note: an earlier draft of this plan targeted *Seat Matrix* PDFs that were placed in

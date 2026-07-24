@@ -5,11 +5,12 @@
 
 A full-stack web platform helping Maharashtra engineering students navigate 
 MHT-CET CAP admissions. Features a percentile-based college predictor, 
-historical cutoff explorer (2022–2025), consultation booking with Google Meet, 
-CET update tracking, and a role-protected admin dashboard.
+historical cutoff explorer, consultation booking with Google Meet, 
+CET update tracking, an FAQ + RAG-backed chatbot (web widget and WhatsApp), 
+and a role-protected admin dashboard.
 
-**Stack:** Next.js · TypeScript · Node.js · Express · PostgreSQL · Zod · 
-Vercel
+**Stack:** Next.js · TypeScript · Node.js · Express · PostgreSQL (Supabase, 
+pgvector) · Redis · Zod · Vercel · Render
 
 **Key engineering decisions documented in [`/docs`](/docs).**
 
@@ -45,20 +46,23 @@ The system separates content delivery, prediction logic, booking automation, and
 ### Public Modules
 
 - CAP Process Guides and Documentation
-- CET Updates Section (chronological, verified notifications)
-- College Cutoff Explorer (Branch, Category, Gender, Home University filters)
-- College Predictor Tool (Safe / Target / Dream classification logic)
-- Downloadable Admission Guides (PDF resources)
+- CET Updates Section (chronological, official-sourced notifications)
+- FAQs
+- College Cutoff Explorer (college / course / category / CAP round filters)
+- College Predictor Tool
+- Downloadable Admission Guides and Resources (PDF)
 - Consultation Booking with Google Meet Integration
 - Automated Email Confirmation System
+- Chatbot (rule-based FAQ matching + RAG generation via Gemini) — available as
+  a web widget and over WhatsApp (Meta Cloud API)
 
 ### Admin Modules
 
 - CET Update Management
 - Cutoff Dataset Upload & Management
 - Booking Management Dashboard
-- Lead Tracking
-- Download Monitoring
+- Resource / Guide Upload
+- Unanswered Chatbot Query Review
 - Role-Protected Admin Access
 
 ---
@@ -73,10 +77,13 @@ Client → API Layer → Service Layer → Data Layer
 
 **External Integrations**
 
-- Email Service (Gmail SMTP)
+- Email Service (SMTP)
 - Google Calendar API (for meeting creation)
+- Gemini API (RAG generation for the chatbot)
+- WhatsApp Cloud API (Meta) — chatbot channel
+- Redis — caching, rate limiting, WhatsApp dedup (optional; degrades gracefully if unset)
 
-Each feature (predictor, booking, updates, cutoffs, guides, admin) is implemented as an independent module. Errors within one module do not cascade into others. Feature toggling is supported via environment configuration.
+Each feature (predictor, booking, updates, cutoffs, guides, resources, faqs, settings, chatbot, whatsapp, admin, auth) is implemented as an independent module. Errors within one module do not cascade into others. All modules are always registered — there is no environment-based feature-flag toggling.
 
 Detailed architecture is documented in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -97,18 +104,21 @@ Detailed architecture is documented in [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 
 **Database**
 
-- PostgreSQL
+- PostgreSQL (Supabase, with `pgvector` for RAG embeddings)
+- Redis (caching, rate limiting — optional, degrades gracefully if unset)
 
 **External Services**
 
-- Gmail SMTP (Email Service)
+- SMTP (Email Service)
 - Google Calendar API
+- Gemini API (chatbot RAG generation)
+- WhatsApp Cloud API (Meta)
 
 **Deployment**
 
-- Frontend: Vercel or equivalent cloud platform
-- Backend: VPS / Cloud service
-- Database: Managed PostgreSQL instance
+- Frontend: Vercel ([cethub.in](https://cethub.in))
+- Backend: Render
+- Database: Supabase (managed PostgreSQL)
 
 ---
 
@@ -148,26 +158,24 @@ Modules are self-contained and communicate only through defined service boundari
 
 ## Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+Backend and frontend each have their own `.env.example` (`backend/.env.example`,
+`frontend/.env.example`) — copy those rather than typing variables from
+scratch. Key backend variables:
 
-PORT=
+- `PORT`, `DATABASE_URL` (or discrete `DB_*` vars), `DB_POOL_MAX`
+- `JWT_SECRET`, `CSRF_SECRET`
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD` (optional — seeds an initial admin user)
+- `EMAIL_PROVIDER` (`mock` or `smtp`), `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` (optional — mock meeting links used if unset)
+- `REDIS_URL` (optional — caching/rate-limiting disabled gracefully if unset)
+- `GEMINI_API_KEY` (optional — RAG generation skipped if unset, chatbot falls back)
+- `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` (optional — WhatsApp channel)
+- `SENTRY_DSN`, `ERROR_WEBHOOK_URL` (optional — error tracking)
 
-DATABASE_URL=
+Key frontend variables: `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_SITE_URL`,
+`NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_CLIENT_ERROR_WEBHOOK_URL`.
 
-EMAIL_PROVIDER=
-EMAIL_API_KEY=
-EMAIL_FROM=
-
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=
-
-FEATURE_PREDICTOR=true
-FEATURE_BOOKING=true
-FEATURE_UPDATES=true
-FEATURE_GUIDES=true
-
-Feature flags allow controlled activation or deactivation of individual modules.
+There are no `FEATURE_*` toggle env vars — every module is always registered.
 
 ---
 
@@ -193,10 +201,17 @@ Feature flags allow controlled activation or deactivation of individual modules.
 
 4. Initialize database
 
+   Apply the baseline schema once (creates `updates`, `admin_users`,
+   `resources`, `guides`, `guide_downloads`, `faqs`, `bookings`):
+
    ```bash
-   # Connect to PostgreSQL and run schema
    psql -U postgres -d career_guidance -f src/config/schema.sql
    ```
+
+   Everything else — cutoffs/colleges/courses, CAP schedule, document
+   checklist, chatbot/RAG tables, platform settings — lives in
+   `backend/migrations/` and applies automatically on server start
+   (`npm run dev` / `npm start`), or manually via `npm run migrate`.
 
 5. Run development server
    ```bash
@@ -234,7 +249,6 @@ Feature flags allow controlled activation or deactivation of individual modules.
 - Strict separation of business logic and data access
 - Independent error handling per module
 - Clean and scalable folder structure
-- Config-driven feature toggling
 - Replaceable external service integrations
 
 The architecture allows future expansion to include:
@@ -291,6 +305,6 @@ Before every production release:
    - `npm run build`
 3. Confirm environment variables are set for target environment.
 4. Deploy backend, then frontend.
-5. Execute smoke tests (`/api/health`, predictor, booking, admin login).
+5. Execute smoke tests (`/api/v1/health`, `/api/v1/ready`, predictor, booking, admin login, chatbot).
 
 Detailed deployment instructions: `docs/deployment.md`.

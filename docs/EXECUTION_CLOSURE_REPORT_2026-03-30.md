@@ -1,5 +1,17 @@
 # Execution Closure Report (2026-03-30)
 
+> **Stale claim (flagged later):** §2 item 3 / §4 item 1 describe a
+> city-normalization data-integrity guard as "Completed"/wired into CI once
+> a `DATABASE_URL` secret is present. As of this later review, no such CI
+> step exists in `.github/workflows/ci.yml`, and no `check:city-normalization`
+> (or similarly named) script exists in `backend/package.json` at all —
+> either it was removed after this report was written, or the report
+> overstated its state at the time. This propagated into now-incorrect
+> references in `docs/deployment.md` and `docs/PRODUCTION_AUDIT.md`. Treat
+> this report as a historical snapshot, not a current source of truth for
+> that item — the rest of the report (test counts, profiling numbers) is a
+> self-contained dated record and isn't affected.
+
 ## 1. Scope and Outcome
 
 This report closes the execution roadmap that was agreed for practical, high-impact upgrades without overengineering.

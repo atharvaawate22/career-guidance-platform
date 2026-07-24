@@ -66,11 +66,16 @@ npm ci
 npm run lint
 npm run typecheck
 npm test
-npm run check:city-normalization
 npm run build
 ```
 
-Note: `npm run check:city-normalization` requires `DATABASE_URL` to be set for the target environment.
+Note: an earlier draft of this checklist included a `npm run
+check:city-normalization` gate; that script does not exist in
+`backend/package.json` and there is no equivalent CI step — running it as
+written fails with `npm error Missing script`. Either add the script back
+if the guard is still wanted, or treat city-normalization data integrity as
+covered by the loader/validation steps in
+[`CUTOFFS_DB_REDESIGN.md`](CUTOFFS_DB_REDESIGN.md) instead.
 
 ### Frontend
 
@@ -125,9 +130,10 @@ On first deploy, run `pm2 start ecosystem.config.js --env production` from the
 
 4. Verify health
 
-- Check GET /api/health returns 200 (liveness)
-- Check GET /api/ready returns 200 (readiness with DB check)
-- Check one public endpoint, for example GET /api/updates
+- Check GET /api/health (or /api/v1/health) returns 200 (liveness)
+- Check GET /api/v1/ready returns 200 (readiness with DB check) — there is
+  no unversioned /api/ready route
+- Check one public endpoint, for example GET /api/v1/updates
 
 ## 5. Frontend Deployment (Vercel)
 
@@ -154,7 +160,7 @@ If production issues appear:
 
 1. Revert to previous backend release artifact/commit
 2. Redeploy previous frontend Vercel deployment
-3. Validate /api/health and critical user flows
+3. Validate /api/v1/health and critical user flows
 4. Open incident note with:
 
 - Issue summary
@@ -179,9 +185,13 @@ If production issues appear:
 
 ## 10. Minimal Observability Baseline
 
-- Monitor GET /api/health with an external uptime checker
-- Monitor GET /api/ready for dependency readiness alerts
+- Monitor GET /api/v1/health with an external uptime checker
+- Monitor GET /api/v1/ready for dependency readiness alerts
 - Keep error logs retained for at least 7 days
 - Track deployment timestamps and commit hashes in release notes
-- Review CI profile artifact for backend latency trends (see `docs/PERFORMANCE_BASELINE.md`)
-- Track service objectives and paging thresholds (see `docs/SLO_ALERTS.md`)
+- Run `npm run profile:endpoints` (backend, local/manual — not currently
+  wired into CI) to check backend latency trends
+- Track service objectives and paging thresholds (see
+  [`ARCHITECTURE.md`](ARCHITECTURE.md) §13.2 — `docs/PERFORMANCE_BASELINE.md`
+  and `docs/SLO_ALERTS.md` don't exist; that content was consolidated into
+  ARCHITECTURE.md)

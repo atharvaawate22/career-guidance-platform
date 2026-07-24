@@ -38,7 +38,7 @@ backend plus uncached DB queries. Both are addressed below.
 | 1 | **Public-read CDN/browser caching** — `Cache-Control` headers on all public GET endpoints (cutoffs, faqs, guides, resources, updates, settings, booking slots). | `backend/src/middleware/cacheControl.ts`, `backend/src/server.ts` | Lets browsers and any CDN serve repeat reads without waking/loading the small Render instance. Biggest lever for both latency and capacity. Only 2xx GETs are cached; mutations and errors never are. |
 | 2 | **PM2 cluster mode removed** — `instances: 'max'` → `1`, `cluster` → `fork`, memory cap `500M` → `450M`. | `backend/ecosystem.config.js` | On a 512 MB box, `max` forks one Node process per detected host core and OOM-loops. One process is correct for 0.1 CPU. |
 | 3 | **DB pool default lowered** — `DB_POOL_MAX` default `20` → `5`. | `backend/src/config/database.ts` | A big pool gains nothing on one low-CPU process and risks exhausting Supabase's connection allowance. Still overridable via env. |
-| 4 | **Keep-warm workflow** — pings `/api/v1/health` every ~10 min. | `.github/workflows/keepalive.yml` | Reduces cold starts for free, in-repo. Best-effort (see caveats in the file); a real uptime monitor is more reliable. |
+| 4 | **Keep-warm** — Supabase `pg_cron` (primary) pings Render `/health`; GitHub Action pings `/api/v1/health` every ~10 min as a secondary backup. | Supabase `pg_cron` job, `.github/workflows/keepalive.yml` | Reduces cold starts without depending solely on GitHub Actions' best-effort scheduling. |
 
 Cutoffs were **already** Redis-cached server-side (6h TTL) — that stays the
 source of truth; the new headers just push that data closer to the user.
@@ -76,20 +76,32 @@ pooler** (port `6543`). Set Render's `DATABASE_URL` env var to that string.
 | `DB_POOL_MAX` | leave unset (uses `5`) | only raise if you upgrade the instance |
 | `TRUST_PROXY` | `1` | Render terminates TLS at a proxy |
 
-### D. Prevent cold starts (pick one; UptimeRobot recommended)
-1. **UptimeRobot** (reliable): create a free HTTP(s) monitor on
-   `https://<your-app>.onrender.com/api/v1/health` at a **5-minute** interval.
-2. **The bundled GitHub Action** (zero-setup backup): set a repository variable
-   `BACKEND_HEALTH_URL` to the same URL (repo → Settings → Secrets and variables
-   → Actions → Variables). Note GitHub cron is best-effort and may lag.
+### D. Prevent cold starts
+The **primary** keep-warm mechanism is a Supabase `pg_cron` job that pings
+the Render `/health` endpoint on a schedule during active hours — it lives
+in Supabase, not in this repo, so it keeps running independent of GitHub
+Actions availability/quotas. `.github/workflows/keepalive.yml` (pings
+`/api/v1/health` every ~10 min) is a **secondary backup**, not the primary
+mechanism — its own header comment documents this. UptimeRobot remains an
+option if you want a third, fully external monitor, but isn't required
+since pg_cron already covers it:
+1. **Supabase `pg_cron`** (primary, already configured): pings Render's
+   `/health` endpoint on a schedule, windowed to active hours.
+2. **The bundled GitHub Action** (secondary backup, zero-setup): set a
+   repository variable `BACKEND_HEALTH_URL` to
+   `https://<your-app>.onrender.com/api/v1/health` (repo → Settings →
+   Secrets and variables → Actions → Variables). Note GitHub cron is
+   best-effort and may lag.
+3. **UptimeRobot** (optional third layer): a free HTTP(s) monitor on the
+   same health URL at a 5-minute interval.
 
 > Keeping the instance awake 24/7 uses ~720 of Render's 750 free hours/month —
 > fine for **one** web service only.
 
 ### E. Stop Supabase from auto-pausing
-Supabase free pauses after 7 days of no activity. The keep-warm health ping
-touches the DB (`SELECT 1`), so as long as **D** is running, the DB stays
-active too. If you ever disable the pinger, add a daily query instead.
+Supabase free pauses after 7 days of no activity. The keep-warm pings touch
+the DB (`SELECT 1`), so as long as **D** is running, the DB stays active
+too. If you ever disable all pingers, add a daily query instead.
 
 ---
 

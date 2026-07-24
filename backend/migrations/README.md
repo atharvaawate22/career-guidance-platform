@@ -62,6 +62,7 @@ provisioned by applying `schema.sql` first, then letting the runner apply
 | `014_cap_schedule.sql` | `cap_schedule` table — structured CAP round dates for the chatbot (placeholder rows, `is_confirmed = false`, until DTE releases the official schedule) |
 | `015_document_checklist.sql` | `document_checklist` table — seeded CAP admission document list for the chatbot |
 | `016_unanswered_queries.sql` | `unanswered_queries` table — logs chatbot fallback queries as the Phase 2 RAG content backlog |
+| `017_updates_source_url.sql` | Add nullable `updates.source_url` column — links an update to the official notice it summarizes |
 | `018_seed_cap_faqs.sql` | Seed nine reviewed CAP-guidance FAQ rows + append the TFWS opt-in clause (Phase 2 step a; idempotent) |
 | `019_faq_eligibility_closer.sql` | Append a "confirm against the official brochure" hedge to the Class XII eligibility FAQ (FAQ-audit outcome; idempotent) |
 | `020_rag_chunks.sql` | `rag_chunks` table (`pgvector`) — Phase 2 step (b) RAG corpus storage |
