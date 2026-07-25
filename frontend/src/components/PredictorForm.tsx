@@ -14,6 +14,7 @@ import {
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { BOOKINGS_ENABLED } from "@/lib/features";
 
 const PREDICTOR_YEAR = parseInt(
   process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025",
@@ -416,17 +417,19 @@ export default function PredictorForm() {
             )}
 
             {/* Guidance banner */}
-            <div className="rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"
-              style={{ background: "linear-gradient(135deg, var(--primary-950), var(--slate-900))", border: "1px solid var(--slate-700)" }}>
-              <p className="text-sm" style={{ color: "var(--slate-300)" }}>
-                For in-depth personalised guidance, book a free counseling session.
-              </p>
-              <Link href="/book"
-                className="text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                style={{ background: "var(--primary-600)", color: "#ffffff" }}>
-                Book Free Session
-              </Link>
-            </div>
+            {BOOKINGS_ENABLED && (
+              <div className="rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"
+                style={{ background: "linear-gradient(135deg, var(--primary-950), var(--slate-900))", border: "1px solid var(--slate-700)" }}>
+                <p className="text-sm" style={{ color: "var(--slate-300)" }}>
+                  For in-depth personalised guidance, book a free counseling session.
+                </p>
+                <Link href="/book"
+                  className="text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  style={{ background: "var(--primary-600)", color: "#ffffff" }}>
+                  Book Free Session
+                </Link>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3">

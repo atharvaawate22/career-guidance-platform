@@ -37,9 +37,9 @@ const SYSTEM_INSTRUCTION =
   'never use your own outside knowledge of CAP or admissions. Never state a date, ' +
   'fee, or number unless it appears verbatim in the provided context. If the ' +
   "context doesn't contain enough to answer confidently, say so plainly and warmly " +
-  'in one sentence and point the student to /updates for official notices or ' +
-  'booking a free consultation at /book — do not guess, speculate, or fill gaps ' +
-  'from general knowledge; a wrong number is worse than an honest "I\'m not sure". ' +
+  'in one sentence and point the student to /updates for official notices — do not ' +
+  'guess, speculate, or fill gaps from general knowledge; a wrong number is worse ' +
+  'than an honest "I\'m not sure". ' +
   'Keep the answer concise (2-5 sentences) and suitable for a WhatsApp or website ' +
   'chat reply.';
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PredictorForm from "@/components/PredictorForm";
+import { BOOKINGS_ENABLED } from "@/lib/features";
 
 /**
  * Server component shell for the predictor: the page header, methodology
@@ -14,7 +15,9 @@ const PREDICTOR_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Is the CET Hub college predictor free?",
-    a: "Yes — the predictor, the full cutoff explorer, and counseling session bookings are all completely free.",
+    a: BOOKINGS_ENABLED
+      ? "Yes — the predictor, the full cutoff explorer, and counseling session bookings are all completely free."
+      : "Yes — the predictor and the full cutoff explorer are completely free.",
   },
   {
     q: "Should I enter my percentile or my rank?",

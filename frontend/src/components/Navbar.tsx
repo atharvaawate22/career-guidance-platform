@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { BOOKINGS_ENABLED } from "@/lib/features";
 
 /* ── SVG Icons ────────────────────────────────────────────────────── */
 function IconMenu() {
@@ -178,29 +179,31 @@ export default function Navbar() {
             </div>
 
             {/* Desktop CTA */}
-            <div className="hidden lg:flex items-center gap-3">
-              <Link
-                href="/book"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                style={{
-                  background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
-                  boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 4px 16px rgba(79,70,229,0.35)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(79,70,229,0.25)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                Book a Session
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
-            </div>
+            {BOOKINGS_ENABLED && (
+              <div className="hidden lg:flex items-center gap-3">
+                <Link
+                  href="/book"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+                  style={{
+                    background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
+                    boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = "0 4px 16px rgba(79,70,229,0.35)";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(79,70,229,0.25)";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  Book a Session
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </Link>
+              </div>
+            )}
 
             {/* Mobile menu button */}
             <button
@@ -271,20 +274,22 @@ export default function Navbar() {
 
           {/* Mobile CTA */}
           <div className="mt-auto pt-6" style={{ borderTop: "1px solid var(--slate-200)" }}>
-            <Link
-              href="/book"
-              className="flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-xl text-base font-semibold text-white"
-              style={{
-                background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
-                boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
-              }}
-              onClick={() => setMobileOpen(false)}
-            >
-              Book a Free Session
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-              </svg>
-            </Link>
+            {BOOKINGS_ENABLED && (
+              <Link
+                href="/book"
+                className="flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-xl text-base font-semibold text-white"
+                style={{
+                  background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
+                  boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
+                }}
+                onClick={() => setMobileOpen(false)}
+              >
+                Book a Free Session
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                </svg>
+              </Link>
+            )}
             <p className="text-xs text-center mt-4" style={{ color: "var(--slate-500)" }}>
               © {new Date().getFullYear()} CETHub · Data: 2025 CAP
             </p>

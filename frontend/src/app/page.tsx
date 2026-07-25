@@ -8,6 +8,7 @@ import QuickPredict from "@/components/QuickPredict";
 import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { BOOKINGS_ENABLED } from "@/lib/features";
 
 /* ── Feature cards data ──────────────────────────────────────────── */
 const features = [
@@ -38,7 +39,7 @@ const features = [
     iconColor: "var(--accent-600)",
     borderHover: "var(--accent-200)",
   },
-  {
+  ...(BOOKINGS_ENABLED ? [{
     title: "Book a Session",
     desc: "Schedule one-on-one sessions with experienced career counselors — completely free.",
     href: "/book",
@@ -52,7 +53,7 @@ const features = [
     gradient: "linear-gradient(135deg, #f0fdf4, #dcfce7)",
     iconColor: "var(--success-600)",
     borderHover: "#bbf7d0",
-  },
+  }] : []),
   {
     title: "Admission Guides",
     desc: "Explore detailed guides covering career paths, courses, and admission strategies.",
@@ -122,8 +123,10 @@ const steps = [
   },
   {
     n: 3,
-    title: "Finalise & book",
-    desc: "Still have doubts? Book a free one-on-one session with our expert counselors.",
+    title: "Finalise your list",
+    desc: BOOKINGS_ENABLED
+      ? "Still have doubts? Book a free one-on-one session with our expert counselors."
+      : "Compare your Safe, Target, and Dream options and lock in your CAP preference list.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
@@ -340,32 +343,38 @@ export default function Home() {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/book"
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                  style={{
-                    background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
-                    boxShadow: "0 4px 16px rgba(99,102,241,0.35)",
-                  }}
-                >
-                  Book a Free Session <ArrowRight />
-                </Link>
+                {BOOKINGS_ENABLED && (
+                  <Link
+                    href="/book"
+                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+                    style={{
+                      background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
+                      boxShadow: "0 4px 16px rgba(99,102,241,0.35)",
+                    }}
+                  >
+                    Book a Free Session <ArrowRight />
+                  </Link>
+                )}
                 <Link
                   href="/cutoffs"
                   className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200"
                   style={{
-                    background: "rgba(255,255,255,0.06)",
+                    background: BOOKINGS_ENABLED ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
                     color: "#ffffff",
-                    border: "1px solid rgba(255,255,255,0.15)",
+                    border: BOOKINGS_ENABLED ? "1px solid rgba(255,255,255,0.15)" : "none",
                     backdropFilter: "blur(8px)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
+                    if (BOOKINGS_ENABLED) {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                    if (BOOKINGS_ENABLED) {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                    }
                   }}
                 >
                   Browse Cutoffs
@@ -552,23 +561,25 @@ export default function Home() {
               >
                 Start Predictor <ArrowRight />
               </Link>
-              <Link
-                href="/book"
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm transition-all duration-200"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  color: "#ffffff",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                }}
-              >
-                Book Free Session
-              </Link>
+              {BOOKINGS_ENABLED && (
+                <Link
+                  href="/book"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm transition-all duration-200"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: "#ffffff",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                  }}
+                >
+                  Book Free Session
+                </Link>
+              )}
             </div>
           </div>
         </ScrollReveal>

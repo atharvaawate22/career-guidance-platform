@@ -8,6 +8,8 @@ import { categorySelectOptions } from "@/lib/categoryOptions";
 import { sortBranches } from "@/lib/cutoffOptions";
 import { suggestEmailCorrection } from "@/lib/emailSuggestion";
 import { buildWaMeLink } from "@/lib/whatsapp";
+import { BOOKINGS_ENABLED } from "@/lib/features";
+import Link from "next/link";
 
 // Same meta endpoint/year the predictor and cutoff explorer use for their
 // branch lists, so all three stay in sync automatically.
@@ -475,6 +477,54 @@ export default function BookPage() {
   const calendarDates = getMonthDates(calendarMonth);
   const minMonth = getMonthKey(minDate);
   const canGoToPreviousMonth = calendarMonth > minMonth;
+
+  if (!BOOKINGS_ENABLED) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div
+          className="max-w-lg w-full rounded-2xl p-8 border text-center"
+          style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-xl)" }}
+        >
+          <div
+            className="mx-auto h-16 w-16 rounded-full flex items-center justify-center mb-6"
+            style={{ background: "var(--primary-50)", color: "var(--primary-600)" }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold mb-3" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
+            Booking sessions are temporarily paused
+          </h1>
+          <p className="text-sm leading-relaxed mb-8" style={{ color: "var(--slate-500)" }}>
+            We&apos;re not accepting new counseling session bookings right now. Check{" "}
+            <Link href="/updates" className="font-semibold" style={{ color: "var(--primary-600)" }}>
+              Updates
+            </Link>{" "}
+            for the latest, or use the College Predictor and Cutoff Explorer in the meantime.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              href="/predictor"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all duration-200"
+              style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
+            >
+              Try the Predictor
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200"
+              style={{ background: "var(--slate-100)", color: "var(--slate-700)" }}
+            >
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (success && successData) {
     return (

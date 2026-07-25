@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BOOKINGS_ENABLED } from "@/lib/features";
 
 const footerColumns = [
   {
@@ -18,7 +19,7 @@ const footerColumns = [
   {
     heading: "Connect",
     links: [
-      { label: "Book a Session", href: "/book" },
+      ...(BOOKINGS_ENABLED ? [{ label: "Book a Session", href: "/book" }] : []),
       { label: "Latest Updates", href: "/updates" },
     ],
   },

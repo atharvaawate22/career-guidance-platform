@@ -5,6 +5,7 @@ import PublicShell from "@/components/PublicShell";
 import StructuredData from "@/components/StructuredData";
 import { inter, dmSerif, jetbrainsMono } from "@/lib/fonts";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { BOOKINGS_ENABLED } from "@/lib/features";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -20,8 +21,9 @@ export const metadata: Metadata = {
     default: "CET Hub — MHT-CET College Predictor, Cutoffs & Guidance",
     template: "%s | CET Hub",
   },
-  description:
-    "All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank, explore 90,000+ 2025 CAP cutoff records across 300+ colleges, and book free expert counseling for Maharashtra engineering admissions.",
+  description: BOOKINGS_ENABLED
+    ? "All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank, explore 90,000+ 2025 CAP cutoff records across 300+ colleges, and book free expert counseling for Maharashtra engineering admissions."
+    : "All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank and explore 90,000+ 2025 CAP cutoff records across 300+ colleges for Maharashtra engineering admissions.",
   keywords: [
     "MHT-CET",
     "MHT CET",

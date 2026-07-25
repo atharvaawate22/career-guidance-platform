@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { collegeSlug } from '@/lib/collegeSlug';
 import { fetchCutoffMeta } from '@/lib/serverCutoffs';
+import { BOOKINGS_ENABLED } from '@/lib/features';
 
 const CUTOFF_YEAR = '2025';
 
@@ -38,12 +39,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.7,
     },
-    {
+    ...(BOOKINGS_ENABLED ? [{
       url: `${baseUrl}/book`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: 'monthly' as const,
       priority: 0.8,
-    },
+    }] : []),
     {
       url: `${baseUrl}/updates`,
       lastModified: new Date(),
