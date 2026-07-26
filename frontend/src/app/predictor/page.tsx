@@ -31,6 +31,14 @@ const PREDICTOR_FAQ: { q: string; a: string }[] = [
     q: "Does it account for category, gender, and minority seats?",
     a: "Yes. Predictions respect your seat eligibility: category tiers (GOPEN, GOBC, GSC, GST, EWS, and more), gender rules (ladies vs gender-neutral seats), TFWS, and minority type/group quotas.",
   },
+  {
+    q: "What are MHT-CET CAP rounds, and which one should I predict for?",
+    a: "The State CET Cell runs Maharashtra's engineering admissions through four Centralized Admission Process (CAP) rounds. Each round has its own closing percentile and rank per college, branch, and category — a seat that closes in Round I may close lower (be more accessible) by Round III or IV as higher-ranked candidates lock in seats elsewhere. This predictor uses CAP Round I closing cutoffs, the most conservative and reliable baseline, since later rounds only get easier to clear.",
+  },
+  {
+    q: "What's the difference between OPEN, TFWS, and category seats?",
+    a: "OPEN (state-level general category) seats are open to every candidate regardless of caste or category. Reservation categories — OBC, SEBC, SC, ST, VJ, NT1/NT2/NT3, and EWS — have their own separate, usually lower, cutoffs reserved for candidates who qualify. TFWS (Tuition Fee Waiver Scheme) is a separate merit-based scheme, not a caste category, that waives tuition fees for eligible general-category candidates regardless of income. Defence and PwD quotas layer on top of these as additional reserved seats.",
+  },
 ];
 
 const HOW_IT_WORKS: { title: string; body: string }[] = [
@@ -103,6 +111,75 @@ export default function PredictorPage() {
                 <p className="text-sm" style={{ color: "var(--slate-600)" }}>{step.body}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* ── Server-rendered CAP round explainer (crawlable) ── */}
+        <section aria-labelledby="predictor-caprounds-heading" className="mt-12">
+          <div className="mb-4">
+            <p className="section-label mb-2">CAP Admission Process</p>
+            <h2 id="predictor-caprounds-heading" className="text-2xl font-bold mb-1"
+              style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
+              How MHT-CET CAP Rounds Affect Your Prediction
+            </h2>
+            <p className="text-sm max-w-3xl" style={{ color: "var(--slate-500)" }}>
+              Maharashtra&apos;s State CET Cell allots engineering seats over four Centralized
+              Admission Process (CAP) rounds, not a single pass. In each round, every college,
+              branch, and category has its own closing percentile — the rank of the last
+              candidate admitted. As candidates confirm seats and move on, the closing cutoff for
+              the same seat can relax in the next round. CAP Round I is the first and most
+              competitive round, so it&apos;s also the most conservative baseline for a
+              prediction: if you&apos;re eligible for a college on Round I cutoffs, you&apos;re
+              very likely still eligible in later rounds. That&apos;s why this predictor is built
+              on 2025 CAP Round I closing data — the safest starting point for shortlisting
+              colleges before the current year&apos;s counselling begins.
+            </p>
+          </div>
+        </section>
+
+        {/* ── Server-rendered seat category explainer (crawlable) ── */}
+        <section aria-labelledby="predictor-categories-heading" className="mt-12">
+          <div className="mb-4">
+            <p className="section-label mb-2">Seat Categories</p>
+            <h2 id="predictor-categories-heading" className="text-2xl font-bold mb-1"
+              style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
+              MHT-CET Seat Categories the Predictor Checks
+            </h2>
+            <p className="text-sm max-w-3xl mb-4" style={{ color: "var(--slate-500)" }}>
+              Every seat in MHT-CET admissions belongs to a specific category, and each has its
+              own closing cutoff. Picking the right category in the form above is what makes a
+              prediction accurate.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="card p-5">
+              <h3 className="text-sm font-bold mb-1.5" style={{ color: "var(--slate-900)" }}>OPEN (General)</h3>
+              <p className="text-sm" style={{ color: "var(--slate-600)" }}>
+                State-level general category, open to every candidate regardless of caste. Usually
+                the most competitive cutoffs.
+              </p>
+            </div>
+            <div className="card p-5">
+              <h3 className="text-sm font-bold mb-1.5" style={{ color: "var(--slate-900)" }}>Reservation Categories</h3>
+              <p className="text-sm" style={{ color: "var(--slate-600)" }}>
+                OBC, SEBC, SC, ST, VJ, NT1, NT2, NT3, and EWS each have their own reserved seats
+                and separate, typically more accessible, closing cutoffs.
+              </p>
+            </div>
+            <div className="card p-5">
+              <h3 className="text-sm font-bold mb-1.5" style={{ color: "var(--slate-900)" }}>TFWS &amp; Minority</h3>
+              <p className="text-sm" style={{ color: "var(--slate-600)" }}>
+                TFWS (Tuition Fee Waiver Scheme) is a merit-based fee waiver, not a caste category.
+                Minority (MI) seats are reserved at linguistic or religious minority institutions.
+              </p>
+            </div>
+            <div className="card p-5">
+              <h3 className="text-sm font-bold mb-1.5" style={{ color: "var(--slate-900)" }}>Gender &amp; Other Quotas</h3>
+              <p className="text-sm" style={{ color: "var(--slate-600)" }}>
+                Seats are further split into Gender-Neutral and Ladies-Only pools, with additional
+                Defence and PwD (Persons with Disability) reservations layered on top.
+              </p>
+            </div>
           </div>
         </section>
 
