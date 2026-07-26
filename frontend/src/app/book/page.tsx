@@ -7,7 +7,6 @@ import { API_BASE_URL } from "@/lib/apiBaseUrl";
 import { categorySelectOptions } from "@/lib/categoryOptions";
 import { sortBranches } from "@/lib/cutoffOptions";
 import { suggestEmailCorrection } from "@/lib/emailSuggestion";
-import { buildWaMeLink } from "@/lib/whatsapp";
 import { BOOKINGS_ENABLED } from "@/lib/features";
 import Link from "next/link";
 
@@ -219,7 +218,6 @@ export default function BookPage() {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [meetingPurposeOption, setMeetingPurposeOption] = useState("");
-  const [waLink, setWaLink] = useState<string | null>(null);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -231,17 +229,6 @@ export default function BookPage() {
       })
       .catch(() => { /* ComboBox still works as free text if this fails */ });
     return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/settings/contact-info`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success && d.data?.phone) {
-          setWaLink(buildWaMeLink(d.data.phone, "Hi! I'd like to book a free counseling session."));
-        }
-      })
-      .catch(() => {});
   }, []);
 
   const [slotConfig, setSlotConfig] = useState<SlotConfig>({
@@ -708,22 +695,6 @@ export default function BookPage() {
             booking.
           </div>
         </div>
-
-        {waLink && (
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xl border px-4 py-3 text-sm mb-6 flex items-center gap-3 transition-colors hover:brightness-95"
-            style={{ background: "#25D36612", borderColor: "#25D36640", color: "#128C7E" }}
-          >
-            <span className="text-lg leading-none">💬</span>
-            <div>
-              <span className="font-semibold">Prefer WhatsApp?</span>{" "}
-              Message us directly instead of filling out the form below.
-            </div>
-          </a>
-        )}
 
         {generalError && (
           <div ref={errorRef} className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">

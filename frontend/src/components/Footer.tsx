@@ -21,6 +21,7 @@ const footerColumns = [
     links: [
       ...(BOOKINGS_ENABLED ? [{ label: "Book a Session", href: "/book" }] : []),
       { label: "Latest Updates", href: "/updates" },
+      { label: "Contact Us", href: "mailto:contact@cethub.in" },
     ],
   },
   {

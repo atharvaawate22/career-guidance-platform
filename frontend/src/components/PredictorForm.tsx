@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
@@ -14,7 +13,6 @@ import {
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
-import { BOOKINGS_ENABLED } from "@/lib/features";
 
 const PREDICTOR_YEAR = parseInt(
   process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025",
@@ -69,7 +67,7 @@ export default function PredictorForm() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const fromDeepLink = useRef(false);
 
-  const [inputMode, setInputMode] = useState<"percentile" | "rank">("percentile");
+  const [inputMode, setInputMode] = useState<"percentile" | "rank">("rank");
   const [percentile, setPercentile] = useState("");
   const [rank, setRank] = useState("");
   const [category, setCategory] = useState("");
@@ -416,21 +414,6 @@ export default function PredictorForm() {
               </div>
             )}
 
-            {/* Guidance banner */}
-            {BOOKINGS_ENABLED && (
-              <div className="rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"
-                style={{ background: "linear-gradient(135deg, var(--primary-950), var(--slate-900))", border: "1px solid var(--slate-700)" }}>
-                <p className="text-sm" style={{ color: "var(--slate-300)" }}>
-                  For in-depth personalised guidance, book a free counseling session.
-                </p>
-                <Link href="/book"
-                  className="text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                  style={{ background: "var(--primary-600)", color: "#ffffff" }}>
-                  Book Free Session
-                </Link>
-              </div>
-            )}
-
             {/* Actions */}
             <div className="flex gap-3">
               <button type="submit" disabled={loading} className="btn-gold" style={{ opacity: loading ? .6 : 1 }}>
@@ -438,7 +421,7 @@ export default function PredictorForm() {
               </button>
               <button type="button" className="btn-outline"
                 onClick={() => {
-                  setInputMode("percentile"); setPercentile(""); setRank(""); setCategory("");
+                  setInputMode("rank"); setPercentile(""); setRank(""); setCategory("");
                   setIncludeTfws(false); setGender(""); setSelectedMinorityTypes([]);
                   setSelectedMinorityGroups([]); setSelectedBranches([]); setSelectedCities([]);
                   setResults(null); setError(""); setGenderError(""); setCategoryError("");

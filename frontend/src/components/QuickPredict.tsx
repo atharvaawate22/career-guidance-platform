@@ -15,7 +15,7 @@ const GENDERS = ["Male", "Female"] as const;
  */
 export default function QuickPredict() {
   const router = useRouter();
-  const [mode, setMode] = useState<"percentile" | "rank">("percentile");
+  const [mode, setMode] = useState<"percentile" | "rank">("rank");
   const [value, setValue] = useState("");
   const [category, setCategory] = useState("");
   const [gender, setGender] = useState("");
@@ -59,7 +59,7 @@ export default function QuickPredict() {
     >
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
+          <h2 className="text-[22px] font-bold" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
             Predict your college in seconds
           </h2>
           <p className="text-sm mt-1" style={{ color: "var(--slate-500)" }}>

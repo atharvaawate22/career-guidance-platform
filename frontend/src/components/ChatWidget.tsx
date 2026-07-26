@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
-import { buildWaMeLink } from "@/lib/whatsapp";
 
 interface QuickReply {
   number: number;
@@ -32,14 +31,6 @@ function IconClose({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function IconWhatsApp() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.29-1.39a9.9 9.9 0 0 0 4.7 1.2h.01c5.46 0 9.9-4.45 9.9-9.9C21.96 6.45 17.5 2 12.04 2zm5.8 14.06c-.24.68-1.4 1.3-1.94 1.38-.5.08-1.12.11-1.8-.11-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.8-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.27-.29.58-.36.78-.36l.56.01c.18 0 .42-.07.65.5.24.58.82 2 .89 2.15.07.15.12.32.02.51-.1.19-.15.31-.29.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.76 1.26 1.64 2.04 1.13 1 2.08 1.32 2.37 1.47.29.15.46.13.63-.08.17-.2.72-.84.92-1.13.19-.29.39-.24.65-.14.27.1 1.69.8 1.98.94.29.15.48.22.55.34.07.13.07.75-.17 1.43z" />
     </svg>
   );
 }
@@ -95,21 +86,9 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [waLink, setWaLink] = useState<string | null>(null);
   const [sessionId] = useState<string | undefined>(getOrCreateSessionId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
-
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/settings/contact-info`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success && d.data?.phone) {
-          setWaLink(buildWaMeLink(d.data.phone, "Hi! I have a question about MHT-CET admissions."));
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     let alreadySeen = false;
@@ -326,20 +305,6 @@ export default function ChatWidget() {
               </div>
             )}
           </div>
-
-          {/* WhatsApp CTA — always visible, not part of the message list */}
-          {waLink && (
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mx-3 mb-2 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition-colors"
-              style={{ background: "#25D36615", color: "#128C7E", border: "1px solid #25D36640" }}
-            >
-              <IconWhatsApp />
-              Continue on WhatsApp
-            </a>
-          )}
 
           {/* Input */}
           <form

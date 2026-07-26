@@ -499,7 +499,8 @@ function handlePredictorIntent(): ChatReply {
 
 function handleCounselorIntent(): ChatReply {
   return withMenu(
-    'Counseling session bookings are paused right now — tap "Continue on WhatsApp" to chat with our team directly, or check /updates for the latest.',
+    "One-on-one counseling sessions aren't available right now — check /updates for the latest, " +
+      "or use the College Predictor and Cutoff Explorer in the meantime.",
     true,
   );
 }
@@ -518,8 +519,7 @@ function handlePersonalizedDefer(): ChatReply {
   return withMenu(
     "That really depends on your percentile, category, and what you actually want from your degree — " +
       "it's too personal a call for me to flatten into one generic answer. Try the College Predictor at " +
-      '/predictor to see which colleges fit your score, or tap "Continue on WhatsApp" to talk it ' +
-      'through properly with our team.',
+      '/predictor to see which colleges fit your score and compare your options from there.',
     true,
   );
 }
