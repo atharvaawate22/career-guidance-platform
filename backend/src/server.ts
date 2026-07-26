@@ -19,6 +19,7 @@ import guidesRoutes from './modules/guides/guides.routes';
 import resourcesRoutes from './modules/resources/resources.routes';
 import faqsRoutes from './modules/faqs/faqs.routes';
 import bookingRoutes from './modules/booking/booking.routes';
+import testimonialsRoutes from './modules/testimonials/testimonials.routes';
 import settingsRoutes from './modules/settings/settings.routes';
 import chatbotRoutes from './modules/chatbot/chatbot.routes';
 import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
@@ -155,6 +156,7 @@ app.get('/', (_req, res) => {
       guides: '/api/v1/guides',
       faqs: '/api/v1/faqs',
       bookings: '/api/v1/bookings',
+      testimonials: '/api/v1/testimonials',
       chatbot: '/api/v1/chatbot/message',
       adminLogin: '/api/v1/admin/login',
     },
@@ -245,6 +247,7 @@ app.use('/api/v1/resources', contentCache, resourcesRoutes);
 app.use('/api/v1/faqs', referenceCache, faqsRoutes);
 app.use('/api/v1/bookings/slots', availabilityCache, publicBookingSlotsGetLimiter);
 app.use('/api/v1/bookings', bookingRoutes);
+app.use('/api/v1/testimonials', contentCache, testimonialsRoutes);
 app.use('/api/v1/settings', contentCache, settingsRoutes);
 app.use('/api/v1/chatbot', chatbotRoutes); // POST — not CDN-cacheable; own rate limiter inside the route module
 app.use('/api/v1/whatsapp', whatsappRoutes); // Meta webhook — GET verification handshake + POST message receipt

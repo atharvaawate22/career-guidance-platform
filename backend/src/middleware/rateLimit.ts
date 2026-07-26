@@ -162,6 +162,21 @@ export const whatsappWebhookLimiter = rateLimit({
   },
 });
 
+export const testimonialLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: makeStore(),
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many reviews submitted, please try again later.',
+    },
+  },
+});
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,

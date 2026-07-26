@@ -19,6 +19,7 @@ const routeLabels: Record<string, string> = {
   "/admin/updates": "Updates",
   "/admin/faqs": "FAQs",
   "/admin/guides": "Guides",
+  "/admin/testimonials": "Testimonials",
   "/admin/resources": "Resources",
   "/admin/settings": "Settings",
 };

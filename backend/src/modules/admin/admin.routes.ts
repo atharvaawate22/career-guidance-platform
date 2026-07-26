@@ -10,6 +10,9 @@ import * as resourcesController from '../resources/resources.controller';
 import * as faqsController from '../faqs/faqs.controller';
 import * as settingsController from '../settings/settings.controller';
 import * as chatbotController from '../chatbot/chatbot.controller';
+import * as testimonialsController from '../testimonials/testimonials.controller';
+import { validateBody } from '../../middleware/validateRequest';
+import { updateTestimonialSchema } from '../testimonials/testimonials.schemas';
 import adminBookingsRoutes from './admin.bookings.routes';
 import adminUploadRoutes from './admin.upload.routes';
 
@@ -176,6 +179,29 @@ router.get(
   authMiddleware,
   requireAdminRole,
   settingsController.getAnalytics,
+);
+
+// ── Testimonials management ─────────────────────────────────────────────────
+router.get(
+  '/testimonials',
+  authMiddleware,
+  requireAdminRole,
+  testimonialsController.getAllTestimonials,
+);
+router.patch(
+  '/testimonials/:id',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  validateBody(updateTestimonialSchema),
+  testimonialsController.updateTestimonial,
+);
+router.delete(
+  '/testimonials/:id',
+  authMiddleware,
+  requireAdminRole,
+  verifyCsrfToken,
+  testimonialsController.deleteTestimonial,
 );
 
 // ── Chatbot: unanswered-query backlog (Phase 2 content planning) ───────────────

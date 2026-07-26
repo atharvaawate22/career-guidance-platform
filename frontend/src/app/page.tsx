@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "@/components/FaqSection";
 import LatestUpdates from "@/components/LatestUpdates";
+import Testimonials from "@/components/Testimonials";
 import QuickPredict from "@/components/QuickPredict";
 import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
@@ -343,41 +344,35 @@ export default function Home() {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                {BOOKINGS_ENABLED && (
-                  <Link
-                    href="/book"
-                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                    style={{
-                      background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
-                      boxShadow: "0 4px 16px rgba(99,102,241,0.35)",
-                    }}
-                  >
-                    Book a Free Session <ArrowRight />
-                  </Link>
-                )}
                 <Link
-                  href="/cutoffs"
+                  href={BOOKINGS_ENABLED ? "/book" : "/cutoffs"}
+                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+                  style={{
+                    background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
+                    boxShadow: "0 4px 16px rgba(99,102,241,0.35)",
+                  }}
+                >
+                  {BOOKINGS_ENABLED ? <>Book a Free Session <ArrowRight /></> : <>Browse Cutoffs <ArrowRight /></>}
+                </Link>
+                <Link
+                  href={BOOKINGS_ENABLED ? "/cutoffs" : "/guides"}
                   className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200"
                   style={{
-                    background: BOOKINGS_ENABLED ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
+                    background: "rgba(255,255,255,0.06)",
                     color: "#ffffff",
-                    border: BOOKINGS_ENABLED ? "1px solid rgba(255,255,255,0.15)" : "none",
+                    border: "1px solid rgba(255,255,255,0.15)",
                     backdropFilter: "blur(8px)",
                   }}
                   onMouseEnter={(e) => {
-                    if (BOOKINGS_ENABLED) {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
-                    }
+                    e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
                   }}
                   onMouseLeave={(e) => {
-                    if (BOOKINGS_ENABLED) {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-                    }
+                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
                   }}
                 >
-                  Browse Cutoffs
+                  {BOOKINGS_ENABLED ? "Browse Cutoffs" : "View Admission Guides"}
                 </Link>
               </div>
             </div>
@@ -461,6 +456,11 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* TESTIMONIALS — real student reviews, high up while engagement is
+          still strong (and clear of the FAQ/CTA close, which read as the
+          page's natural wrap-up) */}
+      <Testimonials />
 
       {/* HOW IT WORKS — the process, after the feature overview */}
       <section className="py-20 lg:py-28" style={{ background: "var(--bg-secondary)" }}>
@@ -561,25 +561,23 @@ export default function Home() {
               >
                 Start Predictor <ArrowRight />
               </Link>
-              {BOOKINGS_ENABLED && (
-                <Link
-                  href="/book"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm transition-all duration-200"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    color: "#ffffff",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                  }}
-                >
-                  Book Free Session
-                </Link>
-              )}
+              <Link
+                href={BOOKINGS_ENABLED ? "/book" : "/cutoffs"}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm transition-all duration-200"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  color: "#ffffff",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                }}
+              >
+                {BOOKINGS_ENABLED ? "Book Free Session" : "Browse Cutoffs"}
+              </Link>
             </div>
           </div>
         </ScrollReveal>

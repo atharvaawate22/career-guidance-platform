@@ -66,3 +66,6 @@ provisioned by applying `schema.sql` first, then letting the runner apply
 | `018_seed_cap_faqs.sql` | Seed nine reviewed CAP-guidance FAQ rows + append the TFWS opt-in clause (Phase 2 step a; idempotent) |
 | `019_faq_eligibility_closer.sql` | Append a "confirm against the official brochure" hedge to the Class XII eligibility FAQ (FAQ-audit outcome; idempotent) |
 | `020_rag_chunks.sql` | `rag_chunks` table (`pgvector`) — Phase 2 step (b) RAG corpus storage |
+| `021_fee_schedule.sql` | `fee_schedule` table — structured CAP fee data for the chatbot |
+| `022_anonymous_guide_downloads.sql` | Drop the guide-download lead-capture gate — `guide_downloads.name`/`email` become nullable |
+| `023_testimonials.sql` | `testimonials` table — student reviews, auto-published, admin-editable/deletable |

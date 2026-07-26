@@ -55,11 +55,20 @@ export interface Guide {
 
 export interface GuideDownload {
   id: string;
-  name: string;
-  email: string;
+  name: string | null;
+  email: string | null;
   percentile: number | null;
   downloaded_at: string;
   guide_title: string;
+}
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  email: string;
+  rating: number;
+  review_text: string;
+  created_at: string;
 }
 
 export interface AnalyticsData {

@@ -88,18 +88,38 @@ ON guides(is_active);
 -- TABLE: guide_downloads
 -- Purpose: Track guide download activity and lead capture
 -- ============================================================================
+-- name/email are nullable: guide downloads no longer require a lead-capture
+-- form, but the columns are kept for any future opt-in capture.
 CREATE TABLE IF NOT EXISTS guide_downloads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   guide_id UUID NOT NULL REFERENCES guides(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
+  name TEXT,
+  email TEXT,
   percentile DECIMAL(10,7),
   downloaded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Index for analytics and lead tracking
-CREATE INDEX IF NOT EXISTS idx_guide_downloads_guide_id 
+CREATE INDEX IF NOT EXISTS idx_guide_downloads_guide_id
 ON guide_downloads(guide_id);
+
+-- ============================================================================
+-- TABLE: testimonials
+-- Purpose: Student-submitted reviews. Auto-published (no approval queue) —
+-- gated only by an application-layer abuse-word filter. email is admin-only,
+-- never returned by the public API.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS testimonials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  review_text TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_testimonials_created_at
+  ON testimonials(created_at DESC);
 
 -- ============================================================================
 -- TABLE: faqs
@@ -186,6 +206,7 @@ ALTER TABLE guides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guide_downloads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
 
 -- Public read policies for app-facing content
 DO $$
@@ -228,6 +249,17 @@ BEGIN
     WHERE schemaname = 'public' AND tablename = 'resources' AND policyname = 'resources_public_read_active'
   ) THEN
     CREATE POLICY resources_public_read_active ON resources FOR SELECT USING (is_active = true);
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'testimonials' AND policyname = 'testimonials_public_read'
+  ) THEN
+    CREATE POLICY testimonials_public_read ON testimonials FOR SELECT USING (true);
   END IF;
 END
 $$;
