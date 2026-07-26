@@ -13,40 +13,14 @@ export async function getActiveGuides(): Promise<Guide[]> {
 export async function downloadGuide(
   downloadRequest: GuideDownloadRequest,
 ): Promise<GuideDownloadResponse> {
-  // Validate required fields
-  if (!downloadRequest.guide_id || !downloadRequest.name?.trim()) {
+  if (!downloadRequest.guide_id) {
     return {
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Guide ID and name are required',
+        message: 'Guide ID is required',
       },
     };
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(downloadRequest.email)) {
-    return {
-      success: false,
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid email format',
-      },
-    };
-  }
-
-  // Validate percentile if provided
-  if (downloadRequest.percentile !== undefined) {
-    if (downloadRequest.percentile < 0 || downloadRequest.percentile > 100) {
-      return {
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Percentile must be between 0 and 100',
-        },
-      };
-    }
   }
 
   // Check if guide exists and is active

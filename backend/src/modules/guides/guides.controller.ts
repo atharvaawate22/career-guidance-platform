@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as guidesService from './guides.service';
-import { GuideDownloadRequest, CreateGuideRequest } from './guides.types';
+import { CreateGuideRequest } from './guides.types';
 import { sanitizeText } from '../../utils/sanitize';
 
 export async function getGuides(
@@ -26,14 +26,7 @@ export async function downloadGuide(
   next: NextFunction,
 ) {
   try {
-    const downloadRequest: GuideDownloadRequest = {
-      guide_id: req.body.guide_id,
-      name: typeof req.body.name === 'string' ? sanitizeText(req.body.name) : req.body.name,
-      email: req.body.email,
-      percentile: req.body.percentile,
-    };
-
-    const result = await guidesService.downloadGuide(downloadRequest);
+    const result = await guidesService.downloadGuide({ guide_id: req.body.guide_id });
 
     if (!result.success) {
       res.status(400).json(result);

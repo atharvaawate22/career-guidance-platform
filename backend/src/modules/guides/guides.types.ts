@@ -9,9 +9,6 @@ export interface Guide {
 
 export interface GuideDownloadRequest {
   guide_id: string;
-  name: string;
-  email: string;
-  percentile?: number;
 }
 
 export interface GuideDownloadResponse {

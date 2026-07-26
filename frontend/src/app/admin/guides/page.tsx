@@ -128,7 +128,7 @@ export default function AdminGuidesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-up">
         <div>
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>Guides</h1>
-          <p className="text-slate-400 text-sm mt-1">Manage downloadable guides and track leads</p>
+          <p className="text-slate-400 text-sm mt-1">Manage downloadable guides and track download counts</p>
         </div>
         <button onClick={() => { setFormOpen(true); setTitle(""); setDescription(""); setFile(null); }} className="admin-btn-primary">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -138,7 +138,7 @@ export default function AdminGuidesPage() {
 
       {/* Tab Toggle */}
       <div className="flex gap-1 bg-slate-800/50 p-1 rounded-xl w-fit animate-fade-up-1">
-        {[{ key: "guides" as const, label: "Guides", count: guides.length }, { key: "leads" as const, label: "Download Leads", count: downloads.length }].map(({ key, label, count }) => (
+        {[{ key: "guides" as const, label: "Guides", count: guides.length }, { key: "leads" as const, label: "Downloads", count: downloads.length }].map(({ key, label, count }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -183,7 +183,7 @@ export default function AdminGuidesPage() {
       ) : (
         /* Leads Table */
         downloads.length === 0 ? (
-          <EmptyState icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} title="No downloads yet" description="Leads will appear here when users download guides" />
+          <EmptyState icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} title="No downloads yet" description="Downloads will appear here once students grab a guide" />
         ) : (
           <div className="admin-card overflow-hidden animate-fade-up-2">
             <div className="overflow-x-auto">
@@ -200,8 +200,8 @@ export default function AdminGuidesPage() {
                 <tbody className="divide-y divide-slate-700/30">
                   {downloads.map((dl) => (
                     <tr key={dl.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-3 text-sm text-white font-medium">{dl.name}</td>
-                      <td className="px-6 py-3 text-sm text-slate-300">{dl.email}</td>
+                      <td className="px-6 py-3 text-sm text-white font-medium">{dl.name ?? "—"}</td>
+                      <td className="px-6 py-3 text-sm text-slate-300">{dl.email ?? "—"}</td>
                       <td className="px-6 py-3 text-sm text-slate-400 hidden sm:table-cell max-w-[200px] truncate">{dl.guide_title}</td>
                       <td className="px-6 py-3 text-sm text-slate-400 hidden md:table-cell tabular-nums" style={{ fontFamily: "var(--font-mono)" }}>{dl.percentile ?? "—"}</td>
                       <td className="px-6 py-3 text-xs text-slate-500 tabular-nums whitespace-nowrap" style={{ fontFamily: "var(--font-mono)" }}>{format(parseISO(dl.downloaded_at), "dd MMM yy")}</td>
@@ -210,7 +210,7 @@ export default function AdminGuidesPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-3 border-t border-slate-700/50 text-xs text-slate-500">{downloads.length} lead{downloads.length !== 1 ? "s" : ""} captured</div>
+            <div className="px-6 py-3 border-t border-slate-700/50 text-xs text-slate-500">{downloads.length} download{downloads.length !== 1 ? "s" : ""} recorded</div>
           </div>
         )
       )}

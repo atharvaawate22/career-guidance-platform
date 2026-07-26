@@ -24,13 +24,8 @@ export async function recordDownload(
   downloadRequest: GuideDownloadRequest,
 ): Promise<void> {
   await query(
-    'INSERT INTO guide_downloads (guide_id, name, email, percentile) VALUES ($1, $2, $3, $4)',
-    [
-      downloadRequest.guide_id,
-      downloadRequest.name,
-      downloadRequest.email,
-      downloadRequest.percentile,
-    ],
+    'INSERT INTO guide_downloads (guide_id) VALUES ($1)',
+    [downloadRequest.guide_id],
   );
 }
 

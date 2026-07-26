@@ -21,17 +21,7 @@ export default function GuidesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [search, setSearch] = useState("");
-
-  // Download modal state
-  const [showModal, setShowModal] = useState(false);
-  const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
-  const [downloadForm, setDownloadForm] = useState({
-    name: "",
-    email: "",
-    percentile: "",
-  });
-  const [downloadError, setDownloadError] = useState<string>("");
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const fetchGuides = useCallback(async (showLoader = false) => {
     try {
@@ -85,81 +75,19 @@ export default function GuidesPage() {
     fetchGuides(shouldShowLoader);
   }, [fetchGuides]);
 
-  const handleDownloadClick = (guide: Guide) => {
-    setSelectedGuide(guide);
-    setShowModal(true);
-    setDownloadForm({ name: "", email: "", percentile: "" });
-    setDownloadError("");
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedGuide(null);
-    setDownloadForm({ name: "", email: "", percentile: "" });
-    setDownloadError("");
-  };
-
-  // ESC key closes the modal
-  useEffect(() => {
-    if (!showModal) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleCloseModal();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [showModal]);
-
-  // Validation handlers for download form
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const cleaned = e.target.value.replace(/[^a-zA-Z\s'-]/g, "");
-    setDownloadForm({ ...downloadForm, name: cleaned });
-  };
-
-  const handlePercentileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const numValue = parseFloat(value);
-    if (
-      value === "" ||
-      (!isNaN(numValue) && numValue >= 0 && numValue <= 100)
-    ) {
-      setDownloadForm({ ...downloadForm, percentile: value });
-    }
-  };
-
-  const handleDownloadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedGuide) return;
-
-    setDownloading(true);
-    setDownloadError("");
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/guides/download`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          guide_id: selectedGuide.id,
-          name: downloadForm.name,
-          email: downloadForm.email,
-          percentile: downloadForm.percentile
-            ? parseFloat(downloadForm.percentile)
-            : undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success && (data.data?.file_url || data.file_url)) {
-        window.open(data.data?.file_url || data.file_url, "_blank");
-        handleCloseModal();
-      } else {
-        setDownloadError(data.error?.message || "Failed to process download");
-      }
-    } catch {
-      setDownloadError("Error connecting to server");
-    } finally {
-      setDownloading(false);
-    }
+  // Opens the file immediately — no form, no gate. The download is still
+  // logged (fire-and-forget, guide_id only) so the admin panel keeps an
+  // accurate download count per guide.
+  const handleDownload = (guide: Guide) => {
+    window.open(guide.file_url, "_blank");
+    setDownloadingId(guide.id);
+    fetch(`${API_BASE_URL}/api/v1/guides/download`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guide_id: guide.id }),
+    })
+      .catch(() => {})
+      .finally(() => setDownloadingId(null));
   };
 
   const filteredGuides = search.trim()
@@ -181,7 +109,7 @@ export default function GuidesPage() {
               Admission Guides
             </h1>
             <p className="text-sm max-w-xl" style={{ color: "var(--slate-500)" }}>
-              Download comprehensive guides for MHT-CET admissions. Enter your details to access our resources.
+              Download comprehensive guides for MHT-CET admissions — free, no sign-up.
             </p>
           </div>
         </ScrollReveal>
@@ -283,8 +211,9 @@ export default function GuidesPage() {
                     {guide.description}
                   </p>
                   <button
-                    onClick={() => handleDownloadClick(guide)}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200"
+                    onClick={() => handleDownload(guide)}
+                    disabled={downloadingId === guide.id}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-60"
                     style={{
                       background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
                       boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
@@ -299,113 +228,6 @@ export default function GuidesPage() {
                 </div>
               </ScrollReveal>
             ))}
-          </div>
-        )}
-
-        {/* Download Modal */}
-        {showModal && selectedGuide && (
-          <div
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
-            onClick={handleCloseModal}
-          >
-            <div
-              className="rounded-2xl max-w-md w-full p-7 animate-scale-in"
-              style={{
-                background: "var(--bg-primary)",
-                border: "1px solid var(--slate-200)",
-                boxShadow: "var(--shadow-xl)",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="text-xl font-bold mb-1" style={{ color: "var(--slate-900)" }}>
-                Download Guide
-              </h2>
-              <p className="text-sm mb-5" style={{ color: "var(--slate-500)" }}>
-                {selectedGuide.title}
-              </p>
-
-              {downloadError && (
-                <div
-                  className="rounded-xl p-3 text-sm mb-4"
-                  style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }}
-                >
-                  {downloadError}
-                </div>
-              )}
-
-              <form onSubmit={handleDownloadSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--slate-700)" }}>
-                    Name <span style={{ color: "var(--danger-500)" }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    minLength={2}
-                    maxLength={100}
-                    autoComplete="name"
-                    value={downloadForm.name}
-                    onChange={handleNameChange}
-                    className="input-base"
-                    placeholder="Enter your name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--slate-700)" }}>
-                    Email <span style={{ color: "var(--danger-500)" }}>*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={downloadForm.email}
-                    onChange={(e) => setDownloadForm({ ...downloadForm, email: e.target.value })}
-                    className="input-base"
-                    placeholder="your.email@gmail.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--slate-700)" }}>
-                    Percentile <span className="font-normal" style={{ color: "var(--slate-400)" }}>(optional)</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    max="100"
-                    value={downloadForm.percentile}
-                    onChange={handlePercentileChange}
-                    className="input-base"
-                    placeholder="e.g. 95.5000"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    disabled={downloading}
-                    className="btn-outline flex-1 justify-center"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={downloading}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-50"
-                    style={{
-                      background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
-                      boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
-                    }}
-                  >
-                    {downloading ? "Processing…" : "Download"}
-                  </button>
-                </div>
-              </form>
-            </div>
           </div>
         )}
       </div>
