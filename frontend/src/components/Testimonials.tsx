@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { format, parseISO } from "date-fns";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 import ScrollReveal from "@/components/ScrollReveal";
 
@@ -153,11 +154,24 @@ export default function Testimonials() {
                   className="rounded-2xl border p-6 h-full flex flex-col"
                   style={{ background: "var(--bg-primary)", borderColor: "var(--slate-200)", boxShadow: "var(--shadow-xs)" }}
                 >
-                  <Stars rating={t.rating} />
-                  <p className="text-sm leading-relaxed mt-4 mb-5 flex-1" style={{ color: "var(--slate-600)" }}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shrink-0"
+                      style={{ background: "linear-gradient(135deg, var(--primary-500), var(--primary-700))" }}
+                    >
+                      {t.name.trim().charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: "var(--slate-900)" }}>{t.name}</p>
+                      <Stars rating={t.rating} size={13} />
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed flex-1" style={{ color: "var(--slate-600)" }}>
                     &ldquo;{t.review_text}&rdquo;
                   </p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--slate-900)" }}>{t.name}</p>
+                  <p className="text-xs mt-4" style={{ color: "var(--slate-400)" }}>
+                    {format(parseISO(t.created_at), "dd MMM yyyy")}
+                  </p>
                 </div>
               </ScrollReveal>
             ))}
