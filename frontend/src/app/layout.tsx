@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
 import PublicShell from "@/components/PublicShell";
@@ -95,6 +96,9 @@ export default function RootLayout({
         <ErrorTrackingBridge />
         <StructuredData />
       </body>
+      {process.env.NEXT_PUBLIC_GA_ID && (
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+      )}
     </html>
   );
 }

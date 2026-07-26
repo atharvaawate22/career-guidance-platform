@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.12",
     "@sentry/nextjs": "^10.53.1",
     "chart.js": "^4.5.1",
     "date-fns": "^4.3.0",
