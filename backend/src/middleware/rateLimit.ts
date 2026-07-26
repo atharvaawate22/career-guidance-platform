@@ -162,12 +162,23 @@ export const whatsappWebhookLimiter = rateLimit({
   },
 });
 
+/**
+ * Keyed by email rather than IP: many students share an IP (mobile carrier
+ * CGNAT, campus/office wifi), so an IP-only limiter blocks a genuine
+ * first-time submitter just because someone else on the same network
+ * already used up the quota. Falls back to IP only when the request has no
+ * usable email (malformed body), so it still can't be bypassed entirely.
+ */
 export const testimonialLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
   store: makeStore(),
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    return email || req.ip || 'unknown';
+  },
   message: {
     success: false,
     error: {
