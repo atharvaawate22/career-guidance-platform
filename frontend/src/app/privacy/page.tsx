@@ -31,6 +31,7 @@ export default function PrivacyPolicyPage() {
               <li>Booking records are retained for 2 years.</li>
               <li>Guide download leads are retained for 1 year.</li>
               <li>Predictor usage is stateless and is not stored as a predictor history.</li>
+              <li>Unanswered chatbot questions (see the Chatbot and WhatsApp assistant section below) are retained for 180 days, then automatically deleted.</li>
             </ul>
           </section>
           <section>

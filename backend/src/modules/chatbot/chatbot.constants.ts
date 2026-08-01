@@ -13,13 +13,13 @@ export const MENU_OPTIONS = [
 ] as const;
 
 export const MENU_TEXT =
-  "Hi, I'm Avani, your MHT-CET admissions guide! What would you like help with?\n\n" +
+  "Hi, I'm Avani, your MHT-CET admissions assistant. How can I help you today?\n\n" +
   MENU_OPTIONS.map((o) => `${o.number}. ${o.label}`).join('\n') +
-  '\n\nReply with a number, or just ask me anything in your own words.';
+  '\n\nReply with a number, or just type your question.';
 
 export const FALLBACK_TEXT =
-  "Hmm, I'm not quite sure about that one. Try asking about cutoffs, CAP dates, fees, or documents — " +
-  'or reply "menu" to see everything I can help with.';
+  "I'm not able to help with that one, but I do know cutoffs, CAP dates, fees, and documents inside out — " +
+  'try asking about one of those, or reply "menu" to see everything I can help with.';
 
 /** Common abbreviations students actually type, mapped onto substrings that appear in `courses.branch_group`. */
 export const BRANCH_ALIASES: Record<string, string> = {

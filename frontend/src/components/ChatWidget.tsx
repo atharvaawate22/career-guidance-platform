@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 interface QuickReply {
-  number: number;
+  value: string;
   label: string;
 }
 
@@ -35,16 +35,24 @@ function IconClose({ size = 22 }: { size?: number }) {
   );
 }
 
-/** Avani's avatar — a plain gradient initial, no external asset. */
+/**
+ * Avani's avatar — the indigo→teal duotone (the site's own dual brand
+ * palette, not a generic single-color widget accent) in the display serif
+ * used for brand moments elsewhere on the site (hero heading, gradient-clip
+ * text), so the mark reads as part of CET Hub rather than a bolted-on
+ * plugin. See globals.css "Indigo + Teal Academic Theme".
+ */
 function Avatar({ size = 32 }: { size?: number }) {
   return (
     <div
-      className="rounded-full flex items-center justify-center text-white font-semibold shrink-0"
+      className="rounded-full flex items-center justify-center text-white shrink-0"
       style={{
         width: size,
         height: size,
-        fontSize: Math.round(size * 0.42),
-        background: "linear-gradient(135deg, var(--primary-500), var(--primary-700))",
+        fontSize: Math.round(size * 0.44),
+        fontFamily: "var(--font-display)",
+        background: "linear-gradient(135deg, var(--primary-500), var(--accent-500))",
+        boxShadow: "0 0 0 2px rgba(255,255,255,0.7), 0 2px 6px rgba(15,23,42,0.15)",
       }}
     >
       A
@@ -87,6 +95,11 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState<string | undefined>(getOrCreateSessionId);
+  // Drives the launcher's sonar-ping ring — a quiet "there's something new
+  // here" cue, not a permanent decoration. Fades out the moment the visitor
+  // engages (opens the chat or dismisses the teaser) so it never nags a
+  // returning or already-chatting visitor.
+  const [neverEngaged, setNeverEngaged] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
 
@@ -98,6 +111,7 @@ export default function ChatWidget() {
       alreadySeen = false;
     }
     if (alreadySeen) return;
+    setNeverEngaged(true);
     const timer = setTimeout(() => setShowTeaser(true), TEASER_DELAY_MS);
     return () => clearTimeout(timer);
   }, []);
@@ -112,6 +126,7 @@ export default function ChatWidget() {
 
   const dismissTeaser = () => {
     setShowTeaser(false);
+    setNeverEngaged(false);
     try {
       sessionStorage.setItem(TEASER_DISMISSED_KEY, "1");
     } catch {
@@ -121,12 +136,14 @@ export default function ChatWidget() {
 
   const openFromTeaser = () => {
     setShowTeaser(false);
+    setNeverEngaged(false);
     markOpened();
     setOpen(true);
   };
 
   const toggleOpen = () => {
     setShowTeaser(false);
+    setNeverEngaged(false);
     if (!open) markOpened();
     setOpen((v) => !v);
   };
@@ -170,7 +187,7 @@ export default function ChatWidget() {
   return (
     <>
       {showTeaser && !open && (
-        <div className="fixed bottom-24 right-5 z-50 max-w-[250px] animate-fade-up">
+        <div className="fixed bottom-24 right-5 z-50 max-w-[260px] animate-fade-up">
           <div
             role="button"
             tabIndex={0}
@@ -178,46 +195,64 @@ export default function ChatWidget() {
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") openFromTeaser();
             }}
-            className="relative rounded-2xl rounded-br-sm px-4 py-3 pr-7 text-sm leading-relaxed cursor-pointer"
+            className="relative overflow-hidden rounded-2xl rounded-br-sm px-4 py-3.5 pr-7 text-sm leading-relaxed cursor-pointer"
             style={{
               background: "var(--bg-primary)",
               border: "1px solid var(--slate-200)",
-              boxShadow: "0 8px 28px rgba(15,23,42,0.16)",
+              boxShadow: "0 8px 28px rgba(15,23,42,0.16), 0 0 0 1px rgba(99,102,241,0.03)",
               color: "var(--slate-800)",
             }}
           >
+            {/* Faint teal glow bleeding from the corner — the same "mesh orb"
+                accent language the hero uses, scaled down to a card. */}
+            <div
+              aria-hidden
+              className="absolute -top-10 -right-10 w-24 h-24 rounded-full pointer-events-none"
+              style={{ background: "radial-gradient(circle, var(--accent-300), transparent 70%)", opacity: 0.35 }}
+            />
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 dismissTeaser();
               }}
               aria-label="Dismiss"
-              className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full transition-colors"
+              className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full transition-colors z-10"
               style={{ color: "var(--slate-400)" }}
             >
               <IconClose size={12} />
             </button>
-            <div className="flex items-center gap-2 mb-1">
-              <Avatar size={20} />
-              <span className="text-xs font-semibold" style={{ color: "var(--primary-700)" }}>Avani</span>
+            <div className="relative flex items-center gap-2 mb-1.5">
+              <Avatar size={22} />
+              <span className="text-xs font-semibold tracking-wide" style={{ fontFamily: "var(--font-display)", color: "var(--primary-700)" }}>
+                Avani
+              </span>
             </div>
-            Hi, I&apos;m Avani — got a question about MHT-CET admissions?
+            <span className="relative">Hello, I&apos;m Avani. How can I help with your MHT-CET admission questions?</span>
           </div>
         </div>
       )}
 
-      <button
-        onClick={toggleOpen}
-        aria-label={open ? "Close chat" : "Open chat with Avani"}
-        aria-expanded={open}
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-200 hover:scale-105 active:scale-95"
-        style={{
-          background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
-          boxShadow: "0 4px 20px rgba(79,70,229,0.4)",
-        }}
-      >
-        {open ? <IconClose /> : <IconChat />}
-      </button>
+      <div className="fixed bottom-5 right-5 z-50">
+        {neverEngaged && !open && (
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full animate-ping-ring"
+            style={{ background: "linear-gradient(135deg, var(--primary-500), var(--accent-500))" }}
+          />
+        )}
+        <button
+          onClick={toggleOpen}
+          aria-label={open ? "Close chat" : "Open chat with Avani"}
+          aria-expanded={open}
+          className="relative w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-200 hover:scale-105 active:scale-95"
+          style={{
+            background: "linear-gradient(135deg, var(--primary-500), var(--primary-700) 60%, var(--accent-600))",
+            boxShadow: "0 4px 20px rgba(79,70,229,0.4), 0 0 0 1px rgba(255,255,255,0.08) inset",
+          }}
+        >
+          {open ? <IconClose /> : <IconChat />}
+        </button>
+      </div>
 
       {open && (
         <div
@@ -231,28 +266,46 @@ export default function ChatWidget() {
             boxShadow: "0 12px 40px rgba(15,23,42,0.18)",
           }}
         >
-          {/* Header */}
+          {/* Header — the hero's own dark indigo→slate gradient plus a
+              corner mesh-orb glow and faint grid, scaled down, so the panel
+              reads as a CET Hub surface rather than a generic widget shell. */}
           <div
-            className="px-4 py-3.5 flex items-center justify-between shrink-0"
-            style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
+            className="relative overflow-hidden px-4 py-3.5 flex items-center justify-between shrink-0"
+            style={{ background: "linear-gradient(135deg, var(--primary-900), var(--slate-900) 65%, var(--primary-800))" }}
           >
-            <div className="flex items-center gap-2.5">
+            <div
+              aria-hidden
+              className="absolute -top-8 -right-6 w-28 h-28 rounded-full pointer-events-none"
+              style={{ background: "radial-gradient(circle, var(--accent-500), transparent 70%)", opacity: 0.25 }}
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none opacity-[0.05]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)",
+                backgroundSize: "18px 18px",
+              }}
+            />
+            <div className="relative flex items-center gap-2.5">
               <div className="relative shrink-0">
                 <Avatar size={36} />
                 <span
                   className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse-dot"
-                  style={{ background: "#22c55e", border: "2px solid var(--primary-600)" }}
+                  style={{ background: "#22c55e", border: "2px solid var(--primary-900)", boxShadow: "0 0 6px rgba(34,197,94,0.6)" }}
                 />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white leading-tight">Avani</p>
-                <p className="text-[11px] text-white/75 leading-tight">Your MHT-CET admissions guide</p>
+                <p className="text-sm font-semibold text-white leading-tight" style={{ fontFamily: "var(--font-display)" }}>
+                  Avani
+                </p>
+                <p className="text-[11px] text-white/70 leading-tight">Your MHT-CET admissions guide</p>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
               aria-label="Close chat"
-              className="text-white/80 hover:text-white transition-colors"
+              className="relative text-white/80 hover:text-white transition-colors"
             >
               <IconClose />
             </button>
@@ -278,13 +331,13 @@ export default function ChatWidget() {
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {m.quickReplies.map((qr) => (
                         <button
-                          key={qr.number}
-                          onClick={() => handleSend(String(qr.number))}
+                          key={qr.value}
+                          onClick={() => handleSend(qr.value)}
                           disabled={loading}
-                          className="px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-50"
-                          style={{ background: "var(--primary-50)", color: "var(--primary-700)", border: "1px solid var(--primary-200)" }}
+                          className="px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-50 hover:brightness-95"
+                          style={{ background: "var(--accent-50)", color: "var(--accent-700)", border: "1px solid var(--accent-200)" }}
                         >
-                          {qr.number}. {qr.label}
+                          {qr.label}
                         </button>
                       ))}
                     </div>
@@ -316,7 +369,7 @@ export default function ChatWidget() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Avani anything..."
+              placeholder="Type your question..."
               maxLength={500}
               disabled={loading}
               className="flex-1 px-3.5 py-2.5 rounded-xl text-sm outline-none disabled:opacity-60"
@@ -326,8 +379,11 @@ export default function ChatWidget() {
               type="submit"
               disabled={loading || !input.trim()}
               aria-label="Send"
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 disabled:opacity-50 transition-opacity"
-              style={{ background: "var(--primary-600)" }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 disabled:opacity-50 transition-all hover:brightness-105"
+              style={{
+                background: "linear-gradient(135deg, var(--primary-500), var(--primary-600))",
+                boxShadow: "0 2px 8px rgba(79,70,229,0.35)",
+              }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />

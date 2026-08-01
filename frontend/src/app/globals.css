@@ -239,6 +239,11 @@ input, select, textarea { font-family: inherit; }
   0%, 100% { transform: translateY(0); opacity: 1; }
   50%      { transform: translateY(8px); opacity: 0.4; }
 }
+@keyframes pingRing {
+  0%   { transform: scale(1); opacity: 0.45; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
 
 .animate-fade-up   { animation: fadeUp 0.5s var(--ease-out) both; }
 .animate-fade-up-1 { animation: fadeUp 0.5s 0.05s var(--ease-out) both; }
@@ -253,6 +258,7 @@ input, select, textarea { font-family: inherit; }
 .animate-spin { animation: spin 1s linear infinite; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 .animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+.animate-ping-ring { animation: pingRing 2.4s cubic-bezier(0,0,0.2,1) infinite; }
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {

@@ -180,6 +180,8 @@ ON bookings(booking_status);
 -- TABLE: unanswered_queries
 -- Purpose: Logs chatbot fallback queries — the Phase 2 RAG content backlog.
 -- Defined in migrations/016_unanswered_queries.sql.
+-- Retention: purged after 180 days via a pg_cron job scheduled in
+-- migrations/024_unanswered_queries_retention.sql.
 -- ============================================================================
 
 -- ============================================================================

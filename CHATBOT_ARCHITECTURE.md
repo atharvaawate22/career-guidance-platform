@@ -784,12 +784,95 @@ justifies any of it yet:
   directly against `getCutoffAnswer()` for a college/branch with General
   rows but zero Ladies rows — returns `[]` for `ladiesQuota: true` rather
   than silently falling back to General.
-- **Chat-log retention and purge**: the privacy policy now discloses that
-  unanswered chatbot questions are logged (and, on WhatsApp, stored with the
-  sender's number — see the privacy page's *Chatbot and WhatsApp assistant*
-  section), but `unanswered_queries` has **no retention window or purge job
-  yet**. Everything else with PII carries one (bookings 2 years, guide leads
-  1 year). This is a deliberately deferred follow-up: a scheduled purge (e.g.
-  drop rows older than N months) plus a stated retention period on the privacy
-  page, kept together so the disclosure and the enforcement match. Deferred,
-  not forgotten.
+- ✅ **Chat-log retention and purge**: flagged in an earlier review, now
+  fixed. `unanswered_queries` (logged on both website and WhatsApp — see the
+  privacy page's *Chatbot and WhatsApp assistant* section) is purged after
+  180 days by a daily `pg_cron` job scheduled in
+  `migrations/024_unanswered_queries_retention.sql`. The retention page's
+  *Retention* section states the same 180-day window, so the disclosure and
+  the enforcement match, per the pattern set by bookings (2 years) and guide
+  leads (1 year). The migration degrades gracefully (`RAISE NOTICE`, not a
+  failure) if `pg_cron` isn't installed or the migration role lacks cron
+  privileges, so it can't break startup on a differently-provisioned database.
+
+- ✅ **Quick-reply chips stopped repeating the full root menu on every single
+  reply.** `withMenu()` used to be called on nearly every branch — a detailed
+  cutoff answer, a "which branch?" prompt, and the initial greeting all
+  rendered the identical 6-button menu underneath, which in the web widget
+  read as the bot ignoring what was just typed. `ChatQuickReply` was
+  reshaped from `{number, label}` (always the fixed menu, in menu order) to
+  `{value, label}` (arbitrary text + display label), and a new `reply()`
+  constructor replaces `withMenu()` everywhere except the three places
+  showing the full menu is actually useful: the greeting, an off-topic
+  redirect, and the true "I don't understand" fallback. Everywhere else
+  either has no chips (a definitive answer — cutoff result, FAQ answer, CAP
+  dates, documents, fee) or small contextual chips relevant to what's
+  actually being asked: common branches when a college is known but the
+  branch isn't, matching college/course names for disambiguation, and the
+  MIT/VIT acronym candidates.
+- ✅ **Fixed a real routing gap this exposed, not just a UI one.** A bare
+  branch/category follow-up ("computer") with no remembered college — no
+  session, an expired 20-minute slot TTL, or Redis unavailable — used to
+  fall through every check all the way to the generic fallback, which is
+  exactly what "shows the same menu after typing anything" describes from a
+  student's side. It now asks a relevant follow-up ("which college would you
+  like the 'computer' cutoff for?") instead.
+- ✅ **Fixed a college-name resolution bug the new disambiguation chips
+  exposed.** `NAME_STOPWORDS` stripped `'of'` when extracting a college name
+  hint from a message — fine for short queries, but many real college names
+  are structurally "X of Y" (Institute of Technology, College of
+  Engineering — COEP's own full name). Tapping a disambiguation chip for
+  "Vishwakarma Institute of Technology" lost the "of", the exact ILIKE match
+  failed, and the trigram fallback surfaced unrelated colleges. `'of'` is no
+  longer stripped; verified this doesn't regress the "percentile of COEP"
+  phrasing (trigram/ILIKE still resolve it) while fixing the exact-name
+  round-trip.
+- ✅ **Stray punctuation stuck to a word broke exact-token alias lookups.**
+  `COLLEGE_ALIASES`, `AMBIGUOUS_COLLEGE_ACRONYMS`, `BRANCH_ALIASES`, and
+  `CATEGORY_ALIASES` all key on an exact word match — "VIT, Pune" tokenized
+  to `["vit,", "pune"]`, and `AMBIGUOUS_COLLEGE_ACRONYMS['vit,']` is
+  `undefined`, so the acronym went undetected and "VIT, Pune" silently fell
+  through to generic name matching instead of resolving to Vishwakarma.
+  Same failure for "VIT?" / "MIT, Alandi" / any alias followed by
+  punctuation. `getReply()` now strips `,?!:;()` from the normalized message
+  before tokenizing (deliberately keeps `.`, `+`, `*`, `/`, `x`, `×` intact —
+  decimal percentiles and `MATH_PATTERN`'s operators depend on them).
+  Verified live: "VIT, Pune" / "MIT, Alandi" now resolve directly; bare
+  "VIT" / "VIT?" still correctly prompt (genuinely ambiguous alone); "what
+  is 2+2" and "COEP CS, OBC" unaffected.
+- ✅ **Off-topic small talk (jokes, math, "are you a bot") gets a light,
+  on-brand redirect instead of the generic fallback.** `JOKE_PATTERN`,
+  `MATH_PATTERN`, and `IDENTITY_PATTERN` in `chatbot.service.ts` are checked
+  last — after the keyword router, FAQ trigram + rescue, and the slot
+  follow-up path have all declined — so a real admissions question is never
+  short-circuited into a redirect. `MATH_PATTERN` deliberately excludes `-`
+  as an operator (a year range like "2024-2025" in a cutoff question would
+  otherwise false-positive as subtraction) and requires an explicit operator
+  between two numbers, so "95 percentile" or "round 2" never match. These
+  replies are `matched: true` and not logged to `unanswered_queries` — it
+  isn't admissions content the RAG backlog needs, and logging it would
+  pollute that signal. Genuine gibberish with no pattern at all still falls
+  through to `FALLBACK_TEXT`.
+
+- ✅ **Persona tone tightened to professional, then rebalanced toward "premium
+  but friendly" after live testing showed the first pass read as stiff.** The Gemini `SYSTEM_INSTRUCTION`
+  (`gemini.service.ts`) previously told the model to sound like an informal
+  "knowledgeable senior," explicitly inviting slang-adjacent, overfamiliar
+  phrasing. Rewritten to require a professional, precise, courteous tone
+  (no slang, exclamation marks, or emoji) while keeping every grounding rule
+  (context-only, no guessed numbers, defer when unsure) unchanged — tone and
+  accuracy are independent knobs, so tightening one didn't touch the other.
+  The same pass cleaned up casual filler in the rule-based reply strings
+  (`chatbot.constants.ts`, `chatbot.service.ts` — e.g. "Hmm, I'm not quite
+  sure" → "I don't have a reliable answer for that yet") and the widget's
+  teaser/placeholder copy (`ChatWidget.tsx`), since those are the same
+  "brain" output a student sees regardless of which path answered them.
+
+- **Note on WhatsApp in this document.** Everything in §2 (Phase 1, WhatsApp
+  channel adapter, webhook wiring) is still real, working code — it hasn't
+  been removed. What changed since this doc was last fully synced: the
+  WhatsApp CTA/`wa.me` entry point was pulled from the live site (no phone
+  number was ever configured for it), so the WhatsApp channel is currently
+  **future scope** — built and ready to switch on, not deleted — rather than
+  something actively driving traffic today. The website channel and RAG/FAQ
+  logic described throughout this doc are unaffected and are what's live.

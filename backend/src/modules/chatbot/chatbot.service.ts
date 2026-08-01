@@ -28,7 +28,7 @@ import {
   AMBIGUOUS_COLLEGE_ACRONYMS,
   DEFAULT_CATEGORY,
 } from './chatbot.constants';
-import { ChatChannel, ChatReply } from './chatbot.types';
+import { ChatChannel, ChatQuickReply, ChatReply } from './chatbot.types';
 
 /**
  * Stripped when extracting a COLLEGE NAME from a message. Includes domain
@@ -37,7 +37,15 @@ import { ChatChannel, ChatReply } from './chatbot.types';
  * search — see FAQ_STOPWORDS.
  */
 const NAME_STOPWORDS = new Set([
-  'the', 'a', 'an', 'for', 'in', 'at', 'of', 'is', 'my', 'what', 'whats',
+  // Deliberately NOT 'of': plenty of real official college names are
+  // structurally "X of Y" ("Institute of Technology", "College of
+  // Engineering" — COEP's own full name). Stripping it broke round-tripping
+  // a full official name back through this hint extraction (e.g. tapping a
+  // disambiguation chip for "Vishwakarma Institute of Technology" lost the
+  // "of", the ILIKE substring match failed, and trigram fell back to
+  // unrelated colleges). Every other query-verb word here is safe to strip
+  // because it never appears as a structural word inside a college name.
+  'the', 'a', 'an', 'for', 'in', 'at', 'is', 'my', 'what', 'whats',
   "what's", 'give', 'me', 'i', 'want', 'to', 'know', 'cutoff', 'cutoffs',
   'percentile', 'college', 'branch', 'and', 'please', 'tell', 'about',
   'difference', 'between', 'mean', 'means', 'explain', 'does', 'do', 'vs',
@@ -204,12 +212,49 @@ function formatPercentile(percentile: number | null): string {
   return percentile != null ? `${percentile}%ile` : 'no data';
 }
 
+/**
+ * Every reply used to carry the full 6-item root menu as quickReplies,
+ * regardless of what was actually asked — so a detailed cutoff answer, a
+ * "which branch?" prompt, and the initial greeting all rendered the same
+ * six buttons underneath. In the web widget that reads as the bot ignoring
+ * what was just typed and looping back to the same menu. `reply()` is the
+ * general-purpose constructor now: no chips by default, or a small set of
+ * chips that are actually relevant to what just happened (see the *Chips
+ * helpers below). `withMenu()` is kept only for the handful of places where
+ * showing the full menu is the genuinely useful move — the greeting, the
+ * "I don't understand" fallback, and an off-topic redirect.
+ */
+function reply(text: string, matched: boolean, quickReplies: ChatQuickReply[] = []): ChatReply {
+  return { text, quickReplies: quickReplies.length ? quickReplies : undefined, matched };
+}
+
 function withMenu(text: string, matched: boolean): ChatReply {
-  return {
+  return reply(
     text,
-    quickReplies: MENU_OPTIONS.map((o) => ({ number: o.number, label: o.label })),
     matched,
-  };
+    MENU_OPTIONS.map((o) => ({ value: String(o.number), label: `${o.number}. ${o.label}` })),
+  );
+}
+
+/** Common branches offered as one-tap chips when a college is known but the branch isn't — covers most real traffic without forcing free text. */
+const COMMON_BRANCH_CHIPS: ChatQuickReply[] = [
+  { value: 'computer', label: 'Computer' },
+  { value: 'mechanical', label: 'Mechanical' },
+  { value: 'civil', label: 'Civil' },
+  { value: 'electronics', label: 'Electronics' },
+  { value: 'electrical', label: 'Electrical' },
+  { value: 'chemical', label: 'Chemical' },
+];
+
+/**
+ * Chips for a college/course disambiguation prompt. Each value is prefixed
+ * with "cutoff for " rather than just the bare name — a bare college or
+ * course name matches neither CUTOFF_PATTERN nor the pure-slot-answer bare
+ * follow-up path, so tapping it would silently fail to route back into
+ * handleCutoffIntent. Capped to keep the row from overflowing the widget.
+ */
+function disambiguationChips(names: string[], max = 5): ChatQuickReply[] {
+  return names.slice(0, max).map((name) => ({ value: `cutoff for ${name}`, label: name }));
 }
 
 function findAliasToken(
@@ -236,7 +281,7 @@ function findAliasToken(
 async function resolveAmbiguousAcronym(
   normalized: string,
   words: string[],
-): Promise<{ resolved?: repo.CollegeMatch[]; prompt?: string } | null> {
+): Promise<{ resolved?: repo.CollegeMatch[]; prompt?: string; chips?: ChatQuickReply[] } | null> {
   for (const w of words) {
     const candidates = AMBIGUOUS_COLLEGE_ACRONYMS[w];
     if (!candidates) continue;
@@ -253,7 +298,10 @@ async function resolveAmbiguousAcronym(
     return {
       prompt:
         `"${w.toUpperCase()}" could mean a few different colleges — which did you mean?\n${list}\n\n` +
-        'Reply with a distinguishing word from the name (e.g. its location) plus your branch.',
+        'Reply with a distinguishing word from the name (e.g. its location) plus your branch, or tap one below.',
+      // candidate.hint (not the display label) is what's proven to resolve to
+      // exactly one row — see COLLEGE_ALIASES/AMBIGUOUS_COLLEGE_ACRONYMS above.
+      chips: candidates.map((c) => ({ value: `cutoff for ${c.hint}`, label: c.label })),
     };
   }
   return null;
@@ -329,7 +377,7 @@ async function handleCutoffIntent(normalized: string, sessionId?: string): Promi
   // silently resolving to one; skip straight to the prompt when still ambiguous.
   const ambiguous = await resolveAmbiguousAcronym(normalized, words);
   if (ambiguous?.prompt) {
-    return withMenu(ambiguous.prompt, true);
+    return reply(ambiguous.prompt, true, ambiguous.chips ?? []);
   }
   let collegeMatches = ambiguous?.resolved ?? (await resolveCollege(normalized, words));
 
@@ -340,17 +388,18 @@ async function handleCutoffIntent(normalized: string, sessionId?: string): Promi
   }
 
   if (collegeMatches.length === 0) {
-    return withMenu(
-      'Which college? Try something like "cutoff for COEP CS" or "percentile for VJTI mechanical OBC".',
+    return reply(
+      'Which college would you like the cutoff for? Try something like "cutoff for COEP CS" or "percentile for VJTI mechanical OBC".',
       true,
     );
   }
 
   if (collegeMatches.length > 1) {
     const names = collegeMatches.map((c) => `- ${c.name}`).join('\n');
-    return withMenu(
-      `I found a few matches — which one did you mean?\n${names}\n\nTry again with the full college name.`,
+    return reply(
+      `I found a few matching colleges — which one did you mean?\n${names}\n\nReply with the full college name, or tap one below.`,
       true,
+      disambiguationChips(collegeMatches.map((c) => c.name)),
     );
   }
 
@@ -368,9 +417,10 @@ async function handleCutoffIntent(normalized: string, sessionId?: string): Promi
   }
 
   if (!branchHint) {
-    return withMenu(
-      `Got it — ${collegeMatches[0].name}. Which branch? (e.g. Computer, Mechanical, Civil, Electronics)`,
+    return reply(
+      `Got it — ${collegeMatches[0].name}. Which branch?`,
       true,
+      COMMON_BRANCH_CHIPS,
     );
   }
 
@@ -383,7 +433,7 @@ async function handleCutoffIntent(normalized: string, sessionId?: string): Promi
   );
 
   if (rows.length === 0) {
-    return withMenu(
+    return reply(
       `No ${categoryLabel} cutoff data found for ${collegeMatches[0].name} in that branch for ${ACTIVE_CUTOFF_YEAR}. ` +
         `Try the full Cutoff Finder at /cutoffs for other categories, years${ladiesQuota ? ', or quotas' : ''}.`,
       true,
@@ -415,7 +465,7 @@ async function handleCutoffIntent(normalized: string, sessionId?: string): Promi
     const lines = courseRows
       .map((r) => `Round ${r.cap_round}: ${formatPercentile(r.percentile)}`)
       .join('\n');
-    return withMenu(
+    return reply(
       `${collegeName} — ${courseName}\n${categoryLabel}, ${ACTIVE_CUTOFF_YEAR}:\n${lines}\n\n${footer}`,
       true,
     );
@@ -438,13 +488,14 @@ async function handleCutoffIntent(normalized: string, sessionId?: string): Promi
       ? `\n…and ${perCourse.length - shown.length} more at /cutoffs.`
       : '';
 
-  return withMenu(
+  return reply(
     `${collegeName} — ${categoryLabel}, ${ACTIVE_CUTOFF_YEAR}.\n` +
       `"${branchHint}" matches ${perCourse.length} branches here, and their cutoffs differ — ` +
       `so here's each one:\n${lines}${overflow}\n\n` +
-      'Reply with a more specific branch name for the full round-by-round breakdown. ' +
+      'Reply with a more specific branch name for the full round-by-round breakdown, or tap one below. ' +
       footer,
     true,
+    shown.map((r) => ({ value: `cutoff for ${collegeName} ${r.branch}`, label: r.branch })),
   );
 }
 
@@ -456,7 +507,7 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
 
   const rows = await repo.getCapSchedule(ACTIVE_CAP_SCHEDULE_YEAR, round);
   if (rows.length === 0) {
-    return withMenu(
+    return reply(
       `I don't have CAP round ${round ?? ''} schedule info for ${ACTIVE_CAP_SCHEDULE_YEAR} yet. Check /updates for the latest official notice.`,
       true,
     );
@@ -464,7 +515,7 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
 
   const anyConfirmed = rows.some((r) => r.is_confirmed);
   if (!anyConfirmed) {
-    return withMenu(
+    return reply(
       `The official CAP ${ACTIVE_CAP_SCHEDULE_YEAR} schedule hasn't been released by DTE Maharashtra yet. ` +
         "I'll have exact dates as soon as they're published — check /updates for the latest notice in the meantime.",
       true,
@@ -475,7 +526,7 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
     .filter((r) => r.is_confirmed)
     .map((r) => `Round ${r.cap_round} — ${r.event_name}: ${r.start_date ?? '?'} to ${r.end_date ?? '?'}`)
     .join('\n');
-  return withMenu(`CAP ${ACTIVE_CAP_SCHEDULE_YEAR} schedule:\n${lines}`, true);
+  return reply(`CAP ${ACTIVE_CAP_SCHEDULE_YEAR} schedule:\n${lines}`, true);
 }
 
 async function handleDocumentsIntent(): Promise<ChatReply> {
@@ -483,7 +534,7 @@ async function handleDocumentsIntent(): Promise<ChatReply> {
   const lines = rows
     .map((r, i) => `${i + 1}. ${r.document_name}${r.description ? ` — ${r.description}` : ''}`)
     .join('\n');
-  return withMenu(
+  return reply(
     `Documents typically needed for CAP admission:\n${lines}\n\n` +
       'Requirements vary slightly by college — always carry originals + one photocopy of each.',
     true,
@@ -491,19 +542,59 @@ async function handleDocumentsIntent(): Promise<ChatReply> {
 }
 
 function handlePredictorIntent(): ChatReply {
-  return withMenu(
-    'Head to our College Predictor at /predictor — enter your percentile or rank, category, and preferred branches to see Safe / Target / Dream colleges.',
+  return reply(
+    'Use the College Predictor at /predictor — enter your percentile or rank, category, and preferred branches to see Safe / Target / Dream colleges.',
     true,
   );
 }
 
 function handleCounselorIntent(): ChatReply {
-  return withMenu(
+  return reply(
     "One-on-one counseling sessions aren't available right now — check /updates for the latest, " +
       "or use the College Predictor and Cutoff Explorer in the meantime.",
     true,
   );
 }
+
+/**
+ * Off-topic small talk (jokes, riddles, math, "are you a bot" style
+ * questions) is genuinely common chatbot traffic — worth a light, on-brand
+ * redirect instead of the flat "I don't have a reliable answer" fallback,
+ * which reads as broken rather than scoped. Kept intentionally short and
+ * a little warm rather than a hard refusal, then points straight back to
+ * what the bot actually does. Not logged to unanswered_queries: this isn't
+ * admissions content the RAG backlog needs, and logging it would pollute
+ * the signal that table exists to surface.
+ */
+function handleOffTopicRedirect(kind: 'joke' | 'math' | 'identity'): ChatReply {
+  const text = {
+    joke:
+      "I'll leave the comedy to someone else — admissions is where I actually earn my keep. " +
+      'Ask me about cutoffs, CAP dates, or which colleges you can get into.',
+    math:
+      "Arithmetic isn't really my department, but MHT-CET admissions is. " +
+      'Ask me about cutoffs, CAP dates, documents, or your predicted colleges.',
+    identity:
+      "I'm Avani, CET Hub's admissions assistant — built to help with MHT-CET cutoffs, CAP dates, " +
+      "documents, and the admission process. What would you like help with?",
+  }[kind];
+  return withMenu(text, true);
+}
+
+/** Genuine "tell me a joke" / "make me laugh" requests, not a real admissions question that happens to mention humor. */
+const JOKE_PATTERN = /\b(joke|jokes|make me laugh|something funny|know any jokes)\b/;
+
+/**
+ * Arithmetic-style questions ("what is 2+2", "solve 12/4"). Deliberately
+ * excludes "-" as an operator — "2024-2025" (a year range in a cutoff
+ * question) would otherwise false-positive as subtraction — and requires
+ * an explicit operator between two numbers rather than just two numbers
+ * appearing near each other, so "95 percentile" or "round 2" never match.
+ */
+const MATH_PATTERN = /\b\d+\s*[+*/x×]\s*\d+\b|\bsquare root of\b|\bvalue of pi\b|\bsolve for x\b/i;
+
+/** "Who are you" / "are you a bot" / "are you real" — a legitimate meta question, answered directly rather than redirected. */
+const IDENTITY_PATTERN = /\b(who are you|what are you|are you (a )?(bot|human|real|ai)|your name)\b/;
 
 /**
  * Defer branches — the guardrails for the boundaries agreed for Phase 2:
@@ -516,10 +607,10 @@ function handleCounselorIntent(): ChatReply {
  * uncovered "number" case here is fee amounts.
  */
 function handlePersonalizedDefer(): ChatReply {
-  return withMenu(
-    "That really depends on your percentile, category, and what you actually want from your degree — " +
-      "it's too personal a call for me to flatten into one generic answer. Try the College Predictor at " +
-      '/predictor to see which colleges fit your score and compare your options from there.',
+  return reply(
+    "That really depends on your percentile, category, and preferences, so there's no single right answer here. " +
+      'Try the College Predictor at /predictor to see which colleges fit your score and compare your options ' +
+      'from there.',
     true,
   );
 }
@@ -536,7 +627,7 @@ async function handleFeeIntent(): Promise<ChatReply> {
   const confirmed = rows.filter((r) => r.is_confirmed);
 
   if (confirmed.length === 0) {
-    return withMenu(
+    return reply(
       `I don't have the official ${ACTIVE_CAP_SCHEDULE_YEAR} seat acceptance fee published yet. ` +
         'Check /updates or the CAP information brochure on the CET Cell website for the latest amounts.',
       true,
@@ -548,7 +639,7 @@ async function handleFeeIntent(): Promise<ChatReply> {
     .join('\n');
   const source = confirmed.find((r) => r.source_url)?.source_url;
 
-  return withMenu(
+  return reply(
     `The CAP ${ACTIVE_CAP_SCHEDULE_YEAR} seat acceptance fee is the same for every category — it only ` +
       "depends on how many times you've accepted a new seat:\n\n" +
       `${lines}\n\n` +
@@ -721,7 +812,14 @@ export async function getReply(
   contactIdentifier?: string,
   sessionId?: string,
 ): Promise<ChatReply> {
-  const normalized = rawMessage.trim().toLowerCase();
+  // Strip stray punctuation that would otherwise stick to a word and break
+  // exact-token lookups (COLLEGE_ALIASES, AMBIGUOUS_COLLEGE_ACRONYMS,
+  // BRANCH_ALIASES, CATEGORY_ALIASES all key on an exact word match) —
+  // "VIT, Pune" tokenized to ["vit,", "pune"] never matched
+  // AMBIGUOUS_COLLEGE_ACRONYMS['vit'] because the key is "vit," not "vit".
+  // Deliberately keeps '.', '+', '*', '/', 'x', '×' untouched — decimal
+  // percentiles and MATH_PATTERN's arithmetic operators depend on them.
+  const normalized = rawMessage.trim().toLowerCase().replace(/[,?!:;()]/g, ' ').replace(/\s+/g, ' ').trim();
 
   if (!normalized || MENU_TRIGGERS.has(normalized)) {
     return withMenu(MENU_TEXT, true);
@@ -730,8 +828,8 @@ export async function getReply(
   if (/^[1-6]$/.test(normalized)) {
     switch (normalized) {
       case '1':
-        return withMenu(
-          'Sure — tell me the college and branch, e.g. "cutoff for COEP CS" or "percentile for VJTI mechanical OBC".',
+        return reply(
+          'Tell me the college and branch, e.g. "cutoff for COEP CS" or "percentile for VJTI mechanical OBC".',
           true,
         );
       case '2':
@@ -743,7 +841,7 @@ export async function getReply(
       case '5':
         return handleCounselorIntent();
       default:
-        return withMenu(
+        return reply(
           'Type your question — e.g. "difference between float and freeze" or "what is HU vs OHU".',
           true,
         );
@@ -776,19 +874,19 @@ export async function getReply(
     // generosity would let a structured query ("cutoff for COEP CS") match an
     // FAQ on a shared substring and hijack the intent.
     if (primary && primary.confidence >= FAQ_OVERRIDE_CONFIDENCE) {
-      return withMenu(primary.answer, true);
+      return reply(primary.answer, true);
     }
     return keywordIntent(normalized, sessionId);
   }
 
   if (primary && primary.confidence >= FAQ_MIN_CONFIDENCE) {
-    return withMenu(primary.answer, true);
+    return reply(primary.answer, true);
   }
 
   // No keyword intent and the primary score is weak — try the short-query
   // word_similarity rescue before giving up ("what is TFWS", "what is float").
   if (rescue) {
-    return withMenu(rescue.answer, true);
+    return reply(rescue.answer, true);
   }
 
   // A bare reply like "computer" or "obc" never contains "cutoff"/"percentile",
@@ -799,16 +897,38 @@ export async function getReply(
   // branch/category alias, not just one) so it only catches genuine bare
   // slot-answers, never a real question that happens to contain one of those
   // words ("what is TFWS" is already resolved by the rescue above).
-  if (sessionId) {
-    const pendingSlots = await loadSlots(sessionId);
+  const bareWords = normalized.split(/\s+/).filter(Boolean);
+  const isBareSlotWord =
+    bareWords.length > 0 && bareWords.every((w) => BRANCH_ALIASES[w] || CATEGORY_ALIASES[w]);
+  if (isBareSlotWord) {
+    const pendingSlots = sessionId ? await loadSlots(sessionId) : {};
     if (pendingSlots.collegeCode) {
-      const words = normalized.split(/\s+/).filter(Boolean);
-      const isPureSlotAnswer =
-        words.length > 0 && words.every((w) => BRANCH_ALIASES[w] || CATEGORY_ALIASES[w]);
-      if (isPureSlotAnswer) {
-        return handleCutoffIntent(normalized, sessionId);
-      }
+      return handleCutoffIntent(normalized, sessionId);
     }
+    // No remembered college — session-less channel (WhatsApp), an expired
+    // 20-minute slot TTL, or the very first message being a bare branch name.
+    // Ask for the missing piece instead of dropping into the generic "I
+    // don't understand" fallback, which read as ignoring a perfectly
+    // reasonable (if out-of-order) answer.
+    return reply(
+      `Sure — which college would you like the "${normalized}" cutoff for? Try something like "cutoff for COEP ${normalized}".`,
+      true,
+    );
+  }
+
+  // Off-topic small talk (jokes, arithmetic, "are you a bot") — checked only
+  // after every admissions-content path (keyword, FAQ, slot follow-up) has
+  // declined, so a real question never gets shortcut into a redirect. Handled
+  // here rather than falling through to RAG/fallback: it's cheap to detect,
+  // saves a wasted RAG/LLM round trip, and reads as scoped rather than broken.
+  if (JOKE_PATTERN.test(normalized)) {
+    return handleOffTopicRedirect('joke');
+  }
+  if (IDENTITY_PATTERN.test(normalized)) {
+    return handleOffTopicRedirect('identity');
+  }
+  if (MATH_PATTERN.test(normalized)) {
+    return handleOffTopicRedirect('math');
   }
 
   // Last resort: RAG over the seat-mechanics corpus (Phase 2 step b). Runs
@@ -816,7 +936,7 @@ export async function getReply(
   // so it fires rarely, on genuinely uncovered conceptual questions.
   const ragAnswer = await tryRag(rawMessage);
   if (ragAnswer) {
-    return withMenu(ragAnswer, true);
+    return reply(ragAnswer, true);
   }
 
   await repo.logUnansweredQuery(channel, rawMessage, contactIdentifier);

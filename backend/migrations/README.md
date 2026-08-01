@@ -69,3 +69,4 @@ provisioned by applying `schema.sql` first, then letting the runner apply
 | `021_fee_schedule.sql` | `fee_schedule` table — structured CAP fee data for the chatbot |
 | `022_anonymous_guide_downloads.sql` | Drop the guide-download lead-capture gate — `guide_downloads.name`/`email` become nullable |
 | `023_testimonials.sql` | `testimonials` table — student reviews, auto-published, admin-editable/deletable |
+| `024_unanswered_queries_retention.sql` | Schedules a daily `pg_cron` job purging `unanswered_queries` rows older than 180 days (privacy-page retention promise); no-ops gracefully where `pg_cron` isn't available |

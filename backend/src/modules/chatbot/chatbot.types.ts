@@ -1,10 +1,15 @@
 /** The two delivery channels the shared decision service can be called from. */
 export type ChatChannel = 'website' | 'whatsapp';
 
-/** A quick-reply option shown to the student (numbered on WhatsApp, buttons on web). */
+/**
+ * A quick-reply option shown to the student — buttons on the web widget
+ * (WhatsApp has no interactive-button rendering here, so these are website
+ * only; a WhatsApp user reaches the same outcome by typing `value` as text).
+ */
 export interface ChatQuickReply {
-  /** The digit the student can type/tap to select this option (matches MENU_OPTIONS order). */
-  number: number;
+  /** The text sent to getReply() when this option is picked — must independently route to the right intent, since the bot is otherwise stateless per-message. */
+  value: string;
+  /** What the button displays. */
   label: string;
 }
 
