@@ -77,11 +77,14 @@ export const predictorRequestSchema = z
       .optional(),
     preferred_branches: z
       .array(z.string().trim().min(1, 'Preferred branch cannot be empty').max(150))
-      .max(20)
+      // There are ~98 distinct branch names today, and a single "quick group"
+      // shortcut (e.g. Computer & Allied) alone selects 30 of them, so the
+      // cap needs headroom above any one family, not just a small UI limit.
+      .max(120)
       .optional(),
     cities: z
       .array(z.string().trim().min(1, 'City name cannot be empty').max(100))
-      .max(30)
+      .max(50)
       .optional(),
     include_tfws: z.boolean().optional(),
   })

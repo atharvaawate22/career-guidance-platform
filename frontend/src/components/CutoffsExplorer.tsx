@@ -71,13 +71,20 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
   const [meta, setMeta] = useState<CutoffMeta>(
     initialMeta ?? { colleges: [], branches: [], cities: [] }
   );
+  // Scoped down-selections: a chosen college narrows the branch list to what
+  // that college offers, and chosen cities narrow the college list to those
+  // cities. Null means "no scope active" — fall back to the full `meta` list.
+  const [scopedBranches, setScopedBranches] = useState<string[] | null>(null);
+  const [scopedColleges, setScopedColleges] = useState<CollegeOption[] | null>(null);
 
+  const collegeOptions = scopedColleges ?? meta.colleges;
   const collegeMapByName = useMemo(
-    () => new Map(meta.colleges.map(c => [c.name, c])), [meta.colleges]
+    () => new Map(collegeOptions.map(c => [c.name, c])), [collegeOptions]
   );
 
-  const collegeOptions = meta.colleges;
-  const branchOptions = useMemo(() => sortBranches(meta.branches), [meta.branches]);
+  const branchOptions = useMemo(
+    () => sortBranches(scopedBranches ?? meta.branches), [scopedBranches, meta.branches]
+  );
   const branchGroups = useMemo(() => buildBranchFamilyGroups(branchOptions), [branchOptions]);
   const cityOptions = meta.cities;
 
@@ -109,6 +116,52 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
       setCollegeName(""); setCollegeCode(null);
     }
   }, [collegeCode, collegeName, collegeOptions]);
+
+  // Picking a college narrows the Branch dropdown to what that college
+  // actually offers (the stale-selection effect above then drops any
+  // already-selected branch that isn't in the narrowed list).
+  useEffect(() => {
+    if (!collegeCode) { setScopedBranches(null); return; }
+    const controller = new AbortController();
+    fetch(`/api/cutoffs/meta?college_code=${encodeURIComponent(collegeCode)}`, {
+      signal: controller.signal,
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) setScopedBranches(data.data.branches ?? []);
+      })
+      .catch(err => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      });
+    return () => controller.abort();
+  }, [collegeCode]);
+
+  // Picking one or more cities narrows the College dropdown to colleges in
+  // those cities (the stale-selection effect above then clears a previously
+  // picked college that falls outside the new scope).
+  useEffect(() => {
+    if (selectedCities.length === 0) { setScopedColleges(null); return; }
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    selectedCities.forEach(c => params.append("city", c));
+    fetch(`/api/cutoffs/meta?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) setScopedColleges(data.data.colleges ?? []);
+      })
+      .catch(err => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      });
+    return () => controller.abort();
+  }, [selectedCities]);
 
   useEffect(() => {
     if (selectedBranches.length === 0) return;

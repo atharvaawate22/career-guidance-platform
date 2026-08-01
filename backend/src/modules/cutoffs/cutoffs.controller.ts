@@ -23,39 +23,94 @@ const parseRound = (value: unknown): number | undefined => {
 
 export class CutoffsController {
   async getMeta(
-    _req: Request,
+    req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> {
     try {
+      // Scoping params: selecting a college narrows the branch list to what
+      // that college actually offers; selecting a city (district) narrows
+      // the college list to colleges in that city. Both are optional — with
+      // neither set this returns the full, cacheable dataset as before.
+      const collegeCode =
+        typeof req.query.college_code === 'string'
+          ? req.query.college_code.trim()
+          : undefined;
+      const cities = parseArrayParam(req.query.city)
+        .map((c) => c.trim())
+        .filter(Boolean);
+
       // Dropdowns now come straight from the normalized dimension tables — the
       // college/branch/city values are clean at load time, so the old runtime
       // city-normalization heuristics are no longer needed.
       const metaData = await getOrLoadCutoffMeta(
-        { year: ACTIVE_CUTOFF_YEAR },
+        {
+          year: ACTIVE_CUTOFF_YEAR,
+          collegeCode: collegeCode || undefined,
+          cities: cities.length > 0 ? cities : undefined,
+        },
         async () => {
-          const [colleges, branches, cities] = await Promise.all([
-            query(
-              `SELECT college_code AS code, name
-               FROM colleges
-               ORDER BY name
-               LIMIT 1000`,
-            ),
-            query(
-              `SELECT DISTINCT branch_group
-               FROM courses
-               WHERE branch_group IS NOT NULL AND TRIM(branch_group) <> ''
-               ORDER BY branch_group`,
-            ),
-            query(
-              // Source the dropdown from city_normalized (the district-level
-              // value the cutoffs filter matches on) — NOT the raw display
-              // `city` — so the listed cities line up with what filtering queries.
-              `SELECT DISTINCT INITCAP(city_normalized) AS city
-               FROM colleges
-               WHERE city_normalized IS NOT NULL AND TRIM(city_normalized) <> ''
-               ORDER BY 1`,
-            ),
+          const lowerCities = cities.map((c) => c.toLowerCase());
+
+          const collegesQuery =
+            cities.length > 0
+              ? query(
+                  `SELECT college_code AS code, name
+                   FROM colleges
+                   WHERE LOWER(city_normalized) = ANY($1::text[])
+                   ORDER BY name
+                   LIMIT 1000`,
+                  [lowerCities],
+                )
+              : query(
+                  `SELECT college_code AS code, name
+                   FROM colleges
+                   ORDER BY name
+                   LIMIT 1000`,
+                );
+
+          const branchesQuery = collegeCode
+            ? query(
+                `SELECT DISTINCT branch_group
+                 FROM courses
+                 WHERE college_code = $1
+                   AND branch_group IS NOT NULL AND TRIM(branch_group) <> ''
+                 ORDER BY branch_group`,
+                [collegeCode],
+              )
+            : cities.length > 0
+              ? query(
+                  `SELECT DISTINCT c.branch_group
+                   FROM courses c
+                   JOIN colleges col ON col.college_code = c.college_code
+                   WHERE LOWER(col.city_normalized) = ANY($1::text[])
+                     AND c.branch_group IS NOT NULL AND TRIM(c.branch_group) <> ''
+                   ORDER BY c.branch_group`,
+                  [lowerCities],
+                )
+              : query(
+                  `SELECT DISTINCT branch_group
+                   FROM courses
+                   WHERE branch_group IS NOT NULL AND TRIM(branch_group) <> ''
+                   ORDER BY branch_group`,
+                );
+
+          // The city list itself is never scoped — it's the top-level filter
+          // used to narrow colleges, so it always shows every option.
+          const citiesQuery = query(
+            // Source the dropdown from city_normalized (the district-level
+            // value the cutoffs filter matches on) — NOT the raw display
+            // `city` — so the listed cities line up with what filtering queries.
+            `SELECT DISTINCT INITCAP(city_normalized) AS city
+             FROM colleges
+             WHERE city_normalized IS NOT NULL AND TRIM(city_normalized) <> ''
+             ORDER BY 1`,
+          );
+
+          const [colleges, branches, citiesResult] = await Promise.all([
+            collegesQuery,
+            branchesQuery,
+            citiesQuery,
           ]);
 
           return {
@@ -64,7 +119,7 @@ export class CutoffsController {
               name: row.name as string,
             })),
             branches: branches.rows.map((row) => row.branch_group as string),
-            cities: cities.rows
+            cities: citiesResult.rows
               .map((row) => row.city as string)
               .filter(Boolean),
           };

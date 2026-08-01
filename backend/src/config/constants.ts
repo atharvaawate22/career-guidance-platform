@@ -36,5 +36,8 @@ export const ACTIVE_CAP_SCHEDULE_YEAR = Number(
  * Maximum number of array filter values accepted in a single request.
  * Applied to branches, cities, minority_types, minority_groups, etc.
  * Prevents clients from generating unbounded SQL via massive arrays.
+ * There are ~98 distinct branch_group values today (a single "quick group"
+ * like Computer & Allied already spans 30), so this needs real headroom
+ * above the raw filter counts, not just the current dataset size.
  */
-export const MAX_FILTER_ARRAY_LENGTH = 30;
+export const MAX_FILTER_ARRAY_LENGTH = 120;
