@@ -9,7 +9,11 @@ interface AnnouncementConfig {
   text: string;
   type: string;
   pages?: string[];
+  /** Bumped server-side on every admin save (see settings.controller.ts) — dismissal is keyed on this, not the literal text, so an old dismissal can't survive a wording change and an admin can force a banner back in front of everyone by just re-saving it. */
+  version?: number;
 }
+
+const DISMISSED_KEY = "cethub-announcement-dismissed-version";
 
 export default function AnnouncementBanner() {
   const [config, setConfig] = useState<AnnouncementConfig | null>(null);
@@ -23,7 +27,7 @@ export default function AnnouncementBanner() {
         if (d.success && d.data) {
           setConfig(d.data);
           try {
-            if (localStorage.getItem("cethub-announcement-dismissed") === d.data.text) {
+            if (localStorage.getItem(DISMISSED_KEY) === String(d.data.version ?? 0)) {
               setVisible(false);
             }
           } catch { /* localStorage unavailable */ }
@@ -79,7 +83,7 @@ export default function AnnouncementBanner() {
       <button
         onClick={() => {
           setVisible(false);
-          try { localStorage.setItem("cethub-announcement-dismissed", config.text); } catch { /* ignore */ }
+          try { localStorage.setItem(DISMISSED_KEY, String(config.version ?? 0)); } catch { /* ignore */ }
         }}
         className="absolute right-4 p-1 rounded transition-colors"
         style={{

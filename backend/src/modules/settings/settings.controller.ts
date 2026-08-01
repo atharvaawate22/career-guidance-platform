@@ -67,7 +67,7 @@ export async function getPublicAnnouncement(
     const setting = await settingsRepository.getSetting('announcement');
     res.json({
       success: true,
-      data: setting?.value ?? { enabled: false, text: '', type: 'info', pages: [] },
+      data: setting?.value ?? { enabled: false, text: '', type: 'info', pages: [], version: 0 },
     });
   } catch (error) {
     next(error);
@@ -147,15 +147,26 @@ export async function updateSetting(
       return;
     }
 
-    const value =
-      key === 'announcement'
-        ? { ...parse.data as Record<string, unknown>, text: sanitizeText((parse.data as { text: string }).text) }
-        : parse.data;
+    let value = parse.data as Record<string, unknown>;
 
-    const updated = await settingsRepository.upsertSetting(
-      key,
-      value as Record<string, unknown>,
-    );
+    if (key === 'announcement') {
+      // Dismissal on the public site is keyed off `version`, not the literal
+      // text (a plain text-match let an old dismissal silently survive a
+      // wording change forever, and gave no way to make a banner reappear
+      // for visitors who'd already dismissed it — see AnnouncementBanner.tsx).
+      // Bumped on every save, server-side only: the client never supplies or
+      // controls this number, so there's no way to game "already seen".
+      const existing = await settingsRepository.getSetting('announcement');
+      const prevVersion =
+        typeof existing?.value?.version === 'number' ? existing.value.version : 0;
+      value = {
+        ...value,
+        text: sanitizeText((parse.data as { text: string }).text),
+        version: prevVersion + 1,
+      };
+    }
+
+    const updated = await settingsRepository.upsertSetting(key, value);
 
     res.json({
       success: true,
