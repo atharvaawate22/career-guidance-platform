@@ -5,10 +5,19 @@ export interface CollegeMetaOption {
   name: string;
 }
 
+/** One academic year's loaded CAP rounds, e.g. { year: 2026, rounds: [1] } —
+ *  lets the frontend build the year/round selectors from what actually exists
+ *  in `cutoffs` instead of hardcoding which rounds are live. */
+export interface AvailableYearRounds {
+  year: number;
+  rounds: number[];
+}
+
 export interface CutoffMetaPayload {
   colleges: CollegeMetaOption[];
   branches: string[];
   cities: string[];
+  availableRounds: AvailableYearRounds[];
 }
 
 interface CutoffMetaCacheKeyInput {
@@ -78,7 +87,8 @@ export const getOrLoadCutoffMeta = async (
   // lookups miss the stale Redis entries so fresh values reload from the DB.
   // v5 — swept the full branch_group list for duplicates/formatting bugs (& vs and,
   // stray "(AI)and" spacing glitch, ALL CAPS one-offs, missing bracket spaces).
-  const redisKey = `cutoffs:meta:v5:${cacheKey}`;
+  // v6 — added availableRounds; a v5-cached payload has no such field.
+  const redisKey = `cutoffs:meta:v6:${cacheKey}`;
   const cached = metaCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;

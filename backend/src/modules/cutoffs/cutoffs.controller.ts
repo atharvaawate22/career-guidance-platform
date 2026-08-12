@@ -91,11 +91,35 @@ export class CutoffsController {
              ORDER BY 1`,
           );
 
-          const [colleges, branches, citiesResult] = await Promise.all([
-            collegesQuery,
-            branchesQuery,
-            citiesQuery,
-          ]);
+          // Which (academic_year, cap_round) combinations actually have rows —
+          // never scoped by collegeCode/cities, since it drives the year/round
+          // selectors themselves, not a filtered results view. Cheap: at most a
+          // few dozen distinct pairs.
+          const availableRoundsQuery = query(
+            `SELECT academic_year, cap_round
+             FROM cutoffs
+             GROUP BY academic_year, cap_round
+             ORDER BY academic_year, cap_round`,
+          );
+
+          const [colleges, branches, citiesResult, availableRoundsResult] =
+            await Promise.all([
+              collegesQuery,
+              branchesQuery,
+              citiesQuery,
+              availableRoundsQuery,
+            ]);
+
+          const roundsByYear = new Map<number, number[]>();
+          for (const row of availableRoundsResult.rows) {
+            const year = row.academic_year as number;
+            const rounds = roundsByYear.get(year) ?? [];
+            rounds.push(row.cap_round as number);
+            roundsByYear.set(year, rounds);
+          }
+          const availableRounds = [...roundsByYear.entries()]
+            .sort(([a], [b]) => a - b)
+            .map(([year, rounds]) => ({ year, rounds }));
 
           return {
             colleges: colleges.rows.map((row) => ({
@@ -106,6 +130,7 @@ export class CutoffsController {
             cities: citiesResult.rows
               .map((row) => row.city as string)
               .filter(Boolean),
+            availableRounds,
           };
         },
       );

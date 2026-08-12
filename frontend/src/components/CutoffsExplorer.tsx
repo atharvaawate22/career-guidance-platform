@@ -9,37 +9,21 @@ import CutoffResultCard from "@/components/CutoffResultCard";
 import { publicGet } from "@/lib/api";
 import {
   CUTOFF_YEAR,
-  PROVISIONAL_YEAR,
-  PROVISIONAL_YEAR_LABEL,
-  HAS_PROVISIONAL_YEAR,
+  academicYearSpan,
+  isCompleteYear,
+  roundsRangeLabel,
+  roundSelectOptions,
+  yearOptionLabel,
+  type AvailableYearRounds,
 } from "@/lib/dataYear";
 import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
 import { categorySelectOptions } from "@/lib/categoryOptions";
-import { buildBranchFamilyGroups, CAP_ROUNDS, sortBranches } from "@/lib/cutoffOptions";
+import { buildBranchFamilyGroups, sortBranches } from "@/lib/cutoffOptions";
 import {
   getMinorityGroupOptions,
   MINORITY_TYPE_OPTIONS,
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
-
-/** Years the explorer can search. The provisional year currently holds only
- *  CAP Round I (MH quota), loaded via
- *  backend/scripts/load_cutoffs_incremental.js — separate from the final
- *  dataset and never used by the predictor. Both values come from
- *  lib/dataYear so a rollover is one env change rather than a code sweep;
- *  clearing NEXT_PUBLIC_PROVISIONAL_CUTOFF_YEAR drops the toggle to a single
- *  option. */
-const YEAR_OPTIONS = [
-  { value: CUTOFF_YEAR, label: `${CUTOFF_YEAR} · Final (Rounds 1–4)` },
-  ...(HAS_PROVISIONAL_YEAR
-    ? [
-        {
-          value: PROVISIONAL_YEAR,
-          label: `${PROVISIONAL_YEAR_LABEL} · CAP Round I (Provisional)`,
-        },
-      ]
-    : []),
-];
 
 interface CutoffData {
   id: string; year: number;
@@ -56,6 +40,7 @@ export interface CutoffMeta {
   colleges: CollegeOption[];
   branches: string[];
   cities: string[];
+  availableRounds: AvailableYearRounds[];
 }
 
 type SortOption = "percentile-desc" | "percentile-asc" | "rank-asc" | "rank-desc" | "college-asc" | "branch-asc" | "round-asc";
@@ -94,7 +79,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [includeTfws, setIncludeTfws] = useState(false);
   const [meta, setMeta] = useState<CutoffMeta>(
-    initialMeta ?? { colleges: [], branches: [], cities: [] }
+    initialMeta ?? { colleges: [], branches: [], cities: [], availableRounds: [] }
   );
   // Scoped down-selections: a chosen college narrows the branch list to what
   // that college offers, and chosen cities narrow the college list to those
@@ -112,6 +97,27 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
   );
   const branchGroups = useMemo(() => buildBranchFamilyGroups(branchOptions), [branchOptions]);
   const cityOptions = meta.cities;
+
+  // Year/round selectors are built from whatever is actually in the database
+  // (meta.availableRounds), not hardcoded — a newly loaded round or admission
+  // cycle appears here automatically, correctly labeled, with no code change.
+  const yearOptions = useMemo(
+    () => meta.availableRounds.map(({ year, rounds }) => ({
+      value: String(year),
+      label: yearOptionLabel(year, rounds),
+    })),
+    [meta.availableRounds],
+  );
+  const selectedYearRounds = useMemo(
+    () => meta.availableRounds.find(a => String(a.year) === year)?.rounds ?? [],
+    [meta.availableRounds, year],
+  );
+  const selectedYearComplete = isCompleteYear(selectedYearRounds);
+  const roundOptions = useMemo(
+    () => roundSelectOptions(selectedYearRounds), [selectedYearRounds]
+  );
+  // "2025" for the complete/final dataset, "2026-27" while a cycle is ongoing.
+  const yearDisplayLabel = selectedYearComplete ? year : academicYearSpan(year);
 
   const needsClientMetaFetch = meta.colleges.length === 0;
 
@@ -204,11 +210,13 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
     setCollegeCode(collegeMapByName.get(v)?.code ?? null);
   };
 
-  // 2026 currently only has CAP Round I loaded, so the round filter is
-  // pinned to it — pick a year and land on a combination with no data.
+  // Whatever round was picked for the previous year may not exist for the
+  // new one (e.g. Round III doesn't exist yet for an in-progress cycle) — so
+  // switching years always resets to "All CAP Rounds" for that year rather
+  // than risk landing on a round/year combination with no data.
   const handleYearChange = (v: string) => {
     setYear(v);
-    setRound(v === "2026" ? "1" : "");
+    setRound("");
   };
 
   const handleSearch = async () => {
@@ -271,7 +279,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
 
         {/* Header */}
         <div className="mb-8">
-          <p className="section-label mb-2">MHT-CET {year === PROVISIONAL_YEAR ? PROVISIONAL_YEAR_LABEL : CUTOFF_YEAR}</p>
+          <p className="section-label mb-2">MHT-CET {yearDisplayLabel}</p>
           <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
             Cutoff Explorer
           </h1>
@@ -280,13 +288,14 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
           </p>
         </div>
 
-        {year === PROVISIONAL_YEAR && (
+        {!selectedYearComplete && selectedYearRounds.length > 0 && (
           <div className="rounded-xl px-4 py-3 mb-6 text-sm flex items-start gap-2.5"
             style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}>
             <span aria-hidden="true">⚠</span>
             <span>
-              <strong>Provisional:</strong> 2026-27 CAP Round I cutoffs (State/MH quota) just went live and can shift in
-              later rounds. The complete, final dataset is still {CUTOFF_YEAR} — switch back with the Academic Year filter.
+              <strong>In progress:</strong> {yearDisplayLabel} CAP {roundsRangeLabel(selectedYearRounds)} ({selectedYearRounds.length} of 4) is published
+              so far — cutoffs typically shift across rounds as seats are reallocated. For the complete picture, {CUTOFF_YEAR} (all
+              4 rounds) remains the best reference until this cycle finishes.
             </span>
           </div>
         )}
@@ -298,7 +307,9 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
             <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--slate-200)", background: "var(--bg-secondary)" }}>
               <h2 className="text-sm font-bold" style={{ color: "var(--slate-900)" }}>Filters</h2>
               <p className="text-xs mt-0.5" style={{ color: "var(--slate-500)" }}>
-                {year === PROVISIONAL_YEAR ? `${PROVISIONAL_YEAR_LABEL} CAP Round I (provisional) data` : `${CUTOFF_YEAR} cutoff data only`}
+                {selectedYearComplete
+                  ? `${yearDisplayLabel} cutoff data only`
+                  : `${yearDisplayLabel} CAP ${roundsRangeLabel(selectedYearRounds)} data`}
               </p>
             </div>
             <div className="p-5 space-y-0">
@@ -308,14 +319,11 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
               <div className="space-y-3">
                 <div>
                   <FilterLabel>Academic Year</FilterLabel>
-                  <CustomSelect id="year" value={year} onChange={handleYearChange} options={YEAR_OPTIONS} />
+                  <CustomSelect id="year" value={year} onChange={handleYearChange} options={yearOptions} />
                 </div>
                 <div>
                   <FilterLabel>CAP Round</FilterLabel>
-                  <CustomSelect id="round" value={round} onChange={setRound}
-                    options={year === PROVISIONAL_YEAR
-                      ? [{ value: "1", label: "CAP Round I" }]
-                      : [{ value: "", label: "All CAP Rounds" }, ...CAP_ROUNDS.map(r => ({ value: String(r), label: `CAP Round ${r}` }))]} />
+                  <CustomSelect id="round" value={round} onChange={setRound} options={roundOptions} />
                 </div>
                 <div>
                   <FilterLabel>College</FilterLabel>
@@ -426,7 +434,9 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
                 <div className="text-5xl mb-4">🔍</div>
                 <p className="text-lg font-semibold mb-1" style={{ color: "var(--slate-900)" }}>Set filters and search</p>
                 <p className="text-sm" style={{ color: "var(--slate-500)" }}>
-                  {year === PROVISIONAL_YEAR ? `Search ${PROVISIONAL_YEAR_LABEL} CAP Round I (provisional)` : `Search across ${CUTOFF_YEAR} CAP Rounds 1–4`}
+                  {selectedYearComplete
+                    ? `Search across ${yearDisplayLabel} CAP Rounds 1–4`
+                    : `Search ${yearDisplayLabel} CAP ${roundsRangeLabel(selectedYearRounds)}`}
                 </p>
               </div>
             ) : cutoffs.length === 0 ? (

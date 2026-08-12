@@ -26,26 +26,11 @@ export const CUTOFF_YEAR =
   "2025";
 
 /**
- * An additional, in-progress year the explorer can search — provisional CAP
- * Round I (MH quota) only, loaded separately by
- * backend/scripts/load_cutoffs_incremental.js. Deliberately NOT used by the
- * predictor, whose model needs a complete multi-round dataset.
- *
- * Set NEXT_PUBLIC_PROVISIONAL_CUTOFF_YEAR to "" to hide the year toggle
- * entirely once the season ends and the data is folded into CUTOFF_YEAR.
- */
-export const PROVISIONAL_YEAR =
-  process.env.NEXT_PUBLIC_PROVISIONAL_CUTOFF_YEAR ?? "2026";
-
-/** True when the explorer should offer a year toggle at all. */
-export const HAS_PROVISIONAL_YEAR = PROVISIONAL_YEAR.length > 0;
-
-/**
  * Academic-year span label: "2026" -> "2026-27".
  *
- * Used for the provisional year, which the copy refers to by its span because
- * that is how DTE labels an in-progress admission cycle. The final dataset is
- * referred to by the bare year, matching the existing site copy.
+ * Used for any year that isn't yet the complete, final dataset — that is how
+ * DTE labels an in-progress admission cycle. The final dataset is referred to
+ * by the bare year, matching the existing site copy.
  */
 export function academicYearSpan(year: string): string {
   const start = Number(year);
@@ -53,5 +38,73 @@ export function academicYearSpan(year: string): string {
   return `${start}-${String(start + 1).slice(2)}`;
 }
 
-/** "2026-27" for the provisional year. */
-export const PROVISIONAL_YEAR_LABEL = academicYearSpan(PROVISIONAL_YEAR);
+/**
+ * Which (academic_year, cap_round) combinations actually have data, as
+ * returned by GET /cutoffs/meta. Drives the explorer's Academic Year and CAP
+ * Round selectors — nothing here is hardcoded to a specific year, so a new
+ * round or a new admission cycle just needs the data loaded, not a code
+ * change and redeploy to "add" it to the UI.
+ */
+export interface AvailableYearRounds {
+  year: number;
+  rounds: number[];
+}
+
+/** MHT-CET engineering CAP always runs to Round IV; a year is "final" once
+ *  all four are loaded. */
+export const FULL_CAP_ROUNDS = 4;
+
+const ROUND_ROMAN = ["", "I", "II", "III", "IV"];
+
+/** DTE's own notation ("CAP Round-I", "CAP Round-II", ...) — used everywhere
+ *  a round number is shown to a candidate, so it reads as it does on the
+ *  official CET Cell site instead of a plain digit. */
+export function roundRoman(round: number): string {
+  return ROUND_ROMAN[round] ?? String(round);
+}
+
+export function isCompleteYear(rounds: number[]): boolean {
+  return rounds.length >= FULL_CAP_ROUNDS;
+}
+
+/** "Round I" for a single round, "Rounds I–III" for a contiguous-or-not span. */
+export function roundsRangeLabel(rounds: number[]): string {
+  const sorted = [...rounds].sort((a, b) => a - b);
+  if (sorted.length === 0) return "";
+  if (sorted.length === 1) return `Round ${roundRoman(sorted[0])}`;
+  return `Rounds ${roundRoman(sorted[0])}–${roundRoman(sorted[sorted.length - 1])}`;
+}
+
+/** Label for one entry in the Academic Year selector, e.g.
+ *  "2025 · Final (Rounds I–IV)" or "2026-27 · Round I (1 of 4)". */
+export function yearOptionLabel(year: number, rounds: number[]): string {
+  const sorted = [...rounds].sort((a, b) => a - b);
+  if (isCompleteYear(sorted)) {
+    return `${year} · Final (${roundsRangeLabel(sorted)})`;
+  }
+  return `${academicYearSpan(String(year))} · ${roundsRangeLabel(sorted)} (${sorted.length} of ${FULL_CAP_ROUNDS})`;
+}
+
+/** CAP Round dropdown options for one year: "All CAP Rounds" only appears
+ *  once there is more than one round to choose between. */
+export function roundSelectOptions(
+  rounds: number[],
+): { value: string; label: string }[] {
+  const sorted = [...rounds].sort((a, b) => a - b);
+  const all = sorted.length > 1 ? [{ value: "", label: "All CAP Rounds" }] : [];
+  return [
+    ...all,
+    ...sorted.map((r) => ({ value: String(r), label: `CAP Round ${roundRoman(r)}` })),
+  ];
+}
+
+/**
+ * The admission cycle the evergreen /mht-cet-cap-2026-schedule page covers.
+ * The year is baked into that URL by design (a new cycle gets a new URL, per
+ * the evergreen-page SEO pattern), so this isn't the "current" year like
+ * CUTOFF_YEAR — it's fixed per page and only changes when a new page is
+ * created for the next cycle.
+ */
+export const CAP_SCHEDULE_YEAR = Number(
+  process.env.NEXT_PUBLIC_CAP_SCHEDULE_YEAR || "2026",
+);

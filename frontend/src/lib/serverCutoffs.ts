@@ -8,11 +8,10 @@
  * free-tier origin: each URL is fetched at most once per revalidation
  * window per deployment, and the backend's own Redis cache absorbs the rest.
  */
+import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import type { AvailableYearRounds } from "@/lib/dataYear";
 
-const BACKEND =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV !== "production" ? "http://localhost:5000" : "");
+const BACKEND = API_BASE_URL;
 
 const PROXY_TOKEN = process.env.INTERNAL_PROXY_TOKEN || "";
 
@@ -28,6 +27,7 @@ export interface CutoffMeta {
   colleges: CollegeOption[];
   branches: string[];
   cities: string[];
+  availableRounds: AvailableYearRounds[];
 }
 
 export interface CutoffRow {

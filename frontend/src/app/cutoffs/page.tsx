@@ -8,7 +8,12 @@ import {
   type CutoffRow,
 } from "@/lib/serverCutoffs";
 
-import { CUTOFF_YEAR, PROVISIONAL_YEAR, PROVISIONAL_YEAR_LABEL } from "@/lib/dataYear";
+import {
+  CUTOFF_YEAR,
+  academicYearSpan,
+  isCompleteYear,
+  roundsRangeLabel,
+} from "@/lib/dataYear";
 
 // ISR: the server-rendered dataset and college directory refresh every 6h,
 // matching the backend Redis TTL and the edge-proxy cache window.
@@ -20,7 +25,7 @@ const fmtPercentile = (v: number | string | null) =>
   v == null ? "—" : Number(v).toFixed(2);
 const fmtRank = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-IN"));
 
-const CUTOFFS_FAQ: { q: string; a: string }[] = [
+const BASE_CUTOFFS_FAQ: { q: string; a: string }[] = [
   {
     q: "What is an MHT CET cutoff?",
     a: "A cutoff is the closing percentile (and rank) at which a college admitted its last student for a specific branch, seat category, and CAP round. If your percentile is at or above a cutoff, you had a realistic chance of that seat in that round.",
@@ -33,10 +38,6 @@ const CUTOFFS_FAQ: { q: string; a: string }[] = [
     q: `How do I check the MHT CET ${CUTOFF_YEAR} cutoff for a specific college?`,
     a: "Use the interactive explorer above with the college filter, or open that college's dedicated cutoff page from the directory below — each page lists branch-wise closing percentiles and ranks for every category and CAP round.",
   },
-  {
-    q: `Are MHT CET ${PROVISIONAL_YEAR} cutoffs available?`,
-    a: `CAP Round I provisional cutoffs for ${PROVISIONAL_YEAR_LABEL} (State/MH quota) are now available — switch the Academic Year filter in the explorer above to see them. They're provisional and can shift in later rounds, so the ${CUTOFF_YEAR} cutoffs (the complete, final dataset across all 4 rounds) remain the best reference for admissions planning until ${PROVISIONAL_YEAR_LABEL} finalizes.`,
-  },
 ];
 
 export default async function CutoffsPage() {
@@ -44,6 +45,25 @@ export default async function CutoffsPage() {
     fetchCutoffMeta(CUTOFF_YEAR),
     fetchTopCutoffs(CUTOFF_YEAR),
   ]);
+
+  // Whichever loaded year isn't the complete, final dataset yet — drives the
+  // "are next cycle's cutoffs available" FAQ below without hardcoding which
+  // year that is. Once it reaches all 4 rounds it stops qualifying, and the
+  // FAQ item quietly stops appearing (there's nothing "in progress" to ask about).
+  const inProgressYear = (meta?.availableRounds ?? []).find(
+    (a) => String(a.year) !== CUTOFF_YEAR && !isCompleteYear(a.rounds),
+  );
+  const CUTOFFS_FAQ = [
+    ...BASE_CUTOFFS_FAQ,
+    ...(inProgressYear
+      ? [
+          {
+            q: `Are MHT CET ${inProgressYear.year} cutoffs available?`,
+            a: `CAP ${roundsRangeLabel(inProgressYear.rounds)} cutoffs for ${academicYearSpan(String(inProgressYear.year))} (State/MH quota) are now available — switch the Academic Year filter in the explorer above to see them. Only ${inProgressYear.rounds.length} of 4 CAP rounds have been published so far, and cutoffs typically shift across rounds as seats are reallocated, so the ${CUTOFF_YEAR} cutoffs (the complete, final dataset across all 4 rounds) remain the best reference for admissions planning until ${academicYearSpan(String(inProgressYear.year))} finalizes.`,
+          },
+        ]
+      : []),
+  ];
 
   const topRows = topCutoffs.slice(0, TOP_TABLE_ROWS);
   const colleges = (meta?.colleges ?? []).filter(
