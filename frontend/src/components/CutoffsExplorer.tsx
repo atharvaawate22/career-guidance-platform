@@ -6,6 +6,13 @@ import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
 import MultiSelect from "@/components/MultiSelect";
 import CutoffResultCard from "@/components/CutoffResultCard";
+import { publicGet } from "@/lib/api";
+import {
+  CUTOFF_YEAR,
+  PROVISIONAL_YEAR,
+  PROVISIONAL_YEAR_LABEL,
+  HAS_PROVISIONAL_YEAR,
+} from "@/lib/dataYear";
 import { CANDIDATE_GENDER_OPTIONS } from "@/lib/candidateGender";
 import { categorySelectOptions } from "@/lib/categoryOptions";
 import { buildBranchFamilyGroups, CAP_ROUNDS, sortBranches } from "@/lib/cutoffOptions";
@@ -15,7 +22,24 @@ import {
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
 
-const DEFAULT_META_YEAR = "2025";
+/** Years the explorer can search. The provisional year currently holds only
+ *  CAP Round I (MH quota), loaded via
+ *  backend/scripts/load_cutoffs_incremental.js — separate from the final
+ *  dataset and never used by the predictor. Both values come from
+ *  lib/dataYear so a rollover is one env change rather than a code sweep;
+ *  clearing NEXT_PUBLIC_PROVISIONAL_CUTOFF_YEAR drops the toggle to a single
+ *  option. */
+const YEAR_OPTIONS = [
+  { value: CUTOFF_YEAR, label: `${CUTOFF_YEAR} · Final (Rounds 1–4)` },
+  ...(HAS_PROVISIONAL_YEAR
+    ? [
+        {
+          value: PROVISIONAL_YEAR,
+          label: `${PROVISIONAL_YEAR_LABEL} · CAP Round I (Provisional)`,
+        },
+      ]
+    : []),
+];
 
 interface CutoffData {
   id: string; year: number;
@@ -58,6 +82,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
   const [hasSearched, setHasSearched] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("percentile-desc");
 
+  const [year, setYear] = useState(CUTOFF_YEAR);
   const [collegeName, setCollegeName] = useState("");
   const [collegeCode, setCollegeCode] = useState<string | null>(null);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
@@ -93,9 +118,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
   useEffect(() => {
     if (!needsClientMetaFetch) return;
     const controller = new AbortController();
-    fetch(`/api/cutoffs/meta?year=${DEFAULT_META_YEAR}`, {
-      signal: controller.signal,
-    })
+    publicGet("cutoffsMeta", { year: CUTOFF_YEAR }, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error(`Server returned ${response.status}`);
         return response.json();
@@ -123,9 +146,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
   useEffect(() => {
     if (!collegeCode) { setScopedBranches(null); return; }
     const controller = new AbortController();
-    fetch(`/api/cutoffs/meta?college_code=${encodeURIComponent(collegeCode)}`, {
-      signal: controller.signal,
-    })
+    publicGet("cutoffsMeta", { college_code: collegeCode }, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error(`Server returned ${response.status}`);
         return response.json();
@@ -147,9 +168,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
     const controller = new AbortController();
     const params = new URLSearchParams();
     selectedCities.forEach(c => params.append("city", c));
-    fetch(`/api/cutoffs/meta?${params.toString()}`, {
-      signal: controller.signal,
-    })
+    publicGet("cutoffsMeta", params, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error(`Server returned ${response.status}`);
         return response.json();
@@ -185,6 +204,13 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
     setCollegeCode(collegeMapByName.get(v)?.code ?? null);
   };
 
+  // 2026 currently only has CAP Round I loaded, so the round filter is
+  // pinned to it — pick a year and land on a combination with no data.
+  const handleYearChange = (v: string) => {
+    setYear(v);
+    setRound(v === "2026" ? "1" : "");
+  };
+
   const handleSearch = async () => {
     if (!gender) {
       setGenderError("Please select a gender — it determines which seats you are eligible for.");
@@ -194,7 +220,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
     setLoading(true); setError(""); setHasSearched(true);
     try {
       const params = new URLSearchParams();
-      params.append("year", DEFAULT_META_YEAR);
+      params.append("year", year);
       selectedBranches.forEach(b => params.append("branch", b));
       if (category) params.append("category", category);
       if (includeTfws && category !== "TFWS") params.append("include_tfws", "true");
@@ -205,7 +231,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
       if (collegeCode) params.append("college_code", collegeCode);
       else if (collegeName) params.append("college_name", collegeName);
       selectedCities.forEach(c => params.append("city", c));
-      const response = await fetch(`/api/cutoffs?${params.toString()}`);
+      const response = await publicGet("cutoffs", params);
       if (!response.ok) {
         // Surface HTTP-level errors (proxy failures, 5xx, etc.) explicitly
         throw new Error(`Server returned ${response.status}`);
@@ -219,6 +245,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
   };
 
   const handleReset = () => {
+    setYear(CUTOFF_YEAR);
     setSelectedBranches([]); setCategory(""); setIncludeTfws(false);
     setGender(""); setSelectedMinorityTypes([]); setSelectedMinorityGroups([]);
     setRound(""); setCollegeName(""); setCollegeCode(null);
@@ -244,7 +271,7 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
 
         {/* Header */}
         <div className="mb-8">
-          <p className="section-label mb-2">MHT-CET 2025</p>
+          <p className="section-label mb-2">MHT-CET {year === PROVISIONAL_YEAR ? PROVISIONAL_YEAR_LABEL : CUTOFF_YEAR}</p>
           <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
             Cutoff Explorer
           </h1>
@@ -253,13 +280,26 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
           </p>
         </div>
 
+        {year === PROVISIONAL_YEAR && (
+          <div className="rounded-xl px-4 py-3 mb-6 text-sm flex items-start gap-2.5"
+            style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}>
+            <span aria-hidden="true">⚠</span>
+            <span>
+              <strong>Provisional:</strong> 2026-27 CAP Round I cutoffs (State/MH quota) just went live and can shift in
+              later rounds. The complete, final dataset is still {CUTOFF_YEAR} — switch back with the Academic Year filter.
+            </span>
+          </div>
+        )}
+
         <div className="lg:grid lg:grid-cols-[280px_1fr] gap-6 items-start">
 
           {/* ── Filter panel ── */}
           <div className="card mb-6 lg:mb-0 lg:sticky lg:top-4" style={{ borderRadius: "1rem", overflow: "hidden", borderColor: "var(--slate-200)" }}>
             <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--slate-200)", background: "var(--bg-secondary)" }}>
               <h2 className="text-sm font-bold" style={{ color: "var(--slate-900)" }}>Filters</h2>
-              <p className="text-xs mt-0.5" style={{ color: "var(--slate-500)" }}>2025 cutoff data only</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--slate-500)" }}>
+                {year === PROVISIONAL_YEAR ? `${PROVISIONAL_YEAR_LABEL} CAP Round I (provisional) data` : `${CUTOFF_YEAR} cutoff data only`}
+              </p>
             </div>
             <div className="p-5 space-y-0">
 
@@ -267,9 +307,15 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
               <p className="section-label mb-3">Search Scope</p>
               <div className="space-y-3">
                 <div>
+                  <FilterLabel>Academic Year</FilterLabel>
+                  <CustomSelect id="year" value={year} onChange={handleYearChange} options={YEAR_OPTIONS} />
+                </div>
+                <div>
                   <FilterLabel>CAP Round</FilterLabel>
                   <CustomSelect id="round" value={round} onChange={setRound}
-                    options={[{ value: "", label: "All CAP Rounds" }, ...CAP_ROUNDS.map(r => ({ value: String(r), label: `CAP Round ${r}` }))]} />
+                    options={year === PROVISIONAL_YEAR
+                      ? [{ value: "1", label: "CAP Round I" }]
+                      : [{ value: "", label: "All CAP Rounds" }, ...CAP_ROUNDS.map(r => ({ value: String(r), label: `CAP Round ${r}` }))]} />
                 </div>
                 <div>
                   <FilterLabel>College</FilterLabel>
@@ -379,7 +425,9 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
               <div className="card py-20 text-center">
                 <div className="text-5xl mb-4">🔍</div>
                 <p className="text-lg font-semibold mb-1" style={{ color: "var(--slate-900)" }}>Set filters and search</p>
-                <p className="text-sm" style={{ color: "var(--slate-500)" }}>Search across 2025 CAP Rounds 1–4</p>
+                <p className="text-sm" style={{ color: "var(--slate-500)" }}>
+                  {year === PROVISIONAL_YEAR ? `Search ${PROVISIONAL_YEAR_LABEL} CAP Round I (provisional)` : `Search across ${CUTOFF_YEAR} CAP Rounds 1–4`}
+                </p>
               </div>
             ) : cutoffs.length === 0 ? (
               <div className="card py-20 text-center">

@@ -2,24 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import { CutoffsService } from './cutoffs.service';
 import { CutoffFilters } from './cutoffs.types';
 import { query } from '../../config/database';
-import {
-  ACTIVE_CUTOFF_YEAR,
-  MAX_FILTER_ARRAY_LENGTH,
-} from '../../config/constants';
+import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
 import { getOrLoadCutoffMeta } from './cutoffsMetaCache';
+import { CutoffsQuery, CutoffsMetaQuery } from './cutoffs.schemas';
 
 const cutoffsService = new CutoffsService();
-
-const parseArrayParam = (value: unknown): string[] => {
-  const arr = (Array.isArray(value) ? value : value ? [value] : []) as string[];
-  return arr.slice(0, MAX_FILTER_ARRAY_LENGTH);
-};
-
-const parseRound = (value: unknown): number | undefined => {
-  if (value === undefined) return undefined;
-  const n = parseInt(String(value), 10);
-  return Number.isInteger(n) && n >= 1 && n <= 4 ? n : undefined;
-};
 
 export class CutoffsController {
   async getMeta(
@@ -32,13 +19,10 @@ export class CutoffsController {
       // that college actually offers; selecting a city (district) narrows
       // the college list to colleges in that city. Both are optional — with
       // neither set this returns the full, cacheable dataset as before.
-      const collegeCode =
-        typeof req.query.college_code === 'string'
-          ? req.query.college_code.trim()
-          : undefined;
-      const cities = parseArrayParam(req.query.city)
-        .map((c) => c.trim())
-        .filter(Boolean);
+      // Trimming and empty-filtering now happen in cutoffsMetaQuerySchema.
+      const q = req.validatedQuery as CutoffsMetaQuery;
+      const collegeCode = q.college_code;
+      const cities = q.city ?? [];
 
       // Dropdowns now come straight from the normalized dimension tables — the
       // college/branch/city values are clean at load time, so the old runtime
@@ -174,24 +158,26 @@ export class CutoffsController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const branches = parseArrayParam(req.query.branch);
-      const minorityTypes = parseArrayParam(req.query.minority_type);
-      const minorityGroups = parseArrayParam(req.query.minority_group);
-      const cities = parseArrayParam(req.query.city);
+      // Already parsed, type-narrowed and normalized by cutoffsQuerySchema.
+      // `year` defaults to ACTIVE_CUTOFF_YEAR (the final, primary dataset) but
+      // can be overridden — e.g. by the explorer's year toggle — to reach an
+      // additional year/round loaded separately (see
+      // backend/scripts/load_cutoffs_incremental.js), such as a new cycle's
+      // CAP Round-I provisional cutoffs.
+      const q = req.validatedQuery as CutoffsQuery;
 
       const filters: CutoffFilters = {
-        year: ACTIVE_CUTOFF_YEAR,
-        round: parseRound(req.query.round),
-        branch_groups: branches.length > 0 ? branches : undefined,
-        category: req.query.category as string | undefined,
-        include_tfws:
-          req.query.include_tfws === 'true' || req.query.include_tfws === '1',
-        gender: req.query.gender as string | undefined,
-        minority_types: minorityTypes.length > 0 ? minorityTypes : undefined,
-        minority_groups: minorityGroups.length > 0 ? minorityGroups : undefined,
-        college_name: req.query.college_name as string | undefined,
-        college_code: req.query.college_code as string | undefined,
-        cities: cities.length > 0 ? cities : undefined,
+        year: q.year ?? ACTIVE_CUTOFF_YEAR,
+        round: q.round,
+        branch_groups: q.branch,
+        category: q.category,
+        include_tfws: q.include_tfws,
+        gender: q.gender,
+        minority_types: q.minority_type,
+        minority_groups: q.minority_group,
+        college_name: q.college_name,
+        college_code: q.college_code,
+        cities: q.city,
       };
 
       const { rows, total, cached } = await cutoffsService.getCutoffs(filters);

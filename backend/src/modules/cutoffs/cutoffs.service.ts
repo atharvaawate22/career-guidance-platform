@@ -3,6 +3,9 @@ import { CutoffsRepository } from './cutoffs.repository';
 import { ACTIVE_CUTOFF_YEAR } from '../../config/constants';
 import { cacheGet, cacheSet } from '../../config/redis';
 
+// getCollegeCutoffs (below) intentionally stays pinned to ACTIVE_CUTOFF_YEAR —
+// the per-college SSR/SEO pages show only the final, primary dataset.
+
 const cutoffsRepository = new CutoffsRepository();
 const CUTOFFS_CACHE_TTL_SECONDS = 6 * 60 * 60;
 
@@ -24,16 +27,15 @@ export class CutoffsService {
   async getCutoffs(
     filters: CutoffFilters,
   ): Promise<{ rows: CutoffRow[]; total: number; cached: boolean }> {
-    const normalizedFilters = {
-      ...filters,
-      year: ACTIVE_CUTOFF_YEAR,
-    };
-    const cacheKey = `cutoffs:${stableStringify(normalizedFilters)}`;
+    // filters.year is already resolved by the controller (defaults to
+    // ACTIVE_CUTOFF_YEAR, overridable) — it must flow through as-is here so
+    // the cache key and the query actually vary by year.
+    const cacheKey = `cutoffs:${stableStringify(filters)}`;
     const cached =
       await cacheGet<{ rows: CutoffRow[]; total: number }>(cacheKey);
     if (cached) return { ...cached, cached: true };
 
-    const result = await cutoffsRepository.getCutoffs(normalizedFilters);
+    const result = await cutoffsRepository.getCutoffs(filters);
     await cacheSet(cacheKey, result, CUTOFFS_CACHE_TTL_SECONDS);
     return { ...result, cached: false };
   }

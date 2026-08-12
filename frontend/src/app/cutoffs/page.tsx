@@ -8,7 +8,7 @@ import {
   type CutoffRow,
 } from "@/lib/serverCutoffs";
 
-const CUTOFF_YEAR = "2025";
+import { CUTOFF_YEAR, PROVISIONAL_YEAR, PROVISIONAL_YEAR_LABEL } from "@/lib/dataYear";
 
 // ISR: the server-rendered dataset and college directory refresh every 6h,
 // matching the backend Redis TTL and the edge-proxy cache window.
@@ -27,15 +27,15 @@ const CUTOFFS_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Which cutoff data does CET Hub cover?",
-    a: "CET Hub's explorer covers 90,000+ official MHT-CET 2025 CAP cutoff records published by DTE/State CET Cell Maharashtra — every engineering college, branch, seat category (GOPEN, GOBC, GSC, GST, EWS, TFWS and more), and CAP Rounds 1–4.",
+    a: `CET Hub's explorer covers 90,000+ official MHT-CET ${CUTOFF_YEAR} CAP cutoff records published by DTE/State CET Cell Maharashtra — every engineering college, branch, seat category (GOPEN, GOBC, GSC, GST, EWS, TFWS and more), and CAP Rounds 1–4.`,
   },
   {
-    q: "How do I check the MHT CET 2025 cutoff for a specific college?",
+    q: `How do I check the MHT CET ${CUTOFF_YEAR} cutoff for a specific college?`,
     a: "Use the interactive explorer above with the college filter, or open that college's dedicated cutoff page from the directory below — each page lists branch-wise closing percentiles and ranks for every category and CAP round.",
   },
   {
-    q: "Are MHT CET 2026 cutoffs available?",
-    a: "2026 CAP counselling has not happened yet, so no 2026 cutoffs exist anywhere. The 2025 cutoffs shown here are the latest official data and the best available guide for 2026 admissions planning.",
+    q: `Are MHT CET ${PROVISIONAL_YEAR} cutoffs available?`,
+    a: `CAP Round I provisional cutoffs for ${PROVISIONAL_YEAR_LABEL} (State/MH quota) are now available — switch the Academic Year filter in the explorer above to see them. They're provisional and can shift in later rounds, so the ${CUTOFF_YEAR} cutoffs (the complete, final dataset across all 4 rounds) remain the best reference for admissions planning until ${PROVISIONAL_YEAR_LABEL} finalizes.`,
   },
 ];
 
@@ -55,7 +55,7 @@ export default async function CutoffsPage() {
     "@graph": [
       {
         "@type": "Dataset",
-        name: "MHT-CET 2025 CAP Round Engineering Cutoff Dataset",
+        name: `MHT-CET ${CUTOFF_YEAR} CAP Round Engineering Cutoff Dataset`,
         description:
           "Structured historical cutoff dataset containing 90,000+ percentile and rank admission records across engineering colleges, branches, categories, and rounds in Maharashtra.",
         url: `${SITE_URL}/cutoffs`,
@@ -67,7 +67,7 @@ export default async function CutoffsPage() {
           "CET rank",
         ],
         creator: { "@type": "Organization", name: "CETHub", url: SITE_URL },
-        temporalCoverage: "2025",
+        temporalCoverage: CUTOFF_YEAR,
         spatialCoverage: "Maharashtra, India",
       },
       {
@@ -94,7 +94,7 @@ export default async function CutoffsPage() {
               <p className="section-label mb-2">Reference Table</p>
               <h2 id="top-cutoffs-heading" className="text-2xl font-bold mb-1"
                 style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
-                Highest MHT-CET 2025 Cutoffs — CAP Round 1
+                Highest MHT-CET {CUTOFF_YEAR} Cutoffs — CAP Round 1
               </h2>
               <p className="text-sm" style={{ color: "var(--slate-500)" }}>
                 The {topRows.length} most competitive closing cutoffs of CAP Round 1, across all
@@ -148,7 +148,7 @@ export default async function CutoffsPage() {
               <p className="section-label mb-2">Browse by College</p>
               <h2 id="college-directory-heading" className="text-2xl font-bold mb-1"
                 style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
-                MHT-CET 2025 Cutoffs by College
+                MHT-CET {CUTOFF_YEAR} Cutoffs by College
               </h2>
               <p className="text-sm" style={{ color: "var(--slate-500)" }}>
                 Branch-wise closing percentiles and ranks for every CAP round — {colleges.length} engineering colleges across Maharashtra.

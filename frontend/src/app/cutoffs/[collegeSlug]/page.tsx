@@ -9,7 +9,7 @@ import {
   type CutoffRow,
 } from "@/lib/serverCutoffs";
 
-const CUTOFF_YEAR = "2025";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 const CAP_ROUNDS = [1, 2, 3, 4] as const;
 
 // ISR: each college page refreshes every 6h, matching the backend cache TTL.
