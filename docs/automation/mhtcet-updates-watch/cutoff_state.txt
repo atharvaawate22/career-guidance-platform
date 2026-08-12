@@ -1,0 +1,26 @@
+MHT-CET 2026 CAP Round-I milestone tracking (B.E./B.Tech). Format: milestone: status/date noticed.
+
+Provisional Merit List: published 2026-07-22 (already in updates table)
+Final Merit List: published 2026-07-28 (added to updates table 2026-08-01)
+Seat Matrix for CAP Round-I: published 2026-07-28 (added to updates table 2026-08-01)
+Option Form for CAP Round-I: submission started 2026-07-28, window through 2026-08-05 (added to updates table 2026-08-01)
+Provisional Allotment CAP Round-I: live since 2026-08-02 (confirmed 2026-08-03 via fe2026.mahacet.org sidebar links "Check Provisional Allotment Status (CAP Round-I)" and "Institute Wise Allotment List", both NEW; seat acceptance window now open 03/08-05/08/2026)
+Round-I Cutoff (MH + AI quota) PDFs: live since 2026-08-02/03, confirmed 2026-08-03 -- direct links on fe2026.mahacet.org sidebar:
+  - https://cappublicdocs2026.blob.core.windows.net/documents/2026ENGG_CAP1_MH_CutOff.pdf (superseded by _V1 revision, noticed 2026-08-12)
+  - https://cappublicdocs2026.blob.core.windows.net/documents/2026ENGG_CAP1_AI_CutOff.pdf
+  LOADED 2026-08-12: both quotas now live in production `cutoffs` table as academic_year=2026, cap_round=1, additive (2025 rows untouched, no truncation).
+  - MH quota (36,004 rows, allotment_pool IN STATE/HU_HU/OHU_OHU/HU_OHU/OHU_HU): was already loaded before this check (parsed via existing scripts/parse_cutoffs_v2.py -> scripts/parsed/round1_2026, presumably run by Atharva directly ~10:22am 2026-08-12).
+  - AI quota (2,004 rows, allotment_pool='AI', category_code='AI-<examcode>' where examcode in JEE/CET/CETPCB): parsed today with a NEW parser (scripts/parse_ai_cutoffs.py -- the AI-quota PDF has a completely different flat one-row-per-choice-code table layout vs the MH-quota Stage-block layout, so parse_cutoffs_v2.py doesn't handle it) and loaded via backend/scripts/load_ai_cutoffs_additive.js (new additive loader; the original load_cutoffs.js truncates everything and hardcodes academic_year=2025, so it was NOT used for this).
+  Downloaded PDF kept at scripts/cutoff_pdfs/2026ENGG_CAP1_AI_CutOff.pdf.
+  New scripts committed and pushed to origin/master: commit 1fc237b, "feat(cutoffs): add AI-quota Round I 2026-27 parser and additive loader" -- https://github.com/atharvaawate22/career-guidance-platform/commit/1fc237b
+
+CAP Round cutoff list (cutoffs table / manual load pipeline):
+2026-27 row NOT yet present in the "Seat Matrix and Cut Off Lists of CAP Round for Previous Years" archive table as of 2026-08-03 (still only lists 2023-24, 2024-25, 2025-26) -- but the live Round-I cutoff PDFs above are already available directly, so the manual pipeline can be run now using those PDF links.
+
+POLICY CHANGE 2026-08-12: for Round II onward, the daily mhtcet-updates-watch task now auto-downloads, parses, sanity-checks, and additively loads newly-live round cutoffs itself (see SKILL.md step 5f) -- Atharva approved fully-automatic mode. It uses parse_cutoffs_v2.py (MH quota) / parse_ai_cutoffs.py (AI quota) + backend/scripts/load_ai_cutoffs_additive.js, never backend/scripts/load_cutoffs.js. If a round's PDF format doesn't match what those parsers expect, it aborts and flags it instead of improvising unattended.
+
+Checked 2026-08-12 (test run, manual): confirmed via fe2026.mahacet.org marquee "Allotment for CAP Round II will be Published Soon.." -- Round II not live yet. Cron temporarily bumped to every 4 hours (was daily 9am) at Atharva's request for faster Round II detection; task will auto-revert to daily once Round II successfully auto-loads (see SKILL.md step 5f).
+
+POLICY 2026-08-12 (extended): the every-4-hours bump is now a STANDING, self-managing behavior (SKILL.md step 5.0), not a one-off for Round II. Whenever a round's window opens per the reference schedule (II 06/08-17/08, III 18/08-27/08, IV 28/08-07/09) and it hasn't been auto-loaded yet, the task bumps its own cron to every 4h; once that round's cutoff is successfully auto-loaded, it reverts to daily 9am. Applies automatically to III and IV too -- no need to ask Atharva again each round.
+
+Checked 2026-08-12: no new round's cutoff/allotment result live yet. Round I MH cutoff PDF was revised (now served as 2026ENGG_CAP1_MH_CutOff_V1.pdf, sidebar-flagged NEW) -- manual load pipeline still NOT run as of this check. "Provisional Vacancy Position for CAP Round-II" doc newly published on fe2026.mahacet.org sidebar (prep step ahead of Round II option form, window 06/08-17/08 per schedule) -- this is NOT itself a cutoff/allotment result, so not logged as a round going live. No 2026-27 row yet in the CAP-round archive table.
