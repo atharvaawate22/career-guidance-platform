@@ -35,6 +35,10 @@ export async function fetchAnnouncement(): Promise<AnnouncementConfig | null> {
     const res = await fetch(`${BACKEND}/api/v1/settings/announcement`, {
       headers,
       next: { revalidate: ANNOUNCEMENT_REVALIDATE_SECONDS },
+      // This runs inside the root layout, so a slow/cold backend would
+      // otherwise stall the very first (build-time or revalidation) render
+      // of every page on the site rather than just the banner.
+      signal: AbortSignal.timeout(1500),
     });
     if (!res.ok) return null;
     const data = await res.json();
