@@ -32,7 +32,9 @@ let app: typeof import('../src/server').app;
 beforeAll(async () => {
   const server = await import('../src/server');
   app = server.app;
-}, 30000);
+});
+// Timeout intentionally not pinned here — hookTimeout in vitest.config.ts
+// covers it, and the local 30s value was too tight under coverage instrumentation.
 
 describe('API smoke: critical login and booking flows', () => {
   it('allows admin login with valid payload and sets session cookies', async () => {

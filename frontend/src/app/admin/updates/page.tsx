@@ -11,7 +11,7 @@ import type { Update } from "@/components/admin/types";
 import { format, parseISO } from "date-fns";
 
 export default function AdminUpdatesPage() {
-  const { adminWriteFetch, handleSessionExpired, API_BASE_URL } = useAdmin();
+  const { adminFetch, adminWriteFetch, handleSessionExpired, API_BASE_URL } = useAdmin();
   const { toast } = useToast();
 
   const [updates, setUpdates] = useState<Update[]>([]);
@@ -34,7 +34,10 @@ export default function AdminUpdatesPage() {
   const fetchUpdates = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/v1/updates`);
+      // Was a bare fetch with no credentials — the only admin call bypassing
+      // the wrapper. Reads the public list, but going through adminFetch keeps
+      // one transport for the whole admin surface.
+      const res = await adminFetch(`${API_BASE_URL}/api/v1/updates`);
       const data = await res.json();
       if (data.success) setUpdates(Array.isArray(data.data) ? data.data : data.data?.data || []);
     } catch {
@@ -42,7 +45,7 @@ export default function AdminUpdatesPage() {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, toast]);
+  }, [adminFetch, API_BASE_URL, toast]);
 
   useEffect(() => { void fetchUpdates(); }, [fetchUpdates]);
 

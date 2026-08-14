@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 import CustomSelect from "@/components/CustomSelect";
 import MultiSelect from "@/components/MultiSelect";
 import PredictorResultCard from "@/components/PredictorResultCard";
@@ -12,12 +13,11 @@ import {
   MINORITY_TYPE_OPTIONS,
   getMinorityTypesForGroups,
 } from "@/lib/minorityStatus";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet, publicPost } from "@/lib/api";
 
-const PREDICTOR_YEAR = parseInt(
-  process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025",
-  10
-);
+/** The predictor always models against the complete, final dataset — never the
+ *  provisional in-season year, which holds only CAP Round I. */
+const PREDICTOR_YEAR = parseInt(CUTOFF_YEAR, 10);
 
 interface CollegeOption {
   id: string;
@@ -85,9 +85,10 @@ export default function PredictorForm() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?year=${PREDICTOR_YEAR}`, {
-      signal: controller.signal,
-    })
+    // Was a direct-to-origin call while CutoffsExplorer fetched this exact
+    // endpoint through the edge proxy — so the predictor, the highest-intent
+    // page on the site, was the one bypassing the cache.
+    publicGet("cutoffsMeta", { year: PREDICTOR_YEAR }, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error(`Server returned ${response.status}`);
         return response.json();
@@ -194,7 +195,7 @@ export default function PredictorForm() {
       if (mode === "rank") body.rank = Number(rnk);
       if (selectedBranches.length > 0) body.preferred_branches = selectedBranches;
       if (selectedCities.length > 0) body.cities = selectedCities;
-      const res = await fetch(`${API_BASE_URL}/api/v1/predict/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await publicPost("/api/v1/predict/", body);
       const data = await res.json();
       if (data.success) setResults(data.data);
       else setError(data.error?.message || "Failed to get predictions");
@@ -437,7 +438,7 @@ export default function PredictorForm() {
           <div className="card flex flex-col items-center justify-center py-20">
             <div className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin mb-4"
               style={{ borderColor: "var(--slate-200)", borderTopColor: "var(--primary-600)" }} />
-            <p className="text-base font-medium" style={{ color: "var(--slate-500)" }}>Analysing 2025 cutoffs…</p>
+            <p className="text-base font-medium" style={{ color: "var(--slate-500)" }}>Analysing {CUTOFF_YEAR} cutoffs…</p>
           </div>
         )}
 
@@ -448,7 +449,7 @@ export default function PredictorForm() {
             <div className="rounded-xl p-3.5 mb-6 flex items-start gap-2.5 text-sm" style={{ background: "var(--primary-50)", border: "1px solid var(--primary-200)", color: "var(--slate-700)" }}>
               <svg width="18" height="18" className="shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="var(--primary-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
               <span>
-                These predictions are <strong>data-driven estimates based on 2025 CAP Round&nbsp;I cutoffs</strong>. Actual cutoffs shift each year with exam difficulty, number of applicants, and seat-matrix changes — use this as guidance, not a guarantee.
+                These predictions are <strong>data-driven estimates based on {CUTOFF_YEAR} CAP Round&nbsp;I cutoffs</strong>. Actual cutoffs shift each year with exam difficulty, number of applicants, and seat-matrix changes — use this as guidance, not a guarantee.
               </span>
             </div>
 
@@ -479,7 +480,7 @@ export default function PredictorForm() {
                       {results.meta.inputPercentile !== undefined && (
                         <span style={{ color: "var(--slate-500)" }}> (from {results.meta.inputPercentile.toFixed(4)} percentile)</span>
                       )}
-                      . This is an <strong>estimate</strong> derived from 2025 percentile-to-rank data — for the most accurate results, enter your official CET rank.
+                      . This is an <strong>estimate</strong> derived from {CUTOFF_YEAR} percentile-to-rank data — for the most accurate results, enter your official CET rank.
                     </span>
                   </div>
                 )}

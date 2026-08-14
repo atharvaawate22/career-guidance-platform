@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useId } from "react";
+import { useDismissable } from "@/hooks/useDismissable";
 
 interface ComboBoxProps {
   id?: string;
@@ -12,6 +13,20 @@ interface ComboBoxProps {
   disabled?: boolean;
 }
 
+/**
+ * Free-text input with a filtered suggestion list (the College filter).
+ *
+ * Implements the ARIA 1.2 combobox-with-listbox-popup pattern. Before this it
+ * had no ARIA at all and its options were plain <div>s wired to onMouseDown, so
+ * the suggestion list was reachable only with a mouse — a keyboard or screen
+ * reader user could type into the field but could never select a college. That
+ * is a WCAG 2.1 Level A failure (2.1.1 Keyboard) on one of the site's primary
+ * filters. Modelled on CustomSelect, which already had most of this.
+ *
+ * Focus stays on the input throughout; the active option is communicated via
+ * aria-activedescendant rather than by moving focus (the standard approach for
+ * this pattern, and the reason the options need no tabIndex).
+ */
 export default function ComboBox({
   id,
   value,
@@ -23,8 +38,13 @@ export default function ComboBox({
 }: ComboBoxProps) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const listboxId = `${inputId}-listbox`;
 
   const filtered = value
     ? options
@@ -32,33 +52,93 @@ export default function ComboBox({
         .slice(0, 100)
     : options.slice(0, 100);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+  const close = useCallback(() => {
+    setOpen(false);
+    setActiveIndex(-1);
   }, []);
 
+  useDismissable(open, containerRef, close);
+
+  // Reset the highlight whenever the filtered set changes, so the index can
+  // never point past the end of a freshly narrowed list.
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
+    setActiveIndex(-1);
+  }, [value]);
+
+  // Keep the highlighted option visible while arrowing through a long list.
+  useEffect(() => {
+    if (!open || activeIndex < 0 || !listRef.current) return;
+    const el = listRef.current.children[activeIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, open]);
+
+  const commit = (option: string) => {
+    onChange(option);
+    close();
+    inputRef.current?.focus();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      // Only swallow Escape when it actually closed something, so it can still
+      // reach an enclosing dialog otherwise.
+      if (open) {
+        e.stopPropagation();
+        close();
+      }
+      return;
+    }
+
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setOpen(true);
+        setActiveIndex(0);
+      }
+      return;
+    }
+
+    if (filtered.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1 >= filtered.length ? 0 : i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? filtered.length - 1 : i - 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActiveIndex(filtered.length - 1);
+    } else if (e.key === "Enter") {
+      // Only intercept Enter when an option is highlighted — otherwise let it
+      // submit the surrounding form, which is what a free-text field should do.
+      if (activeIndex >= 0 && activeIndex < filtered.length) {
+        e.preventDefault();
+        commit(filtered[activeIndex]);
+      }
+    } else if (e.key === "Tab") {
+      close();
+    }
+  };
+
+  const showList = open && filtered.length > 0;
 
   return (
     <div ref={containerRef} className="relative w-full">
       <input
         ref={inputRef}
-        id={id}
+        id={inputId}
         type="text"
+        role="combobox"
+        aria-expanded={showList}
+        aria-controls={showList ? listboxId : undefined}
+        aria-autocomplete="list"
+        aria-activedescendant={
+          showList && activeIndex >= 0 ? `${inputId}-opt-${activeIndex}` : undefined
+        }
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}
@@ -67,7 +147,11 @@ export default function ComboBox({
           onChange(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => { setOpen(true); setFocused(true); }}
+        onKeyDown={onKeyDown}
+        onFocus={() => {
+          setOpen(true);
+          setFocused(true);
+        }}
         onBlur={() => setFocused(false)}
         disabled={disabled}
         className="w-full py-2.5 px-3.5 text-sm transition-all rounded-lg"
@@ -81,8 +165,12 @@ export default function ComboBox({
         }}
       />
 
-      {open && filtered.length > 0 && (
+      {showList && (
         <div
+          id={listboxId}
+          role="listbox"
+          aria-label="College suggestions"
+          ref={listRef}
           className="absolute z-50 w-full mt-1 overflow-y-auto max-h-80"
           style={{
             background: "var(--bg-primary)",
@@ -91,30 +179,27 @@ export default function ComboBox({
             boxShadow: "var(--shadow-lg)",
           }}
         >
-          {filtered.map((opt) => {
-            const isSel = opt === value;
-            return (
-              <div
-                key={opt}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onChange(opt);
-                  setOpen(false);
-                  inputRef.current?.blur();
-                }}
-                className="px-3.5 py-2.5 cursor-pointer text-sm transition-colors"
-                style={{
-                  background: isSel ? "var(--primary-50)" : "transparent",
-                  color: isSel ? "var(--primary-700)" : "var(--slate-900)",
-                  fontWeight: isSel ? 600 : 400,
-                }}
-                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = "var(--slate-50)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = isSel ? "var(--primary-50)" : "transparent"; }}
-              >
-                {opt}
-              </div>
-            );
-          })}
+          {filtered.map((opt, idx) => (
+            <div
+              key={opt}
+              id={`${inputId}-opt-${idx}`}
+              role="option"
+              aria-selected={opt === value}
+              data-selected={opt === value}
+              data-active={idx === activeIndex}
+              // onMouseDown, not onClick: mousedown fires before the input's
+              // blur, so preventDefault keeps focus on the input and stops the
+              // list closing out from under the click.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                commit(opt);
+              }}
+              onMouseEnter={() => setActiveIndex(idx)}
+              className="listbox-option"
+            >
+              {opt}
+            </div>
+          ))}
         </div>
       )}
     </div>

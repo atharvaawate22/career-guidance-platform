@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { setAdminHint } from "@/hooks/useAdminSession";
 
 function LoginForm() {
   const router = useRouter();
@@ -74,6 +75,9 @@ function LoginForm() {
       const data = await res.json();
 
       if (data.success) {
+        // Lets the public shell know an admin session exists, so it probes
+        // /admin/session instead of skipping it — see useAdminSession.
+        setAdminHint(true);
         window.dispatchEvent(new Event("adminAuthChange"));
         router.replace("/admin/dashboard");
       } else {

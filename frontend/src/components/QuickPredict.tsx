@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 import { useRouter } from "next/navigation";
 import { CATEGORY_GROUPS } from "@/lib/categoryOptions";
 
@@ -155,7 +156,7 @@ export default function QuickPredict() {
       )}
 
       <p className="text-[11px] text-center mt-3" style={{ color: "var(--slate-500)" }}>
-        Free · No sign-up · Based on 90,000+ official 2025 cutoffs
+        Free · No sign-up · Based on 90,000+ official {CUTOFF_YEAR} cutoffs
       </p>
     </div>
   );

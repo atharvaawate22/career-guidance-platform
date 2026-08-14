@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import ComboBox from "@/components/ComboBox";
 import CustomSelect from "@/components/CustomSelect";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet, publicPost } from "@/lib/api";
 import { categorySelectOptions } from "@/lib/categoryOptions";
 import { sortBranches } from "@/lib/cutoffOptions";
 import { suggestEmailCorrection } from "@/lib/emailSuggestion";
@@ -12,7 +12,7 @@ import Link from "next/link";
 
 // Same meta endpoint/year the predictor and cutoff explorer use for their
 // branch lists, so all three stay in sync automatically.
-const META_YEAR = process.env.NEXT_PUBLIC_PREDICTOR_YEAR || "2025";
+import { CUTOFF_YEAR as META_YEAR } from "@/lib/dataYear";
 
 // Default fallback — only used if settings API is unreachable
 const DEFAULT_TIME_SLOTS = [
@@ -222,7 +222,7 @@ export default function BookPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_BASE_URL}/api/v1/cutoffs/meta?year=${META_YEAR}`, { signal: controller.signal })
+    publicGet("cutoffsMeta", { year: META_YEAR }, { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => {
         if (d.success) setBranchOptions(sortBranches(d.data.branches ?? []));
@@ -240,7 +240,7 @@ export default function BookPage() {
   });
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/settings/booking-slots`)
+    publicGet("bookingSlotsConfig")
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data) {
@@ -269,7 +269,7 @@ export default function BookPage() {
   const fetchSlotsForDate = (date: string) => {
     if (!date) { setBookedSlots([]); return; }
     setSlotsLoading(true);
-    fetch(`${API_BASE_URL}/api/v1/bookings/slots?date=${date}`)
+    publicGet("bookingSlots", { date })
       .then((r) => r.json())
       .then((data) => setBookedSlots(data.booked ?? []))
       .catch(() => setBookedSlots([]))
@@ -325,16 +325,15 @@ export default function BookPage() {
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/bookings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await publicPost(
+        "/api/v1/bookings",
+        {
           ...formData,
           phone: `${INDIA_COUNTRY_CODE}${formData.phone}`,
           percentile: Number(formData.percentile),
-        }),
-        signal: controller.signal,
-      });
+        },
+        { signal: controller.signal },
+      );
 
       clearTimeout(timeoutId);
       const data = await response.json();

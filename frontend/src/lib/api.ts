@@ -91,10 +91,14 @@ export function publicPost(
   body: unknown,
   init?: RequestInit,
 ): Promise<Response> {
+  // `...init` FIRST. Spreading it last would overwrite the merged headers with
+  // the caller's raw `headers` object, silently dropping Content-Type — and a
+  // POST without it is skipped by express.json(), so the endpoint sees an empty
+  // body and 400s on validation with nothing pointing at the cause.
   return fetch(backendUrl(path), {
+    ...init,
     method: "POST",
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     body: JSON.stringify(body),
-    ...init,
   });
 }

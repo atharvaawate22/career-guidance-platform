@@ -32,10 +32,15 @@ CREATE TABLE IF NOT EXISTS rag_chunks (
   UNIQUE (topic_label)
 );
 
--- No ANN index (ivfflat/hnsw) on purpose: at ~10 rows a plain sequential
--- scan over the cosine operator is both fast enough and more accurate than
--- an approximate index, which needs far more rows to build meaningful
--- clusters. Revisit if the corpus grows into the hundreds (see
--- CHATBOT_ARCHITECTURE.md §6).
+-- No ANN index (ivfflat/hnsw) on purpose: at this corpus size a plain
+-- sequential scan over the cosine operator is both fast enough and more
+-- accurate than an approximate index, which needs far more rows to build
+-- meaningful clusters.
+--
+-- The original note here said "~10 rows"; the table held 70 when that was
+-- next checked (2026-08), so treat the number as a moving target rather than
+-- a fixed fact. The reasoning still holds — revisit once the corpus reaches
+-- the low hundreds, at which point measure before adding an index rather than
+-- assuming (see CHATBOT_ARCHITECTURE.md §6).
 
 ALTER TABLE rag_chunks ENABLE ROW LEVEL SECURITY;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet } from "@/lib/api";
 import ScrollReveal from "@/components/ScrollReveal";
 
 interface Update {
@@ -28,7 +28,7 @@ export default function UpdatesPage() {
   useEffect(() => {
     const fetchUpdates = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/updates`);
+        const response = await publicGet("updates");
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {

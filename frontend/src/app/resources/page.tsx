@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet } from "@/lib/api";
 import ScrollReveal from "@/components/ScrollReveal";
 
 interface Resource {
@@ -54,7 +54,7 @@ export default function ResourcesPage() {
     try {
       if (showLoader) setLoading(true);
       setError("");
-      const response = await fetch(`${API_BASE_URL}/api/v1/resources`);
+      const response = await publicGet("resources");
       const data = await response.json();
       if (data.success) {
         setResources(data.data);

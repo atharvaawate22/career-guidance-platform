@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { MAX_FILTER_ARRAY_LENGTH } from '../../config/constants';
+import {
+  MAX_FILTER_ARRAY_LENGTH,
+  ACTIVE_CUTOFF_YEAR,
+} from '../../config/constants';
 import {
   VALID_PREDICTOR_CATEGORIES,
   VALID_PREDICTOR_GENDERS,
@@ -82,13 +85,39 @@ const collegeCodeParam = (label: string) =>
   );
 
 /**
- * Accepted for URL back-compat only. The explorer, predictor and booking page
- * all append `year=`, but every handler answers for ACTIVE_CUTOFF_YEAR
- * regardless. Declared so the contract is visible rather than silently
- * stripped.
+ * `year` is LOAD-BEARING on GET /cutoffs — do not remove it.
+ *
+ * The explorer's Academic Year selector sends it, and the controller resolves
+ * `q.year ?? ACTIVE_CUTOFF_YEAR`, so dropping this field would silently pin
+ * every request back to the primary dataset and serve last year's cutoffs
+ * under this year's heading, with no error anywhere. It is also part of the
+ * Redis cache key, so the cached result genuinely varies by year.
+ *
+ * It IS ignored by /cutoffs/meta and /cutoffs/college/:code, which always
+ * answer for ACTIVE_CUTOFF_YEAR; it is accepted there only so an existing URL
+ * carrying `year=` is not rejected.
+ *
+ * The range is derived from ACTIVE_CUTOFF_YEAR rather than a wide literal
+ * window: `year` reaches the Redis cache key, so every accepted value is a
+ * separate 6h-TTL namespace per filter combination, and a fixed 2000-2100
+ * range allowed 101 of them.
+ *
+ * The window is deliberately wider than the two years currently loaded (2025
+ * final, 2026 provisional). The explorer builds its Academic Year selector
+ * from whatever /cutoffs/meta reports as present in the data, so a range
+ * pinned tight to today would reject a freshly-loaded cycle the UI is already
+ * offering — turning "load next year's data" into "load it AND bump a
+ * constant, or the year selector 400s". Two years forward gives the ETL room
+ * to land a cycle before the constant moves; five back keeps old shared links
+ * working. Eight values instead of 101 is the point, not a hard boundary.
  */
 const yearParam = singleValued('year').pipe(
-  z.coerce.number().int().min(2000).max(2100).optional(),
+  z.coerce
+    .number()
+    .int()
+    .min(ACTIVE_CUTOFF_YEAR - 5)
+    .max(ACTIVE_CUTOFF_YEAR + 2)
+    .optional(),
 );
 
 /**

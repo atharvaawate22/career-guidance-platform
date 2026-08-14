@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PredictorForm from "@/components/PredictorForm";
 import { BOOKINGS_ENABLED } from "@/lib/features";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 
 /**
  * Server component shell for the predictor: the page header, methodology
@@ -11,7 +12,7 @@ import { BOOKINGS_ENABLED } from "@/lib/features";
 const PREDICTOR_FAQ: { q: string; a: string }[] = [
   {
     q: "How does the MHT CET college predictor work?",
-    a: "Enter your MHT-CET percentile or CAP rank, category, and gender. The predictor compares your effective rank against 90,000+ official 2025 CAP Round I closing cutoffs and sorts eligible colleges into Safe (comfortably within cutoff), Target (realistic), and Dream (competitive but possible) tiers.",
+    a: `Enter your MHT-CET percentile or CAP rank, category, and gender. The predictor compares your effective rank against 90,000+ official ${CUTOFF_YEAR} CAP Round I closing cutoffs and sorts eligible colleges into Safe (comfortably within cutoff), Target (realistic), and Dream (competitive but possible) tiers.`,
   },
   {
     q: "Is the CET Hub college predictor free?",
@@ -21,11 +22,11 @@ const PREDICTOR_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Should I enter my percentile or my rank?",
-    a: "Rank is more accurate. If you enter a percentile, the predictor estimates your rank from official 2025 percentile-to-rank data; once your official CET rank is published, use that instead.",
+    a: `Rank is more accurate. If you enter a percentile, the predictor estimates your rank from official ${CUTOFF_YEAR} percentile-to-rank data; once your official CET rank is published, use that instead.`,
   },
   {
     q: "Can the predictor guarantee my admission?",
-    a: "No predictor can. Cutoffs shift every year with exam difficulty, applicant numbers, and seat-matrix changes. Predictions are data-driven estimates based on 2025 CAP Round I cutoffs — use them to build a smart option list, not as a guarantee.",
+    a: `No predictor can. Cutoffs shift every year with exam difficulty, applicant numbers, and seat-matrix changes. Predictions are data-driven estimates based on ${CUTOFF_YEAR} CAP Round I cutoffs — use them to build a smart option list, not as a guarantee.`,
   },
   {
     q: "Does it account for category, gender, and minority seats?",
@@ -52,7 +53,7 @@ const HOW_IT_WORKS: { title: string; body: string }[] = [
   },
   {
     title: "Get tiered results",
-    body: "Colleges are classified as Safe, Target, or Dream by comparing your rank against official 2025 closing cutoffs.",
+    body: `Colleges are classified as Safe, Target, or Dream by comparing your rank against official ${CUTOFF_YEAR} closing cutoffs.`,
   },
 ];
 
@@ -73,12 +74,12 @@ export default function PredictorPage() {
 
         {/* Page header (server-rendered) */}
         <div className="mb-8">
-          <p className="section-label mb-2">MHT-CET 2025</p>
+          <p className="section-label mb-2">MHT-CET {CUTOFF_YEAR}</p>
           <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}>
             College Predictor
           </h1>
           <p className="text-sm" style={{ color: "var(--slate-500)" }}>
-            Based on 2025 CAP Round I cutoffs. Enter your percentile or rank to see eligible colleges.
+            Based on {CUTOFF_YEAR} CAP Round I cutoffs. Enter your percentile or rank to see eligible colleges.
             Results are indicative, not guaranteed.
           </p>
         </div>
@@ -96,7 +97,7 @@ export default function PredictorPage() {
             </h2>
             <p className="text-sm max-w-3xl" style={{ color: "var(--slate-500)" }}>
               Every prediction is computed against 90,000+ official DTE Maharashtra CAP cutoff
-              records from 2025 — not surveys or self-reported data. Explore the underlying numbers
+              records from {CUTOFF_YEAR} — not surveys or self-reported data. Explore the underlying numbers
               in the <Link href="/cutoffs" style={{ color: "var(--primary-600)", textDecoration: "underline" }}>cutoff explorer</Link>.
             </p>
           </div>
@@ -131,7 +132,7 @@ export default function PredictorPage() {
               competitive round, so it&apos;s also the most conservative baseline for a
               prediction: if you&apos;re eligible for a college on Round I cutoffs, you&apos;re
               very likely still eligible in later rounds. That&apos;s why this predictor is built
-              on 2025 CAP Round I closing data — the safest starting point for shortlisting
+              on {CUTOFF_YEAR} CAP Round I closing data — the safest starting point for shortlisting
               colleges before the current year&apos;s counselling begins.
             </p>
           </div>

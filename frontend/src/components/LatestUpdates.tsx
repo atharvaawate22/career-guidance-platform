@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet } from "@/lib/api";
 import ScrollReveal from "@/components/ScrollReveal";
 
 interface Update {
@@ -32,7 +32,7 @@ export default function LatestUpdates() {
     let active = true;
     (async () => {
       try {
-        const r = await fetch(`${API_BASE_URL}/api/v1/updates`);
+        const r = await publicGet("updates");
         if (!r.ok) throw new Error();
         const d = await r.json();
         if (!active) return;

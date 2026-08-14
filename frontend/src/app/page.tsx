@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
+import { useRef } from "react";
 import FaqSection from "@/components/FaqSection";
 import LatestUpdates from "@/components/LatestUpdates";
 import Testimonials from "@/components/Testimonials";
 import QuickPredict from "@/components/QuickPredict";
 import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
 import { BOOKINGS_ENABLED } from "@/lib/features";
 
 /* ── Feature cards data ──────────────────────────────────────────── */
@@ -115,7 +115,7 @@ const steps = [
   {
     n: 2,
     title: "Explore predictions",
-    desc: "Instantly see Safe, Target, and Dream college options — powered by 90,000+ actual 2025 CAP cutoff records.",
+    desc: `Instantly see Safe, Target, and Dream college options — powered by 90,000+ actual ${CUTOFF_YEAR} CAP cutoff records.`,
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -225,28 +225,16 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
 
 /* ── Homepage ────────────────────────────────────────────────────── */
 export default function Home() {
-  const [backendStatus, setBackendStatus] = useState<"loading" | "connected" | "disconnected">("loading");
-
-  useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
-    const check = () => {
-      fetch(`${API_BASE_URL}/api/v1/health`)
-        .then(r => (r.ok ? r.json() : Promise.reject()))
-        .then((d: { status: string }) => {
-          if (!active) return;
-          if (d.status === "ok") setBackendStatus("connected");
-          else { setBackendStatus("disconnected"); timer = setTimeout(check, 5000); }
-        })
-        .catch(() => {
-          // The free-tier backend may be cold-starting — keep retrying so the
-          // pill recovers to "connected" instead of showing a scary error.
-          if (active) { setBackendStatus("disconnected"); timer = setTimeout(check, 5000); }
-        });
-    };
-    check();
-    return () => { active = false; clearTimeout(timer); };
-  }, []);
+  // The status pill used to poll /api/v1/health on mount, retrying every 5s
+  // until it succeeded. That endpoint runs SELECT 1 plus a Redis PING, is
+  // deliberately uncacheable, and carries no rate limiter — so the highest
+  // traffic page on the site spent one uncached origin request, one DB round
+  // trip and one Redis round trip per pageview, on a free-tier instance whose
+  // entire caching architecture exists to avoid exactly that. It also inverted
+  // its own purpose: the pill only turned green after the cold start it had
+  // just triggered finished, so a first-time visitor watched a trust signal
+  // say "Connecting…" for 30 seconds. The data year is known at build time,
+  // so the pill is now static.
 
   return (
     <div style={{ background: "var(--bg-primary)" }}>
@@ -311,11 +299,11 @@ export default function Home() {
                 <span
                   className="w-2 h-2 rounded-full inline-block"
                   style={{
-                    background: backendStatus === "connected" ? "#22C55E" : "#F59E0B",
-                    boxShadow: backendStatus === "connected" ? "0 0 8px rgba(34,197,94,0.5)" : "none",
+                    background: "#22C55E",
+                    boxShadow: "0 0 8px rgba(34,197,94,0.5)",
                   }}
                 />
-                {backendStatus === "connected" ? "Platform Live · 2025 Data Ready" : backendStatus === "loading" ? "Connecting…" : "Reconnecting…"}
+                Platform Live · {CUTOFF_YEAR} Data Ready
               </div>
 
               {/* Heading */}
@@ -339,7 +327,7 @@ export default function Home() {
               </h1>
 
               <p className="text-lg leading-relaxed mb-10 max-w-lg" style={{ color: "var(--slate-300)" }}>
-                Data-driven college predictions, real 2025 CAP cutoffs, and expert one-on-one guidance —
+                Data-driven college predictions, real {CUTOFF_YEAR} CAP cutoffs, and expert one-on-one guidance —
                 everything you need for Maharashtra engineering admissions.
               </p>
 
@@ -425,7 +413,7 @@ export default function Home() {
               ))}
             </div>
             <p className="text-center text-xs mt-6" style={{ color: "var(--slate-500)" }}>
-              Powered by official 2025 Maharashtra CAP data
+              Powered by official {CUTOFF_YEAR} Maharashtra CAP data
             </p>
           </ScrollReveal>
         </div>
@@ -547,7 +535,7 @@ export default function Home() {
               Ready to find your college?
             </h2>
             <p className="text-base mb-10 max-w-xl mx-auto" style={{ color: "var(--slate-300)" }}>
-              Make a confident, data-driven choice with real 2025 CAP cutoffs,
+              Make a confident, data-driven choice with real {CUTOFF_YEAR} CAP cutoffs,
               college predictions, and free expert guidance.
             </p>
             <div className="flex flex-wrap justify-center gap-4">

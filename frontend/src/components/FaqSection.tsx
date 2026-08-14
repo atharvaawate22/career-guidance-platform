@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet } from "@/lib/api";
 import ScrollReveal from "@/components/ScrollReveal";
 
 interface Faq { id: string; question: string; answer: string; display_order: number; }
@@ -16,7 +16,10 @@ export default function FaqSection() {
     const fetch_ = async () => {
       try {
         setIsLoading(true); setLoadError("");
-        const r = await fetch(`${API_BASE_URL}/api/v1/faqs`, { cache: "no-store" });
+        // No `cache: "no-store"` any more: cache lifetime is the backend's
+        // decision (referenceCache on /faqs) and the proxy passes it through.
+        // Opting out here defeated the edge cache this call now routes through.
+        const r = await publicGet("faqs");
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
         if (d.success && Array.isArray(d.data)) {

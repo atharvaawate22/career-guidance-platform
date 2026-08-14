@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
@@ -23,18 +24,18 @@ export const metadata: Metadata = {
     template: "%s | CET Hub",
   },
   description: BOOKINGS_ENABLED
-    ? "All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank, explore 90,000+ 2025 CAP cutoff records across 300+ colleges, and book free expert counseling for Maharashtra engineering admissions."
-    : "All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank and explore 90,000+ 2025 CAP cutoff records across 300+ colleges for Maharashtra engineering admissions.",
+    ? `All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank, explore 90,000+ ${CUTOFF_YEAR} CAP cutoff records across 300+ colleges, and book free expert counseling for Maharashtra engineering admissions.`
+    : `All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank and explore 90,000+ ${CUTOFF_YEAR} CAP cutoff records across 300+ colleges for Maharashtra engineering admissions.`,
   keywords: [
     "MHT-CET",
     "MHT CET",
     "MHT CET PCM",
-    "MHT-CET 2025",
+    `MHT-CET ${CUTOFF_YEAR}`,
     "MHT CET 2026",
     "MHT CET college predictor",
     "college predictor",
     "MHT CET cutoff",
-    "MHT CET cutoffs 2025",
+    `MHT CET cutoffs ${CUTOFF_YEAR}`,
     "MHT CET percentile predictor",
     "engineering college predictor Maharashtra",
     "CAP round cutoff",
@@ -57,13 +58,13 @@ export const metadata: Metadata = {
     locale: "en_IN",
     title: "CET Hub — MHT-CET College Predictor, Cutoffs & Guidance",
     description:
-      "Predict colleges, explore 90,000+ 2025 cutoff records, and get free expert guidance for MHT-CET engineering admissions in Maharashtra.",
+      `Predict colleges, explore 90,000+ ${CUTOFF_YEAR} cutoff records, and get free expert guidance for MHT-CET engineering admissions in Maharashtra.`,
   },
   twitter: {
     card: "summary_large_image",
     title: "CET Hub — MHT-CET College Predictor & Cutoffs",
     description:
-      "Predict colleges and explore MHT-CET 2025 cutoffs for Maharashtra engineering admissions.",
+      `Predict colleges and explore MHT-CET ${CUTOFF_YEAR} cutoffs for Maharashtra engineering admissions.`,
   },
   robots: {
     index: true,

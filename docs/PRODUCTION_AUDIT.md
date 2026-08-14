@@ -179,7 +179,8 @@
 - Vercel environment variables: documented. `NEXT_PUBLIC_API_BASE_URL` is listed at `docs/deployment.md:44-46` and Vercel setup at `docs/deployment.md:121-129`.
 - Backend process manager config: no repo `ecosystem.config.js` or equivalent found. PM2 commands are documented at `docs/deployment.md:92-117`.
 - Docker setup: no root/backend/frontend `Dockerfile` or `docker-compose.yml` found; only a dependency Dockerfile under `backend/node_modules/bcrypt`, which is not project config.
-- README release checklist is useful but incomplete. It lists lint/typecheck/test/build and smoke tests at `README.md:281-296`, but omits DB migration dry-run, backup/snapshot, `npm run check:city-normalization`, readiness endpoint, and rollback checks that are present in `docs/deployment.md:59-85` and `docs/deployment.md:142-164`.
+- README release checklist is useful but incomplete. It lists lint/typecheck/test/build and smoke tests at `README.md:281-296`, but omits DB migration dry-run, backup/snapshot, readiness endpoint, and rollback checks that are present in `docs/deployment.md:59-85` and `docs/deployment.md:142-164`.
+  - **Correction:** an earlier version of this line also listed `npm run check:city-normalization`. That script does not exist in `backend/package.json` and never had a CI step — see the stale-claim note at the top of `EXECUTION_CLOSURE_REPORT_2026-03-30.md` and the note in `deployment.md`. Removed here so the three documents agree.
 
 ## What is already good
 

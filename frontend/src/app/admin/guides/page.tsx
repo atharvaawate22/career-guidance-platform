@@ -11,7 +11,7 @@ import type { Guide, GuideDownload } from "@/components/admin/types";
 import { format, parseISO } from "date-fns";
 
 export default function AdminGuidesPage() {
-  const { adminFetch, adminWriteFetch, handleSessionExpired, API_BASE_URL, csrfToken } = useAdmin();
+  const { adminFetch, adminWriteFetch, uploadFile, handleSessionExpired, API_BASE_URL } = useAdmin();
   const { toast } = useToast();
 
   const [guides, setGuides] = useState<Guide[]>([]);
@@ -51,29 +51,11 @@ export default function AdminGuidesPage() {
 
   useEffect(() => { void fetchData(); }, [fetchData]);
 
-  const uploadFile = async (f: File): Promise<string> => {
-    const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
-    if (!["pdf", "doc", "docx"].includes(ext)) throw new Error("Only PDF/Word files allowed");
-    if (f.size > 20 * 1024 * 1024) throw new Error("Max 20MB");
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const headers = new Headers({
-      "Content-Type": f.type || "application/octet-stream",
-      "x-file-content-type": f.type || "application/octet-stream",
-    });
-    if (csrfToken) headers.set("x-csrf-token", csrfToken);
-    const res = await fetch(`${API_BASE_URL}/api/v1/admin/upload?bucket=guides&filename=${encodeURIComponent(filename)}`, {
-      method: "POST", headers, body: f, credentials: "include",
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error?.message || "Upload failed");
-    return data.data.url;
-  };
-
   const handleSave = async () => {
     if (!title.trim() || !file) return;
     setSaving(true);
     try {
-      const fileUrl = await uploadFile(file);
+      const fileUrl = await uploadFile("guides", file);
       const res = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/guides`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

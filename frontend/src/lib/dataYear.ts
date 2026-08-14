@@ -98,6 +98,7 @@ export function roundSelectOptions(
   ];
 }
 
+
 /**
  * The admission cycle the evergreen /mht-cet-cap-2026-schedule page covers.
  * The year is baked into that URL by design (a new cycle gets a new URL, per

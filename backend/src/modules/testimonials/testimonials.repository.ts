@@ -2,17 +2,31 @@ import { query } from '../../config/database';
 import { Testimonial, TestimonialWithEmail, CreateTestimonialRequest, UpdateTestimonialRequest } from './testimonials.types';
 
 // Public list — deliberately never selects `email`, so it can't leak even
-// if a future refactor forgets to strip it before responding.
+// if a future refactor forgets to strip it before responding. The status
+// filter is the publish gate (migration 026): reviews are visible only once
+// an admin approves them.
 export async function getPublicTestimonials(): Promise<Testimonial[]> {
   const result = await query(
-    'SELECT id, name, rating, review_text, created_at FROM testimonials ORDER BY created_at DESC LIMIT 100',
+    `SELECT id, name, rating, review_text, created_at
+     FROM testimonials
+     WHERE status = 'approved'
+     ORDER BY created_at DESC
+     LIMIT 100`,
+    undefined,
+    { name: 'testimonials.getPublic' },
   );
   return result.rows;
 }
 
+// Admin list — every row regardless of status, pending first so the
+// moderation queue is what the admin sees at the top.
 export async function getAllTestimonials(): Promise<TestimonialWithEmail[]> {
   const result = await query(
-    'SELECT id, name, email, rating, review_text, created_at FROM testimonials ORDER BY created_at DESC',
+    `SELECT id, name, email, rating, review_text, status, created_at
+     FROM testimonials
+     ORDER BY (status = 'pending') DESC, created_at DESC`,
+    undefined,
+    { name: 'testimonials.getAll' },
   );
   return result.rows;
 }
@@ -38,6 +52,7 @@ export async function updateTestimonial(
   if (updates.name !== undefined) { fields.push(`name = $${i++}`); values.push(updates.name); }
   if (updates.rating !== undefined) { fields.push(`rating = $${i++}`); values.push(updates.rating); }
   if (updates.review_text !== undefined) { fields.push(`review_text = $${i++}`); values.push(updates.review_text); }
+  if (updates.status !== undefined) { fields.push(`status = $${i++}`); values.push(updates.status); }
 
   if (fields.length === 0) {
     const result = await query(

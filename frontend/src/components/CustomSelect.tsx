@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useId, useCallback } from "react";
+import { useDismissable } from "@/hooks/useDismissable";
 
 export interface SelectOption {
   value: string;
@@ -29,6 +30,7 @@ export default function CustomSelect({
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const generatedId = useId();
   const buttonId = id ?? generatedId;
   const py = inputSize === "sm" ? "py-2 px-3" : "py-2.5 px-3.5";
@@ -56,19 +58,8 @@ export default function CustomSelect({
     setActiveIndex(selected >= 0 ? selected : nearestSelectable(0, 1));
   }, [computeDir, options, value, nearestSelectable]);
 
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
-  }, []);
+  const close = useCallback(() => setOpen(false), []);
+  useDismissable(open, containerRef, close);
 
   // Keep the active option scrolled into view as the user navigates.
   useEffect(() => {
@@ -110,6 +101,7 @@ export default function CustomSelect({
   return (
     <div ref={containerRef} className={`relative ${w}`}>
       <button
+        ref={buttonRef}
         type="button" id={buttonId} aria-haspopup="listbox" aria-expanded={open}
         aria-activedescendant={open && activeIndex >= 0 ? `${buttonId}-opt-${activeIndex}` : undefined}
         onClick={() => { if (open) setOpen(false); else openMenu(); }}
@@ -138,11 +130,8 @@ export default function CustomSelect({
             if (opt.heading) {
               return (
                 <div key={opt.value} aria-hidden="true"
-                  className="px-3.5 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-widest select-none"
-                  style={{
-                    color: "var(--slate-500)",
-                    borderTop: idx > 0 ? "1px solid var(--slate-100)" : "none",
-                  }}>
+                  className="listbox-heading"
+                  style={{ borderTop: idx > 0 ? "1px solid var(--slate-100)" : "none" }}>
                   {opt.label}
                 </div>
               );
@@ -150,15 +139,11 @@ export default function CustomSelect({
             const isSel = opt.value === value;
             const isActive = idx === activeIndex;
             return (
-              <div key={opt.value} id={`${buttonId}-opt-${idx}`} role="option" aria-selected={isSel} data-selected={isSel}
+              <div key={opt.value} id={`${buttonId}-opt-${idx}`} role="option" aria-selected={isSel}
+                data-selected={isSel} data-active={isActive}
                 onClick={() => { onChange(opt.value); setOpen(false); }}
                 onMouseEnter={() => setActiveIndex(idx)}
-                className="px-3.5 py-2.5 cursor-pointer text-sm transition-colors"
-                style={{
-                  background: isSel ? "var(--primary-50)" : isActive ? "var(--slate-50)" : "transparent",
-                  color: isSel ? "var(--primary-700)" : "var(--slate-900)",
-                  fontWeight: isSel ? 600 : 400,
-                }}>
+                className="listbox-option">
                 {opt.label}
               </div>
             );
@@ -167,8 +152,22 @@ export default function CustomSelect({
       )}
 
       {required && (
-        <input tabIndex={-1} required value={value} onChange={() => {}}
-          className="absolute inset-0 opacity-0 pointer-events-none" aria-hidden="true" />
+        // Mirror input so the browser's native form validation still applies to
+        // this custom control. It must stay focusable — Chrome refuses to
+        // submit and logs "An invalid form control is not focusable" if
+        // validation cannot focus the offending field — so onFocus bounces
+        // straight to the real button, which is what the user can actually
+        // operate. (Previously this carried pointer-events-none, leaving the
+        // form silently unsubmittable when the field was empty.)
+        <input
+          tabIndex={-1}
+          required
+          value={value}
+          onChange={() => {}}
+          onFocus={() => buttonRef.current?.focus()}
+          aria-hidden="true"
+          className="absolute left-0 bottom-0 h-px w-px opacity-0"
+        />
       )}
     </div>
   );

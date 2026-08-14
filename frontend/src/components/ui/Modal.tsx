@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useCallback, useState, type ReactNode } from "react";
+import { useEffect, useCallback, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useFocusOnOpen, useFocusTrap } from "@/hooks/useFocusManagement";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -35,6 +36,12 @@ export default function Modal({
 }: ModalProps) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Genuinely modal — backdrop plus body-scroll lock — so confining Tab here
+  // is correct, unlike the non-modal chat panel. See useFocusManagement.
+  useFocusOnOpen(isOpen, dialogRef);
+  useFocusTrap(isOpen, dialogRef);
 
   useEffect(() => setMounted(true), []);
 
@@ -77,6 +84,7 @@ export default function Modal({
 
       {/* Dialog */}
       <div
+        ref={dialogRef}
         className={`relative w-full ${sizeClasses[size]} bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl transition-all duration-250 ${
           isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"
         }`}

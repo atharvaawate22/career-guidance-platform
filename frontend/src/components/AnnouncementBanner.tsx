@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet } from "@/lib/api";
 
 interface AnnouncementConfig {
   enabled: boolean;
@@ -21,7 +21,7 @@ export default function AnnouncementBanner() {
   const pathname = usePathname();
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/settings/announcement`)
+    publicGet("announcement")
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data) {

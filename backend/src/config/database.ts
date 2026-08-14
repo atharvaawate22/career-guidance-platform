@@ -1,5 +1,15 @@
-import { Pool, QueryResult } from 'pg';
+import { Pool, QueryResult, types } from 'pg';
 import logger from '../utils/logger';
+
+// node-pg's default DATE (OID 1082) parser builds `new Date(year, month, day)`
+// from the local process timezone, then JSON serialization renders it as a
+// UTC instant — so a stored '2026-09-15' round-trips as
+// "2026-09-14T18:30:00.000Z" on an IST host but stays "2026-09-15T00:00:00.000Z"
+// on a UTC host. Every DATE column in this schema (today: cap_schedule, which
+// the chatbot renders straight into a reply) is already treated as a plain
+// 'YYYY-MM-DD' string throughout the app (types, zod schemas, JSON responses),
+// so disable the Date conversion and return the raw string Postgres sends.
+types.setTypeParser(types.builtins.DATE, (value: string) => value);
 
 interface QueryOptions {
   /**

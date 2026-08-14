@@ -13,7 +13,7 @@ import { format, parseISO } from "date-fns";
 const CATEGORIES = ["general", "admission", "exam", "placement", "scholarship"];
 
 export default function AdminResourcesPage() {
-  const { adminFetch, adminWriteFetch, handleSessionExpired, API_BASE_URL, csrfToken } = useAdmin();
+  const { adminFetch, adminWriteFetch, uploadFile, handleSessionExpired, API_BASE_URL } = useAdmin();
   const { toast } = useToast();
 
   const [resources, setResources] = useState<Resource[]>([]);
@@ -48,25 +48,12 @@ export default function AdminResourcesPage() {
 
   useEffect(() => { void fetchResources(); }, [fetchResources]);
 
-  const uploadFile = async (f: File): Promise<string> => {
-    const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
-    if (!["pdf", "doc", "docx"].includes(ext)) throw new Error("Only PDF/Word");
-    if (f.size > 20 * 1024 * 1024) throw new Error("Max 20MB");
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const headers = new Headers({ "Content-Type": f.type || "application/octet-stream", "x-file-content-type": f.type || "application/octet-stream" });
-    if (csrfToken) headers.set("x-csrf-token", csrfToken);
-    const res = await fetch(`${API_BASE_URL}/api/v1/admin/upload?bucket=resources&filename=${encodeURIComponent(filename)}`, { method: "POST", headers, body: f, credentials: "include" });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error?.message || "Upload failed");
-    return data.data.url;
-  };
-
   const handleSave = async () => {
     if (!title.trim()) return;
     setSaving(true);
     try {
       let fileUrl = editTarget?.file_url || "";
-      if (file) fileUrl = await uploadFile(file);
+      if (file) fileUrl = await uploadFile("resources", file);
       else if (!editTarget) { toast({ title: "Please select a file", type: "warning" }); setSaving(false); return; }
 
       const url = editTarget ? `${API_BASE_URL}/api/v1/admin/resources/${editTarget.id}` : `${API_BASE_URL}/api/v1/admin/resources`;

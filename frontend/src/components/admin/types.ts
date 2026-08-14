@@ -62,12 +62,16 @@ export interface GuideDownload {
   guide_title: string;
 }
 
+export type TestimonialStatus = "pending" | "approved" | "rejected";
+
 export interface Testimonial {
   id: string;
   name: string;
   email: string;
   rating: number;
   review_text: string;
+  /** Moderation state — only `approved` reviews appear on the public site. */
+  status: TestimonialStatus;
   created_at: string;
 }
 

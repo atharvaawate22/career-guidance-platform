@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useCallback, useState, type ReactNode } from "react";
+import { useEffect, useCallback, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useFocusOnOpen, useFocusTrap } from "@/hooks/useFocusManagement";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -34,6 +35,11 @@ export default function SlideOver({
 }: SlideOverProps) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Modal by construction (backdrop + scroll lock), so Tab is confined here.
+  useFocusOnOpen(isOpen, panelRef);
+  useFocusTrap(isOpen, panelRef);
 
   useEffect(() => setMounted(true), []);
 
@@ -77,6 +83,7 @@ export default function SlideOver({
       {/* Panel */}
       <div className={`absolute top-0 right-0 h-full w-full ${sizeClasses[size]} flex`}>
         <div
+          ref={panelRef}
           className={`ml-auto h-full w-full bg-slate-900 border-l border-slate-700/50 shadow-2xl flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isOpen ? "translate-x-0" : "translate-x-full"}`}
         >
           {/* Header */}

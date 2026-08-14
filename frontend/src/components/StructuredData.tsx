@@ -1,4 +1,5 @@
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 
 /**
  * Global structured data (JSON-LD), rendered once in the root layout so it is
@@ -28,7 +29,7 @@ export default function StructuredData() {
         url: SITE_URL,
         name: SITE_NAME,
         description:
-          "MHT-CET college predictor, 2025 cutoff explorer, and admission guidance for Maharashtra engineering CAP rounds.",
+          `MHT-CET college predictor, ${CUTOFF_YEAR} cutoff explorer, and admission guidance for Maharashtra engineering CAP rounds.`,
         publisher: { "@id": `${SITE_URL}/#organization` },
         inLanguage: "en-IN",
       },
@@ -42,7 +43,7 @@ export default function StructuredData() {
         browserRequirements: "Requires a modern web browser with JavaScript.",
         offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
         description:
-          "Free MHT-CET college predictor — enter your percentile or CAP rank to see Safe, Target, and Dream engineering colleges across Maharashtra, based on 90,000+ official 2025 CAP cutoff records.",
+          `Free MHT-CET college predictor — enter your percentile or CAP rank to see Safe, Target, and Dream engineering colleges across Maharashtra, based on 90,000+ official ${CUTOFF_YEAR} CAP cutoff records.`,
         provider: { "@id": `${SITE_URL}/#organization` },
         inLanguage: "en-IN",
       },

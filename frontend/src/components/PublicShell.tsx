@@ -1,10 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-import ChatWidget from "@/components/ChatWidget";
+
+// Statically imported, the whole widget shipped in the shared client bundle to
+// every visitor — including the large majority who never open it. It renders
+// nothing above the fold and has no SEO value, so it loads on the client only,
+// after the page is interactive.
+const ChatWidget = dynamic(() => import("@/components/ChatWidget"), {
+  ssr: false,
+});
 
 export default function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

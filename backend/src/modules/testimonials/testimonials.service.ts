@@ -12,6 +12,13 @@ import {
 
 interface CreateTestimonialResult {
   success: boolean;
+  /**
+   * True when the review was accepted but is awaiting moderation, so the
+   * client can say "thanks, it'll appear once reviewed" rather than implying
+   * it is already live and leaving the submitter to wonder why they can't see
+   * it. Always true for a real submission since migration 026.
+   */
+  pending?: boolean;
   data?: Testimonial;
   error?: { code: string; message: string };
 }
@@ -32,6 +39,7 @@ export async function createTestimonial(
   if (input.website) {
     return {
       success: true,
+      pending: true,
       data: {
         id: 'honeypot',
         name: input.name,
@@ -62,11 +70,13 @@ export async function createTestimonial(
     review_text: reviewText,
   });
 
+  // The alert matters more now than it did when reviews auto-published: it is
+  // the only notification that something is sitting in the moderation queue.
   sendAdminTestimonialAlert(testimonial, input.email).catch((err) =>
     logger.error('Admin testimonial alert failed', err),
   );
 
-  return { success: true, data: testimonial };
+  return { success: true, pending: true, data: testimonial };
 }
 
 export async function updateTestimonial(
@@ -107,8 +117,10 @@ async function sendAdminTestimonialAlert(
 
   const stars = '★'.repeat(testimonial.rating) + '☆'.repeat(5 - testimonial.rating);
 
+  const adminUrl = process.env.ADMIN_TESTIMONIALS_URL || '';
+
   const text = `
-New testimonial submitted!
+New testimonial awaiting review.
 
 Name: ${testimonial.name}
 Email: ${submitterEmail}
@@ -116,6 +128,8 @@ Rating: ${stars} (${testimonial.rating}/5)
 
 Review:
 ${testimonial.review_text}
+
+It is NOT public yet — approve or reject it in the admin panel${adminUrl ? `: ${adminUrl}` : ' (Testimonials).'}
   `.trim();
 
   const html = `
@@ -131,11 +145,12 @@ ${testimonial.review_text}
     .detail-row { margin: 8px 0; }
     .label { font-weight: bold; color: #4F46E5; }
     .review { background: white; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #4F46E5; }
+    .pending { background: #FEF3C7; border: 1px solid #FDE68A; color: #92400E; padding: 12px 16px; border-radius: 8px; font-size: 14px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header"><h2>⭐ New Testimonial</h2></div>
+    <div class="header"><h2>⭐ New Testimonial — awaiting review</h2></div>
     <div class="content">
       <div class="details">
         <div class="detail-row"><span class="label">Name:</span> ${testimonial.name}</div>
@@ -143,6 +158,11 @@ ${testimonial.review_text}
         <div class="detail-row"><span class="label">Rating:</span> ${stars} (${testimonial.rating}/5)</div>
       </div>
       <div class="review">${testimonial.review_text}</div>
+      <p class="pending">
+        This review is <strong>not public yet</strong>. Approve or reject it in the admin panel${
+          adminUrl ? ` — <a href="${adminUrl}">open Testimonials</a>` : ' under Testimonials'
+        }.
+      </p>
     </div>
   </div>
 </body>

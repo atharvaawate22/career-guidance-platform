@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect } from "react";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { useAdminSession } from "@/hooks/useAdminSession";
 
 /* ─── SVG Icon Components ─────────────────────────────────────────── */
 function IconHome() {
@@ -122,7 +123,7 @@ const navItems: NavItem[] = [
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const isAdmin = useAdminSession();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -148,19 +149,8 @@ export default function Sidebar() {
     window.dispatchEvent(new CustomEvent("sidebarToggle", { detail: { collapsed: isCollapsed, offset: applied, visible } }));
   }, [isCollapsed, isAdmin, pathname]);
 
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const r = await fetch(`${API_BASE_URL}/api/v1/admin/session`, { credentials: "include" });
-        if (!r.ok) { setIsAdmin(false); return; }
-        const d = await r.json();
-        setIsAdmin(d.success && d.data?.authenticated === true);
-      } catch { setIsAdmin(false); }
-    };
-    void check();
-    window.addEventListener("adminAuthChange", check);
-    return () => window.removeEventListener("adminAuthChange", check);
-  }, []);
+  // Admin session — shared with Navbar via useAdminSession, which skips the
+  // network entirely for visitors who have never signed in.
 
   if (pathname === "/admin" && !isAdmin) {
     return null;
@@ -280,7 +270,7 @@ export default function Sidebar() {
         {!isCollapsed && (
           <div className="px-4 py-3 text-xs" style={{ borderTop: "1px solid var(--navy-border)", color: "var(--slate-light)" }}>
             <p className="font-semibold" style={{ color: "var(--white)" }}>© 2026 CETHub</p>
-            <p className="mt-0.5">v1.0.0 · Data: 2025 CAP</p>
+            <p className="mt-0.5">v1.0.0 · Data: {CUTOFF_YEAR} CAP</p>
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
               <Link href="/privacy" style={{ color: "var(--slate-light)" }}>
                 Privacy Policy

@@ -1,7 +1,41 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { publicPost } from "@/lib/api";
+import { useFocusOnOpen } from "@/hooks/useFocusManagement";
+
+/**
+ * Public routes Avani points people at. Rendering them as plain text meant a
+ * reply like "Use the College Predictor at /predictor" ended in a dead end —
+ * the student had to read the path and navigate by hand. Only this fixed set is
+ * linkified, so nothing a model or an admin-authored FAQ emits can turn into an
+ * arbitrary outbound link.
+ */
+const LINKABLE_ROUTES = /(\/(?:cutoffs|predictor|updates|guides|resources|book))\b/g;
+const isLinkableRoute = (part: string) =>
+  /^\/(?:cutoffs|predictor|updates|guides|resources|book)$/.test(part);
+
+function renderMessageText(text: string, onNavigate: () => void) {
+  // split() with a capturing group keeps the delimiters, so the route tokens
+  // come back as their own array entries and surrounding whitespace (which
+  // whitespace-pre-line renders) is preserved exactly.
+  return text.split(LINKABLE_ROUTES).map((part, i) =>
+    isLinkableRoute(part) ? (
+      <Link
+        key={i}
+        href={part}
+        onClick={onNavigate}
+        className="underline underline-offset-2 font-medium"
+        style={{ color: "var(--primary-600)" }}
+      >
+        {part}
+      </Link>
+    ) : (
+      part
+    ),
+  );
+}
 
 interface QuickReply {
   value: string;
@@ -78,10 +112,9 @@ async function sendChatMessage(
   message: string,
   sessionId?: string,
 ): Promise<{ text: string; quickReplies?: QuickReply[] }> {
-  const r = await fetch(`${API_BASE_URL}/api/v1/chatbot/message`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, ...(sessionId ? { sessionId } : {}) }),
+  const r = await publicPost("/api/v1/chatbot/message", {
+    message,
+    ...(sessionId ? { sessionId } : {}),
   });
   const d = await r.json();
   if (!d.success) throw new Error(d.error?.message || "Chat request failed");
@@ -102,6 +135,16 @@ export default function ChatWidget() {
   const [neverEngaged, setNeverEngaged] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Move focus into the message input when the panel opens and hand it back to
+  // the launcher on close. Deliberately NOT a focus trap: the panel is
+  // non-modal (no backdrop, page stays usable), so confining Tab to it would
+  // strand a keyboard user inside a widget they can otherwise ignore. That is
+  // also why there is no aria-modal here — claiming it would tell screen
+  // readers the rest of the page is inert, which is false.
+  useFocusOnOpen(open, panelRef, inputRef);
 
   useEffect(() => {
     let alreadySeen = false;
@@ -148,6 +191,19 @@ export default function ChatWidget() {
     setOpen((v) => !v);
   };
 
+  const closePanel = useCallback(() => setOpen(false), []);
+
+  // Escape closes the panel, matching every other dismissible surface on the
+  // site (Modal, SlideOver, the select popups).
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closePanel();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, closePanel]);
+
   useEffect(() => {
     if (open && !startedRef.current) {
       startedRef.current = true;
@@ -188,14 +244,13 @@ export default function ChatWidget() {
     <>
       {showTeaser && !open && (
         <div className="fixed bottom-24 right-5 z-50 max-w-[260px] animate-fade-up">
+          {/* The card itself is a plain container. The open and dismiss
+              actions are SIBLING <button>s, not nested — this used to be a
+              role="button" div wrapping a real <button>, which is invalid
+              (interactive content inside an interactive element) and leaves
+              assistive tech to guess which control it is looking at. */}
           <div
-            role="button"
-            tabIndex={0}
-            onClick={openFromTeaser}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") openFromTeaser();
-            }}
-            className="relative overflow-hidden rounded-2xl rounded-br-sm px-4 py-3.5 pr-7 text-sm leading-relaxed cursor-pointer"
+            className="relative overflow-hidden rounded-2xl rounded-br-sm"
             style={{
               background: "var(--bg-primary)",
               border: "1px solid var(--slate-200)",
@@ -211,23 +266,27 @@ export default function ChatWidget() {
               style={{ background: "radial-gradient(circle, var(--accent-300), transparent 70%)", opacity: 0.35 }}
             />
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                dismissTeaser();
-              }}
-              aria-label="Dismiss"
+              type="button"
+              onClick={openFromTeaser}
+              className="relative block w-full text-left px-4 py-3.5 pr-7 text-sm leading-relaxed cursor-pointer"
+            >
+              <span className="flex items-center gap-2 mb-1.5">
+                <Avatar size={22} />
+                <span className="text-xs font-semibold tracking-wide" style={{ fontFamily: "var(--font-display)", color: "var(--primary-700)" }}>
+                  Avani
+                </span>
+              </span>
+              <span>Hello, I&apos;m Avani. How can I help with your MHT-CET admission questions?</span>
+            </button>
+            <button
+              type="button"
+              onClick={dismissTeaser}
+              aria-label="Dismiss Avani's message"
               className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full transition-colors z-10"
               style={{ color: "var(--slate-400)" }}
             >
               <IconClose size={12} />
             </button>
-            <div className="relative flex items-center gap-2 mb-1.5">
-              <Avatar size={22} />
-              <span className="text-xs font-semibold tracking-wide" style={{ fontFamily: "var(--font-display)", color: "var(--primary-700)" }}>
-                Avani
-              </span>
-            </div>
-            <span className="relative">Hello, I&apos;m Avani. How can I help with your MHT-CET admission questions?</span>
           </div>
         </div>
       )}
@@ -256,6 +315,7 @@ export default function ChatWidget() {
 
       {open && (
         <div
+          ref={panelRef}
           role="dialog"
           aria-label="Avani, CET Hub's admissions assistant"
           className="fixed bottom-24 right-5 z-50 w-[92vw] max-w-[380px] rounded-2xl flex flex-col overflow-hidden animate-scale-in"
@@ -312,7 +372,21 @@ export default function ChatWidget() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-3" style={{ background: "var(--bg-secondary)" }}>
+          {/* role="log" + aria-live make Avani's replies actually reach a
+              screen reader. Without this the panel was silent: a blind user
+              could type a question and get no indication an answer had
+              arrived, because nothing announced the appended message.
+              aria-relevant="additions" keeps it to new messages rather than
+              re-reading the whole transcript on every render. */}
+          <div
+            ref={scrollRef}
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-label="Conversation with Avani"
+            className="flex-1 overflow-y-auto px-3 py-4 space-y-3"
+            style={{ background: "var(--bg-secondary)" }}
+          >
             {messages.map((m, i) => (
               <div key={i} className={`flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 {m.role === "bot" && <Avatar size={24} />}
@@ -325,7 +399,7 @@ export default function ChatWidget() {
                         : { background: "var(--bg-primary)", color: "var(--slate-800)", border: "1px solid var(--slate-200)", borderBottomLeftRadius: 4 }
                     }
                   >
-                    {m.text}
+                    {m.role === "bot" ? renderMessageText(m.text, closePanel) : m.text}
                   </div>
                   {m.quickReplies && m.quickReplies.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
@@ -346,7 +420,7 @@ export default function ChatWidget() {
               </div>
             ))}
             {loading && (
-              <div className="flex items-end gap-2 justify-start">
+              <div className="flex items-end gap-2 justify-start" role="status" aria-label="Avani is typing">
                 <Avatar size={24} />
                 <div className="px-3.5 py-2.5 rounded-2xl" style={{ background: "var(--bg-primary)", border: "1px solid var(--slate-200)", borderBottomLeftRadius: 4 }}>
                   <div className="flex gap-1">
@@ -366,13 +440,22 @@ export default function ChatWidget() {
             style={{ borderTop: "1px solid var(--slate-200)" }}
           >
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              aria-label="Type your question for Avani"
               placeholder="Type your question..."
               maxLength={500}
-              disabled={loading}
-              className="flex-1 px-3.5 py-2.5 rounded-xl text-sm outline-none disabled:opacity-60"
+              // Deliberately NOT disabled while loading. The panel fires a
+              // "menu" request the instant it opens, so a loading-disabled
+              // input was unfocusable exactly when focus was being moved into
+              // it — the greeting round trip silently swallowed the focus move
+              // and left keyboard users stranded on the launcher. Letting
+              // people compose while Avani is replying is also just better;
+              // handleSend still guards against concurrent submits, and the
+              // send button below stays disabled.
+              className="flex-1 px-3.5 py-2.5 rounded-xl text-sm outline-none"
               style={{ background: "var(--bg-secondary)", border: "1px solid var(--slate-200)", color: "var(--slate-900)" }}
             />
             <button

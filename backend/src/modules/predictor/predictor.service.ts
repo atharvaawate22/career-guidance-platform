@@ -4,7 +4,11 @@ import {
   PredictorResponse,
   CollegeOption,
 } from './predictor.types';
-import { ACTIVE_CUTOFF_YEAR, ACTIVE_CAP_ROUND } from '../../config/constants';
+import {
+  ACTIVE_CUTOFF_YEAR,
+  ACTIVE_CAP_ROUND,
+  PER_TIER_LIMIT,
+} from '../../config/constants';
 import { cacheGet, cacheSet } from '../../config/redis';
 import { HttpError } from '../../utils/httpError';
 
@@ -132,39 +136,28 @@ export class PredictorService {
       include_tfws: request.include_tfws,
       min_cutoff_rank: Math.max(1, effectiveRank - ceilGap),
       max_cutoff_rank: effectiveRank + floorGap,
+      // Tier boundaries. Classification itself happens in SQL so the row cap
+      // can be applied per tier — see PER_TIER_LIMIT in the repository.
+      effective_rank: effectiveRank,
+      target_above: targetAbove,
+      target_below: targetBelow,
     });
 
-    // Relevance window: in rank space, lower rank = better.
-    // Include colleges with cutoff_rank in [r - ceilGap, r + floorGap].
-    const r = effectiveRank;
-    const relevant = colleges.filter((c) => {
-      const cr = Number(c.cutoff_rank);
-      // Use == null (not !cr) so that a valid cutoff_rank of 0 is not discarded.
-      if (c.cutoff_rank == null || isNaN(cr)) return false;
-      return cr >= r - ceilGap && cr <= r + floorGap;
-    });
-
-    // Classify colleges based on student rank (lower rank = better score)
+    // Grouping only — the tier is already assigned. The relevance-window filter
+    // that used to run here was strictly weaker than what SQL now enforces:
+    // NULL cutoff_rank can't satisfy `closing_rank >= $min` (and is excluded
+    // again in the `tiered` CTE), closing_rank is an INTEGER column so it never
+    // arrives as NaN, and the [r - ceilGap, r + floorGap] bounds are applied in
+    // the WHERE clause with the lower bound additionally clamped to >= 1.
     const safe: CollegeOption[] = [];
     const target: CollegeOption[] = [];
     const dream: CollegeOption[] = [];
 
-    relevant.forEach((college) => {
-      const cr = Number(college.cutoff_rank);
-
-      // Safe: cutoff rank is well above student's rank (college easier to get into)
-      if (cr > r + targetBelow) {
-        safe.push(college);
-      }
-      // Target: cutoff rank is close to student's rank (within ±threshold)
-      else if (cr >= r - targetAbove && cr <= r + targetBelow) {
-        target.push(college);
-      }
-      // Dream: cutoff rank is well below student's rank (harder to get into)
-      else {
-        dream.push(college);
-      }
-    });
+    for (const college of colleges) {
+      if (college.tier === 'safe') safe.push(college);
+      else if (college.tier === 'target') target.push(college);
+      else dream.push(college);
+    }
 
     // Sort: lower cutoff rank = better/harder college; most attainable dream first
     safe.sort((a, b) => Number(a.cutoff_rank) - Number(b.cutoff_rank));
@@ -182,6 +175,7 @@ export class PredictorService {
           inputMode === 'percentile' ? Number(request.percentile) : undefined,
         windowFloor: Math.max(1, effectiveRank - ceilGap),
         windowCeil: effectiveRank + floorGap,
+        perTierLimit: PER_TIER_LIMIT,
       },
     };
     await cacheSet(cacheKey, response, PREDICTOR_CACHE_TTL_SECONDS);

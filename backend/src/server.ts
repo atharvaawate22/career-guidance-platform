@@ -1,6 +1,8 @@
 import { initSentry, Sentry } from './config/sentry';
 initSentry();
 
+import * as fs from 'fs';
+import * as path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -29,6 +31,7 @@ import { getRedis } from './config/redis';
 import { runMigrations } from './config/migrations';
 import { runSampleSeed, bootstrapAdmin } from './config/seed';
 import logger, { pinoLogger } from './utils/logger';
+import { HttpError } from './utils/httpError';
 
 // Global error logging for diagnosis — registered after logger is imported
 process.on('uncaughtException', (err) => {
@@ -49,6 +52,22 @@ function resolveTrustProxy(): boolean | number | string {
   const numeric = Number(configured);
   if (Number.isFinite(numeric) && numeric >= 0) return Math.floor(numeric);
   return configured;
+}
+
+/**
+ * How many .sql migrations this build ships. Read from disk on each readiness
+ * probe (a handful of dirent reads, and /ready is not a hot path) so it cannot
+ * drift from the directory the way a hardcoded constant did. Returns 0 if the
+ * directory is missing, which makes the readiness check skip rather than fail.
+ */
+function countMigrationFiles(): number {
+  try {
+    return fs
+      .readdirSync(path.join(__dirname, '../migrations'))
+      .filter((f) => f.endsWith('.sql')).length;
+  } catch {
+    return 0;
+  }
 }
 
 app.set('trust proxy', resolveTrustProxy());
@@ -123,7 +142,18 @@ app.use(
       if (!origin || allowed.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`CORS: origin ${origin} not allowed`));
+        // A rejected origin is a client error, not a server fault. Passing a
+        // bare Error here landed in the central error handler with no
+        // statusCode and surfaced as a 500 logged at `error` level — so a
+        // scanner hitting the API from any other origin looked like an outage
+        // and burned Sentry quota. HttpError carries the right status and the
+        // handler logs 4xx at `warn`.
+        callback(
+          new HttpError(403, `CORS: origin ${origin} not allowed`, {
+            code: 'CORS_ORIGIN_NOT_ALLOWED',
+            publicMessage: 'This origin is not permitted to call the API.',
+          }),
+        );
       }
     },
     credentials: true,
@@ -215,11 +245,17 @@ app.get('/api/v1/ready', async (_req, res) => {
     issues.push('Database unreachable');
   }
 
+  // Compare against the migration files actually shipped in this build rather
+  // than a hardcoded number. The old check asserted `count < 10` and was never
+  // updated as the directory grew past it, so for the last fourteen migrations
+  // it could not have failed — a readiness probe that always passes is worse
+  // than none, because it looks like coverage.
   try {
+    const expected = countMigrationFiles();
     const result = await query('SELECT COUNT(*) FROM schema_migrations');
-    const count = parseInt(String(result.rows[0].count), 10);
-    if (count < 10) {
-      issues.push(`Only ${count}/10 migrations applied`);
+    const applied = parseInt(String(result.rows[0].count), 10);
+    if (expected > 0 && applied < expected) {
+      issues.push(`Only ${applied}/${expected} migrations applied`);
     }
   } catch {
     issues.push('Cannot verify migration state');

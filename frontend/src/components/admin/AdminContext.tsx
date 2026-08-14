@@ -3,16 +3,24 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { setAdminHint } from "@/hooks/useAdminSession";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
+
+export type UploadBucket = "guides" | "resources";
 
 export interface AdminContextType {
   adminFetch: (url: string, init?: RequestInit) => Promise<Response>;
   adminWriteFetch: (url: string, init?: RequestInit) => Promise<Response>;
+  /** Uploads a document to Supabase Storage via the admin API; resolves to its public URL. */
+  uploadFile: (bucket: UploadBucket, file: File) => Promise<string>;
   handleSessionExpired: () => void;
   csrfToken: string;
   API_BASE_URL: string;
 }
+
+const ALLOWED_UPLOAD_EXTENSIONS = ["pdf", "doc", "docx"];
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 /* ── Context ────────────────────────────────────────────────────────────── */
 
@@ -67,9 +75,59 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const handleSessionExpired = useCallback(() => {
     setAuthenticated(false);
     setCsrfToken("");
+    // Clear the hint so the public shell stops probing /admin/session on
+    // every pageview once the session is gone — see useAdminSession.
+    setAdminHint(false);
     window.dispatchEvent(new Event("adminAuthChange"));
     router.replace("/admin/login");
   }, [router]);
+
+  /**
+   * File upload, previously copy-pasted into the guides and resources admin
+   * pages. Both hand-rebuilt adminWriteFetch's CSRF header rather than using
+   * it — which was never necessary: adminWriteFetch only merges headers and
+   * has always been able to carry a raw File body. Two copies meant two places
+   * to forget the header, and they had already drifted apart on validation
+   * wording and size limits.
+   */
+  const uploadFile = useCallback(
+    async (bucket: UploadBucket, file: File): Promise<string> => {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+      if (!ALLOWED_UPLOAD_EXTENSIONS.includes(ext)) {
+        throw new Error("Only PDF and Word documents (.pdf, .doc, .docx) are allowed");
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        throw new Error("File is too large — the limit is 20MB");
+      }
+
+      // Random server-side name: the original filename is attacker-influenced
+      // and the backend rejects anything with path components anyway.
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const contentType = file.type || "application/octet-stream";
+
+      const res = await adminWriteFetch(
+        `${API_BASE_URL}/api/v1/admin/upload?bucket=${bucket}&filename=${encodeURIComponent(filename)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": contentType,
+            "x-file-content-type": contentType,
+          },
+          body: file,
+        },
+      );
+
+      if (res.status === 401) {
+        handleSessionExpired();
+        throw new Error("Your session expired — please sign in again");
+      }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error?.message || "Upload failed");
+      return data.data.url as string;
+    },
+    [adminWriteFetch, handleSessionExpired],
+  );
+
 
   // Check session on mount
   useEffect(() => {
@@ -122,7 +180,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   return (
     <AdminContext.Provider
-      value={{ adminFetch, adminWriteFetch, handleSessionExpired, csrfToken, API_BASE_URL }}
+      value={{ adminFetch, adminWriteFetch, uploadFile, handleSessionExpired, csrfToken, API_BASE_URL }}
     >
       {children}
     </AdminContext.Provider>

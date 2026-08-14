@@ -319,6 +319,64 @@ input, select, textarea { font-family: inherit; }
 .input-base:hover  { border-color: var(--slate-400); }
 .input-base:focus  { border-color: var(--primary-500); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
 
+/* ─── Listbox option rows (CustomSelect / ComboBox / MultiSelect) ────────── */
+/* These three components previously painted their own hover state by mutating
+   e.currentTarget.style.background in onMouseEnter/onMouseLeave. That is
+   mouse-only by construction, so a keyboard user arrowing through the list saw
+   no highlight at all and could not tell which option was about to be chosen.
+   Expressing it in CSS lets :hover and the keyboard's [data-active] state share
+   one visual treatment. Order matters: selected wins over active/hover. */
+.listbox-option {
+  padding: .625rem .875rem;
+  font-size: .875rem;
+  cursor: pointer;
+  color: var(--slate-900);
+  background-color: transparent;
+  transition: background-color .12s var(--ease-default), color .12s var(--ease-default);
+}
+.listbox-option:hover,
+.listbox-option[data-active="true"] {
+  background-color: var(--slate-50);
+}
+.listbox-option[data-selected="true"] {
+  background-color: var(--primary-50);
+  color: var(--primary-700);
+  font-weight: 600;
+}
+/* Group headings inside a listbox — presentational, skipped by keyboard nav. */
+.listbox-heading {
+  padding: .625rem .875rem .25rem;
+  font-size: .625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--slate-500);
+  user-select: none;
+}
+/* Bulk "select all / clear" rows pinned above the options in MultiSelect. */
+.listbox-group-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  width: 100%;
+  padding: .625rem .875rem;
+  font-size: .875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  color: var(--primary-700);
+  background-color: transparent;
+  transition: background-color .12s var(--ease-default);
+}
+.listbox-group-action:hover,
+.listbox-group-action[data-active="true"] { background-color: var(--slate-50); }
+.listbox-group-action[data-selected="true"] { background-color: var(--primary-50); }
+
+/* Chip "remove" affordance in MultiSelect. */
+.chip-remove { color: var(--primary-500); }
+.chip-remove:hover { color: var(--primary-700); }
+
 /* ─── Buttons (backward-compat) ─────────────────────────────────────────── */
 /* Primary action button. (Legacy class name kept; restyled to the indigo brand
    so CTAs match the rest of the site instead of the old gold theme.) */

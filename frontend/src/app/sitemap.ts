@@ -3,7 +3,7 @@ import { collegeSlug } from '@/lib/collegeSlug';
 import { fetchCutoffMeta } from '@/lib/serverCutoffs';
 import { BOOKINGS_ENABLED } from '@/lib/features';
 
-const CUTOFF_YEAR = '2025';
+import { CUTOFF_YEAR } from '@/lib/dataYear';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cethub.in';
@@ -50,6 +50,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.6,
+    },
+    // Both pages exist and are linked from the footer, but were absent from the
+    // sitemap. Low priority — they are trust/compliance pages, not entry points,
+    // but a search engine that cannot find a privacy policy is a real signal.
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.3,
     },
   ];
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet, publicPost } from "@/lib/api";
 import ScrollReveal from "@/components/ScrollReveal";
 
 interface Testimonial {
@@ -47,9 +47,15 @@ export default function Testimonials() {
   const [website, setWebsite] = useState(""); // honeypot — must stay empty
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Held-for-moderation confirmation. The review is not added to the visible
+  // list on submit, so this is the only signal the submitter gets.
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/testimonials`, { cache: "no-store" })
+    // `cache: "no-store"` dropped — the list is now moderated, so a newly
+    // submitted review would not appear immediately regardless, and the
+    // backend's contentCache policy governs freshness.
+    publicGet("testimonials")
       .then((r) => r.json())
       .then((d) => {
         if (d.success && Array.isArray(d.data)) setTestimonials(d.data);
@@ -61,7 +67,7 @@ export default function Testimonials() {
 
   const resetForm = () => {
     setName(""); setEmail(""); setRating(5); setHoverRating(0);
-    setReviewText(""); setWebsite(""); setSubmitError("");
+    setReviewText(""); setWebsite(""); setSubmitError(""); setSubmitted(false);
   };
 
   const handleClose = () => {
@@ -75,16 +81,21 @@ export default function Testimonials() {
     setSubmitError("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/testimonials`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, rating, review_text: reviewText, website }),
+      const res = await publicPost("/api/v1/testimonials", {
+        name,
+        email,
+        rating,
+        review_text: reviewText,
+        website,
       });
       const data = await res.json();
 
       if (data.success && data.data) {
-        setTestimonials((prev) => [data.data, ...prev]);
-        handleClose();
+        // Deliberately NOT prepended to the visible list. Reviews are held for
+        // moderation now, so showing it immediately would tell the submitter it
+        // is live when nobody else can see it — and leave them puzzled when it
+        // vanishes on reload.
+        setSubmitted(true);
       } else {
         setSubmitError(data.error?.message || "Failed to submit your review. Please try again.");
       }
@@ -195,8 +206,20 @@ export default function Testimonials() {
               Share Your Experience
             </h2>
             <p className="text-sm mb-5" style={{ color: "var(--slate-500)" }}>
-              Your review is published right away — positive or negative, all honest feedback is welcome, just keep it respectful.
+              Positive or negative, all honest feedback is welcome — just keep it respectful.
+              Reviews are checked before they go live, usually within a day.
             </p>
+
+            {submitted && (
+              <div
+                className="rounded-xl p-4 text-sm mb-4"
+                role="status"
+                style={{ background: "var(--success-light, #ECFDF5)", border: "1px solid #A7F3D0", color: "#065F46" }}
+              >
+                <strong className="block mb-1">Thanks — we&apos;ve got your review.</strong>
+                It&apos;ll appear on this page once it&apos;s been checked, usually within a day.
+              </div>
+            )}
 
             {submitError && (
               <div
@@ -304,19 +327,21 @@ export default function Testimonials() {
                   disabled={submitting}
                   className="btn-outline flex-1 justify-center"
                 >
-                  Cancel
+                  {submitted ? "Close" : "Cancel"}
                 </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
-                    boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
-                  }}
-                >
-                  {submitting ? "Submitting…" : "Submit Review"}
-                </button>
+                {!submitted && (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-50"
+                    style={{
+                      background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))",
+                      boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
+                    }}
+                  >
+                    {submitting ? "Submitting…" : "Submit Review"}
+                  </button>
+                )}
               </div>
             </form>
           </div>

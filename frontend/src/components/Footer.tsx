@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 import { BOOKINGS_ENABLED } from "@/lib/features";
 
 const footerColumns = [
@@ -101,7 +102,7 @@ export default function Footer() {
             . All rights reserved.
           </p>
           <p className="text-xs" style={{ color: "var(--slate-400)" }}>
-            Powered by official 2025 Maharashtra CAP data
+            Powered by official {CUTOFF_YEAR} Maharashtra CAP data
           </p>
         </div>
       </div>

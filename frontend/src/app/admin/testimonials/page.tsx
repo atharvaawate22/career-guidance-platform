@@ -7,8 +7,14 @@ import Modal from "@/components/ui/Modal";
 import SlideOver from "@/components/ui/SlideOver";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonTable } from "@/components/ui/Skeleton";
-import type { Testimonial } from "@/components/admin/types";
+import type { Testimonial, TestimonialStatus } from "@/components/admin/types";
 import { format, parseISO } from "date-fns";
+
+const STATUS_BADGE: Record<TestimonialStatus, { label: string; className: string }> = {
+  pending: { label: "Pending review", className: "admin-badge admin-badge-warning" },
+  approved: { label: "Live", className: "admin-badge admin-badge-success" },
+  rejected: { label: "Rejected", className: "admin-badge admin-badge-danger" },
+};
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -37,6 +43,9 @@ export default function AdminTestimonialsPage() {
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<Testimonial | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Moderation — id of the row currently being approved/rejected.
+  const [moderatingId, setModeratingId] = useState<string | null>(null);
 
   const fetchTestimonials = useCallback(async () => {
     try {
@@ -86,6 +95,34 @@ export default function AdminTestimonialsPage() {
     }
   };
 
+  // Approve / reject. Reuses the same PATCH endpoint as an edit — the schema
+  // accepts `status` — so no new route or CSRF path is involved.
+  const handleModerate = async (t: Testimonial, status: TestimonialStatus) => {
+    setModeratingId(t.id);
+    try {
+      const res = await adminWriteFetch(`${API_BASE_URL}/api/v1/admin/testimonials/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.status === 401) { handleSessionExpired(); return; }
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: status === "approved" ? "Review published" : "Review rejected",
+          type: "success",
+        });
+        await fetchTestimonials();
+      } else {
+        toast({ title: data.error?.message || "Failed to update", type: "error" });
+      }
+    } catch {
+      toast({ title: "Failed to update review", type: "error" });
+    } finally {
+      setModeratingId(null);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -117,7 +154,9 @@ export default function AdminTestimonialsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-up">
         <div>
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>Testimonials</h1>
-          <p className="text-slate-400 text-sm mt-1">Reviews publish immediately — edit or delete as needed</p>
+          <p className="text-slate-400 text-sm mt-1">
+            Reviews are held for approval before going live — pending ones are listed first
+          </p>
         </div>
       </div>
 
@@ -143,6 +182,9 @@ export default function AdminTestimonialsPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <h3 className="text-sm font-semibold text-white">{t.name}</h3>
                     <Stars rating={t.rating} />
+                    <span className={STATUS_BADGE[t.status].className}>
+                      {STATUS_BADGE[t.status].label}
+                    </span>
                     <span className="text-xs text-slate-500">{t.email}</span>
                   </div>
                   <p className="text-xs text-slate-400 mt-2 leading-relaxed">{t.review_text}</p>
@@ -151,6 +193,26 @@ export default function AdminTestimonialsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  {t.status !== "approved" && (
+                    <button
+                      onClick={() => void handleModerate(t, "approved")}
+                      disabled={moderatingId === t.id}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+                      title="Publish this review on the public site"
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {t.status !== "rejected" && (
+                    <button
+                      onClick={() => void handleModerate(t, "rejected")}
+                      disabled={moderatingId === t.id}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+                      title={t.status === "approved" ? "Unpublish this review" : "Reject this review"}
+                    >
+                      {t.status === "approved" ? "Unpublish" : "Reject"}
+                    </button>
+                  )}
                   <button onClick={() => openEdit(t)} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Edit">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>

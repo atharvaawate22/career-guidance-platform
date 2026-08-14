@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
+import { publicGet, publicPost } from "@/lib/api";
 import ScrollReveal from "@/components/ScrollReveal";
 
 interface Guide {
@@ -27,7 +27,7 @@ export default function GuidesPage() {
     try {
       if (showLoader) setLoading(true);
       setError("");
-      const response = await fetch(`${API_BASE_URL}/api/v1/guides`);
+      const response = await publicGet("guides");
       const data = await response.json();
 
       if (data.success) {
@@ -81,11 +81,7 @@ export default function GuidesPage() {
   const handleDownload = (guide: Guide) => {
     window.open(guide.file_url, "_blank");
     setDownloadingId(guide.id);
-    fetch(`${API_BASE_URL}/api/v1/guides/download`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guide_id: guide.id }),
-    })
+    publicPost("/api/v1/guides/download", { guide_id: guide.id })
       .catch(() => {})
       .finally(() => setDownloadingId(null));
   };

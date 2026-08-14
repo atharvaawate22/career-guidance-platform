@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 
 // Dynamically generated Open Graph / Twitter card image (1200x630). Next.js
 // auto-attaches this to OG + Twitter metadata for every route, so social shares
@@ -52,9 +53,12 @@ export default function OpengraphImage() {
         <div style={{ fontSize: 66, fontWeight: 800, lineHeight: 1.1, maxWidth: 1010 }}>
           MHT-CET College Predictor &amp; Cutoff Explorer
         </div>
+        {/* Single expression child, not text + {expr} + text: Satori (next/og)
+            rejects a <div> with more than one child unless it declares an
+            explicit display, and interpolating inline would split this into
+            three nodes. */}
         <div style={{ fontSize: 30, marginTop: 30, color: "#cbd5e1", maxWidth: 940 }}>
-          Predict colleges by percentile · 90,000+ 2025 CAP cutoff records · Free
-          expert guidance for Maharashtra engineering admissions
+          {`Predict colleges by percentile · 90,000+ ${CUTOFF_YEAR} CAP cutoff records · Free expert guidance for Maharashtra engineering admissions`}
         </div>
       </div>
     ),

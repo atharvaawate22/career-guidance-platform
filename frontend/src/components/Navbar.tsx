@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { CUTOFF_YEAR } from "@/lib/dataYear";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { API_BASE_URL } from "@/lib/apiBaseUrl";
 import { BOOKINGS_ENABLED } from "@/lib/features";
+import { useAdminSession } from "@/hooks/useAdminSession";
 
 /* ── SVG Icons ────────────────────────────────────────────────────── */
 function IconMenu() {
@@ -37,7 +38,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   /* Scroll detection for glass morphism */
   useEffect(() => {
@@ -66,20 +66,9 @@ export default function Navbar() {
     return () => document.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
-  /* Check admin session */
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const r = await fetch(`${API_BASE_URL}/api/v1/admin/session`, { credentials: "include" });
-        if (!r.ok) { setIsAdmin(false); return; }
-        const d = await r.json();
-        setIsAdmin(d.success && d.data?.authenticated === true);
-      } catch { setIsAdmin(false); }
-    };
-    void check();
-    window.addEventListener("adminAuthChange", check);
-    return () => window.removeEventListener("adminAuthChange", check);
-  }, []);
+  /* Admin session — see useAdminSession for why this no longer hits the
+     network on every public pageview. */
+  const isAdmin = useAdminSession();
 
   const isHomepage = pathname === "/";
 
@@ -291,7 +280,7 @@ export default function Navbar() {
               </Link>
             )}
             <p className="text-xs text-center mt-4" style={{ color: "var(--slate-500)" }}>
-              © {new Date().getFullYear()} CETHub · Data: 2025 CAP
+              © {new Date().getFullYear()} CETHub · Data: {CUTOFF_YEAR} CAP
             </p>
           </div>
         </div>

@@ -95,6 +95,39 @@ since pg_cron already covers it:
 3. **UptimeRobot** (optional third layer): a free HTTP(s) monitor on the
    same health URL at a 5-minute interval.
 
+#### Recommended change: move the primary off `pg_cron`
+
+`pg_cron` + `pg_net` works, but it pays for keep-warm out of the resource that
+is actually the bottleneck. Measured from `pg_stat_statements` (2026-08):
+
+| Statement | Calls | Total time |
+|---|---:|---:|
+| `select net.http_get(url := $1)` | 10,678 | **286.6 s** |
+| `net.http_request_queue` cleanup | 25,599 | 124.7 s |
+| `net._http_response` cleanup | 25,599 | 57.8 s |
+| | | **≈ 469 s** |
+
+That is more database time than every cutoff query on the site combined, and
+`net`'s queue tables need their own vacuum attention as they grow. An external
+monitor does the same job at zero database cost — and adds uptime alerting,
+which none of the current options provide.
+
+**Cutover order matters.** Do not unschedule the cron job first, or every
+visitor gets a cold start until the replacement is live:
+
+1. Create a free UptimeRobot (or Better Stack) HTTP monitor on
+   `https://<your-app>.onrender.com/api/v1/health`, 5-minute interval, with
+   an email alert on failure.
+2. Watch it for a day and confirm cold starts have not returned.
+3. Only then unschedule the database job:
+   ```sql
+   SELECT cron.unschedule('<job-name>');   -- see: SELECT * FROM cron.job;
+   ```
+4. Leave `.github/workflows/keepalive.yml` in place as the free backup.
+
+Deliberately **not** shipped as a migration: a migration would unschedule the
+job at deploy time, before step 1 exists, which is precisely the wrong order.
+
 > Keeping the instance awake 24/7 uses ~720 of Render's 750 free hours/month —
 > fine for **one** web service only.
 
