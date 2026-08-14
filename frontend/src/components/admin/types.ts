@@ -118,6 +118,31 @@ export interface PlatformSettings {
   contact_info: ContactInfoConfig;
 }
 
+export type CapScheduleEventStatus = "upcoming" | "today" | "completed" | "postponed";
+
+export interface CapScheduleRevisionEntry {
+  field: "planned_date" | "revised_date";
+  previous_date: string | null;
+  changed_at: string;
+}
+
+export interface CapScheduleEvent {
+  id: string;
+  academic_year: number;
+  round_label: string;
+  event_label: string;
+  display_order: number;
+  planned_date: string | null;
+  revised_date: string | null;
+  revision_history: CapScheduleRevisionEntry[];
+  status: CapScheduleEventStatus;
+  result_url: string | null;
+  result_note: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type TabType =
   | "dashboard"
   | "updates"

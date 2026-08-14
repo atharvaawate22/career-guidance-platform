@@ -1,0 +1,43 @@
+name: CAP schedule reminder
+
+# Emails a heads-up the day before each MHT-CET CAP schedule event so there's
+# time to pre-draft the "results out" copy before the event, not after — see
+# backend/src/modules/capSchedule/capSchedule.service.ts (sendUpcomingReminders).
+#
+# Setup:
+#  - Repository VARIABLE CAP_SCHEDULE_REMINDER_URL: the full endpoint, e.g.
+#    https://cethub-api.onrender.com/api/v1/cap-schedule-events/reminder-check
+#  - Repository SECRET CAP_SCHEDULE_REMINDER_TOKEN: must match the backend's
+#    CAP_SCHEDULE_REMINDER_TOKEN env var.
+#  - The endpoint itself no-ops (no email) when nothing is due tomorrow or
+#    when ADMIN_NOTIFICATION_EMAIL/SMTP is unconfigured, so this workflow is
+#    safe to leave running year-round.
+
+on:
+  schedule:
+    # 02:30 UTC = 08:00 IST, a few minutes after the keep-warm workflow's
+    # 0-19 UTC window has the backend already awake.
+    - cron: '30 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for events due tomorrow
+        run: |
+          URL="${{ vars.CAP_SCHEDULE_REMINDER_URL }}"
+          if [ -z "$URL" ]; then
+            echo "CAP_SCHEDULE_REMINDER_URL repo variable not set; skipping."
+            exit 0
+          fi
+          code=$(curl -s -o /tmp/reminder-response.json -w '%{http_code}' --max-time 40 \
+            -X POST "$URL" \
+            -H "x-reminder-token: ${{ secrets.CAP_SCHEDULE_REMINDER_TOKEN }}")
+          echo "Response: HTTP $code"
+          cat /tmp/reminder-response.json
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::error::Reminder check failed with HTTP $code"
+            exit 1
+          fi

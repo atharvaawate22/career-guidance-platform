@@ -16,6 +16,7 @@ import updatesRoutes from './modules/updates/updates.routes';
 import authRoutes from './modules/auth/auth.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import cutoffsRoutes from './modules/cutoffs/cutoffs.routes';
+import capScheduleRoutes from './modules/capSchedule/capSchedule.routes';
 import predictorRoutes from './modules/predictor/predictor.routes';
 import guidesRoutes from './modules/guides/guides.routes';
 import resourcesRoutes from './modules/resources/resources.routes';
@@ -181,6 +182,7 @@ app.get('/', (_req, res) => {
     endpoints: {
       health: '/api/v1/health',
       updates: '/api/v1/updates',
+      capScheduleEvents: '/api/v1/cap-schedule-events',
       cutoffs: '/api/v1/cutoffs',
       predict: '/api/v1/predict',
       guides: '/api/v1/guides',
@@ -275,6 +277,7 @@ app.use(/^\/api\/(?!v1(?:\/|$)).+/, (req, res) => {
 
 // Register module routes
 app.use('/api/v1/updates', contentCache, updatesRoutes);
+app.use('/api/v1/cap-schedule-events', contentCache, capScheduleRoutes);
 app.use('/api/v1/cutoffs', publicCutoffsLimiter, referenceCache, cutoffsRoutes);
 app.use('/api/v1/predict', predictorRoutes); // POST — not CDN-cacheable; cached server-side in Redis
 app.use('/api/v1/guides/download', publicGuideDownloadLimiter);

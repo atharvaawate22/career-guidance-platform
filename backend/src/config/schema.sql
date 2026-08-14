@@ -198,6 +198,15 @@ ON bookings(booking_status);
 -- ============================================================================
 
 -- ============================================================================
+-- TABLE: cap_schedule_events
+-- Purpose: Revision-tracked CAP admission-cycle timeline (registration
+-- through post-CAP cutoff date) powering the public /mht-cet-cap-2026-schedule
+-- page and its admin editor. Separate from `cap_schedule`, which continues to
+-- serve only the chatbot's round-date lookups.
+-- Defined in migrations/027_cap_schedule_events.sql.
+-- ============================================================================
+
+-- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- Purpose: Protect Supabase Data API exposure while allowing intended public reads
 -- ============================================================================
