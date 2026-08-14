@@ -12,12 +12,12 @@
 - Independent platform; not affiliated with the State CET Cell or DTE Maharashtra.
 
 ## Primary pages
-- College Predictor: https://www.cethub.in/predictor — enter percentile or rank to get Safe / Target / Dream colleges.
-- Cutoff Explorer: https://www.cethub.in/cutoffs — search 2025 cutoffs by college, branch, category, and CAP round.
-- Book Counselling: https://www.cethub.in/book — free one-on-one expert sessions.
-- Guides: https://www.cethub.in/guides — CAP process and admission guides.
-- Resources: https://www.cethub.in/resources — seat matrices, government circulars, cutoff PDFs.
-- Updates: https://www.cethub.in/updates — MHT-CET news, notifications, and key dates.
+- [College Predictor](https://www.cethub.in/predictor) — enter percentile or rank to get Safe / Target / Dream colleges.
+- [Cutoff Explorer](https://www.cethub.in/cutoffs) — search 2025 cutoffs by college, branch, category, and CAP round.
+- [Book Counselling](https://www.cethub.in/book) — free one-on-one expert sessions.
+- [Guides](https://www.cethub.in/guides) — CAP process and admission guides.
+- [Resources](https://www.cethub.in/resources) — seat matrices, government circulars, cutoff PDFs.
+- [Updates](https://www.cethub.in/updates) — MHT-CET news, notifications, and key dates.
 
 ## Questions this site answers
 - Which engineering colleges can I get with my MHT-CET percentile or rank?

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import type { AnnouncementConfig } from "@/lib/serverAnnouncement";
 
 // Statically imported, the whole widget shipped in the shared client bundle to
 // every visitor — including the large majority who never open it. It renders
@@ -14,7 +15,13 @@ const ChatWidget = dynamic(() => import("@/components/ChatWidget"), {
   ssr: false,
 });
 
-export default function PublicShell({ children }: { children: React.ReactNode }) {
+export default function PublicShell({
+  children,
+  initialAnnouncement = null,
+}: {
+  children: React.ReactNode;
+  initialAnnouncement?: AnnouncementConfig | null;
+}) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
 
@@ -32,7 +39,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
       >
         Skip to content
       </a>
-      <AnnouncementBanner />
+      <AnnouncementBanner initialConfig={initialAnnouncement} />
       <Navbar />
       <main 
         className="flex-1 w-full min-w-0" 

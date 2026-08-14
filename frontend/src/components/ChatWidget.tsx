@@ -282,7 +282,7 @@ export default function ChatWidget() {
               type="button"
               onClick={dismissTeaser}
               aria-label="Dismiss Avani's message"
-              className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full transition-colors z-10"
+              className="absolute top-1 right-1 w-7 h-7 flex items-center justify-center rounded-full transition-colors z-10"
               style={{ color: "var(--slate-400)" }}
             >
               <IconClose size={12} />
