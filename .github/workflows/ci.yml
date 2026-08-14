@@ -1,10 +1,15 @@
 name: CI
 
+# Every branch, not just master. Feature work should go red before it is
+# merged, not after — and with master now the only long-lived branch, a
+# master-only trigger meant the first CI signal on any change arrived at merge
+# time. Recovered from .github/workflows/main.yml, archived at tag
+# archive/before-unify-20260330 and lost in the 2026-03-30 unify.
 on:
   push:
-    branches: [master]
+    branches: ['**']
   pull_request:
-    branches: [master]
+    branches: ['**']
 
 jobs:
   backend:
@@ -26,6 +31,11 @@ jobs:
       # coverage drops below the thresholds in vitest.config.ts. The suite is
       # fully offline (see tests/setup.ts), so this needs no services.
       - run: npm run test:coverage
+      # `tsc` emit, on top of the `--noEmit` typecheck above. The two are not
+      # redundant: typecheck proves the types are sound, this proves the build
+      # actually produces dist/, which is what `npm start` runs in production.
+      # Also recovered from the archived main.yml.
+      - run: npm run build
 
   frontend:
     runs-on: ubuntu-latest
