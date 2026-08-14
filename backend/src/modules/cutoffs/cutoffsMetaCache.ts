@@ -88,7 +88,9 @@ export const getOrLoadCutoffMeta = async (
   // v5 — swept the full branch_group list for duplicates/formatting bugs (& vs and,
   // stray "(AI)and" spacing glitch, ALL CAPS one-offs, missing bracket spaces).
   // v6 — added availableRounds; a v5-cached payload has no such field.
-  const redisKey = `cutoffs:meta:v6:${cacheKey}`;
+  // v7 — 13 colleges' city/city_normalized corrected (garbage college-name-as-city,
+  // an orphaned town, a NULL row); force-busts any v6 payload cached before the fix.
+  const redisKey = `cutoffs:meta:v7:${cacheKey}`;
   const cached = metaCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
