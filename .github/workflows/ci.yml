@@ -36,6 +36,22 @@ jobs:
       # actually produces dist/, which is what `npm start` runs in production.
       # Also recovered from the archived main.yml.
       - run: npm run build
+      # Read-only check that colleges.city_normalized still resolves to a real
+      # Maharashtra district — see scripts/check_city_normalization.ts for why
+      # this exists and what it can and can't verify. It queries the live
+      # database, so it can only run where DATABASE_URL is configured as a
+      # repo secret; `env` is scoped to this one step only; every other step
+      # in this job never sees it. Skips with a clear message rather than
+      # failing when the secret is absent, so adding this step doesn't turn CI
+      # red for anyone who hasn't configured it yet.
+      - name: City normalization guard
+        if: ${{ secrets.DATABASE_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run check:city-normalization
+      - name: City normalization guard (skipped — DATABASE_URL not configured)
+        if: ${{ secrets.DATABASE_URL == '' }}
+        run: echo "Skipping city normalization guard — DATABASE_URL secret is not configured."
 
   frontend:
     runs-on: ubuntu-latest

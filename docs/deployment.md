@@ -67,15 +67,21 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run check:city-normalization   # requires DATABASE_URL — see note below
 ```
 
-Note: an earlier draft of this checklist included a `npm run
-check:city-normalization` gate; that script does not exist in
-`backend/package.json` and there is no equivalent CI step — running it as
-written fails with `npm error Missing script`. Either add the script back
-if the guard is still wanted, or treat city-normalization data integrity as
-covered by the loader/validation steps in
-[`CUTOFFS_DB_REDESIGN.md`](CUTOFFS_DB_REDESIGN.md) instead.
+`check:city-normalization` (2026-08-14, replacing the note that used to be
+here about the script not existing) is read-only against the live database:
+it asserts every `colleges.city_normalized` value resolves to one of
+Maharashtra's 36 districts, and fails loudly, listing every offending row,
+when it doesn't. It needs `DATABASE_URL` pointed at the database you're
+about to release against — CI runs it the same way, gated on the
+`DATABASE_URL` secret in `.github/workflows/ci.yml`, so it's optional here
+too if you already saw it pass in CI for this commit. See
+`backend/scripts/check_city_normalization.ts`'s header comment for what it
+can and can't verify: nothing in this codebase currently computes the
+district mapping from a raw town name, so this checks that the data hasn't
+regressed, not that any code path here is producing it correctly.
 
 ### Frontend
 

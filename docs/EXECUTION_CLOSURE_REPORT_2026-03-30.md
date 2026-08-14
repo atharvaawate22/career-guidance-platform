@@ -11,6 +11,17 @@
 > this report as a historical snapshot, not a current source of truth for
 > that item — the rest of the report (test counts, profiling numbers) is a
 > self-contained dated record and isn't affected.
+>
+> **Resolved (2026-08-14):** the guard now genuinely exists —
+> `backend/scripts/check_city_normalization.ts`, wired into
+> `.github/workflows/ci.yml` gated on the `DATABASE_URL` secret, exactly as
+> this report originally (and, at the time, incorrectly) claimed. Run against
+> production on the day it was written, it found 13 real violations — 9
+> college names that leaked into the `city` column during parsing, one town
+> mapped to a since-orphaned non-district value, one inconsistent duplicate,
+> and one NULL row. See the script's own header comment for why no code in
+> this repo actually computes the district mapping seen in production, and
+> for what a maintainer should do with each violation class.
 
 ## 1. Scope and Outcome
 
