@@ -16,8 +16,8 @@ name: Keep backend warm
 #    sleeps overnight and stays well under Render's free monthly instance-hour
 #    budget. Adding a second Render web service would still exceed the allowance.
 #  - Set a repository variable named BACKEND_HEALTH_URL to your health endpoint
-#    (e.g. https://cethub-api.onrender.com/api/v1/health). If it is unset, the
-#    job no-ops instead of failing.
+#    (e.g. https://career-guidance-platform-euqr.onrender.com/api/v1/health).
+#    If it is unset, the job no-ops instead of failing.
 
 on:
   schedule:

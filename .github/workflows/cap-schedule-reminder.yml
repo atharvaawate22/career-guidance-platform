@@ -6,7 +6,7 @@ name: CAP schedule reminder
 #
 # Setup:
 #  - Repository VARIABLE CAP_SCHEDULE_REMINDER_URL: the full endpoint, e.g.
-#    https://cethub-api.onrender.com/api/v1/cap-schedule-events/reminder-check
+#    https://career-guidance-platform-euqr.onrender.com/api/v1/cap-schedule-events/reminder-check
 #  - Repository SECRET CAP_SCHEDULE_REMINDER_TOKEN: must match the backend's
 #    CAP_SCHEDULE_REMINDER_TOKEN env var.
 #  - The endpoint itself no-ops (no email) when nothing is due tomorrow or
