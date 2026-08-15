@@ -11,6 +11,8 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { Client } = require('pg');
+const { bustCutoffsCache } = require('./lib/bustCutoffsCache');
+const { isValidCutoffRow } = require('./lib/validateCutoffRow');
 
 const YEAR = 2025;
 const PARSED_DIR = path.join(__dirname, '..', '..', 'scripts', 'parsed');
@@ -119,6 +121,24 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
 }
 
 (async () => {
+  // This script TRUNCATEs the entire cutoffs/courses/colleges dataset before
+  // reloading it from scratch — it is a full-rebuild tool, not an update
+  // tool. Running it by habit (or muscle memory from load_cutoffs_incremental.js
+  // / load_ai_cutoffs_additive.js) wipes live production data. Require an
+  // explicit, unambiguous opt-in so that never happens by accident.
+  if (process.env.CONFIRM_TRUNCATE !== 'yes') {
+    console.error(
+      'REFUSING TO RUN: this script TRUNCATEs cutoffs, courses, and colleges ' +
+      '(wipes the entire live dataset) before reloading all 4 rounds from ' +
+      'scripts/parsed/round{1..4}.\n' +
+      'For an incremental/new-round/new-year load, use ' +
+      'scripts/load_cutoffs_incremental.js or scripts/load_ai_cutoffs_additive.js ' +
+      'instead — neither of them truncates.\n' +
+      'If you really intend a full rebuild, re-run with CONFIRM_TRUNCATE=yes.',
+    );
+    process.exit(1);
+  }
+
   const client = new Client({ ...parseDbUrl(process.env.DATABASE_URL), ssl: { rejectUnauthorized: false } });
   await client.connect();
   console.log('Connected. Creating schema…');
@@ -166,17 +186,21 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
   const idMap = new Map();
   for (const row of (await client.query('SELECT id, choice_code FROM courses')).rows) idMap.set(row.choice_code, row.id);
   let skipped = 0;
+  let invalid = 0;
   const cutoffRows = cutoffs.map((c) => {
     const course_id = idMap.get(c.choice_code);
     if (!course_id) { skipped++; return null; }
-    return {
+    const row = {
       course_id, academic_year: YEAR, cap_round: c.cap_round,
       allotment_pool: c.allotment_pool, stage: c.stage, category_code: c.category_code,
       gender: nz(c.gender), category: nz(c.category), subquota: nz(c.subquota),
       closing_rank: c.closing_rank, closing_percentile: nz(c.closing_percentile),
     };
+    if (!isValidCutoffRow(row)) { invalid++; return null; }
+    return row;
   }).filter(Boolean);
   if (skipped) console.log(`WARN: ${skipped} cutoff rows had no matching course (skipped)`);
+  if (invalid) console.log(`WARN: ${invalid} cutoff rows failed rank/percentile sanity checks (skipped)`);
   await batchInsert(client, 'cutoffs',
     ['course_id', 'academic_year', 'cap_round', 'allotment_pool', 'stage', 'category_code',
      'gender', 'category', 'subquota', 'closing_rank', 'closing_percentile'],
@@ -191,5 +215,6 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
   const perRound = await client.query('SELECT cap_round, count(*)::int AS n FROM cutoffs GROUP BY cap_round ORDER BY cap_round');
   console.log('  cutoffs by round:', perRound.rows.map((r) => `R${r.cap_round}=${r.n}`).join(' '));
   await client.end();
+  await bustCutoffsCache();
   console.log('\nDONE.');
 })().catch((e) => { console.error('LOAD FAILED:', e.message); process.exit(1); });
