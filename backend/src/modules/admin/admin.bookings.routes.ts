@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import {
   authMiddleware,
   requireAdminRole,
@@ -6,6 +7,7 @@ import {
 import { verifyCsrfToken } from '../../middleware/csrfMiddleware';
 import * as bookingRepository from '../booking/booking.repository';
 import * as emailService from '../booking/email.service';
+import { sanitizeText } from '../../utils/sanitize';
 import {
   bookingCancellationEmail,
   bookingRescheduledEmail,
@@ -20,7 +22,21 @@ const ALLOWED_STATUSES = [
   'rescheduled',
   'no_show',
   'completed',
-];
+] as const;
+
+const updateBookingStatusSchema = z.object({
+  status: z.enum(ALLOWED_STATUSES, {
+    required_error: 'Status is required',
+    invalid_type_error: `Invalid status. Must be one of: ${ALLOWED_STATUSES.join(', ')}`,
+  }),
+  // Free-text admin note; capped and stripped of any markup before it can
+  // reach the cancellation email template (see booking.emails.ts).
+  reason: z
+    .string()
+    .trim()
+    .max(500, 'reason must be under 500 characters')
+    .optional(),
+});
 
 const parsePositiveInt = (value: unknown, fallback: number): number => {
   const parsed = Number.parseInt(String(value), 10);
@@ -60,29 +76,20 @@ router.patch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const { status, reason } = req.body;
-
-      if (!status) {
+      const parse = updateBookingStatusSchema.safeParse(req.body);
+      if (!parse.success) {
+        const first = parse.error.issues[0];
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Status is required',
+            message: first?.message ?? 'Invalid request',
           },
         });
         return;
       }
-
-      if (!ALLOWED_STATUSES.includes(status)) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: `Invalid status. Must be one of: ${ALLOWED_STATUSES.join(', ')}`,
-          },
-        });
-        return;
-      }
+      const { status, reason } = parse.data;
+      const sanitizedReason = reason ? sanitizeText(reason) : undefined;
 
       const updated = await bookingRepository.updateBookingStatus(
         String(id),
@@ -103,10 +110,7 @@ router.patch(
         void emailService
           .sendBookingStatusEmail(
             updated.email,
-            bookingCancellationEmail(
-              updated,
-              typeof reason === 'string' ? reason : undefined,
-            ),
+            bookingCancellationEmail(updated, sanitizedReason),
           )
           .catch((error) =>
             req.log?.error({ error }, 'Cancellation email failed'),

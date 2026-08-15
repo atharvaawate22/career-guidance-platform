@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as guidesService from './guides.service';
-import { CreateGuideRequest } from './guides.types';
 import { sanitizeText } from '../../utils/sanitize';
+import { createGuideSchema } from './guides.schemas';
 
 export async function getGuides(
   req: Request,
@@ -45,31 +45,29 @@ export async function createGuide(
   next: NextFunction,
 ) {
   try {
-    const guideRequest: CreateGuideRequest = {
-      title: typeof req.body.title === 'string' ? sanitizeText(req.body.title) : req.body.title,
-      description:
-        typeof req.body.description === 'string'
-          ? sanitizeText(req.body.description)
-          : req.body.description,
-      file_url: req.body.file_url,
-    };
-
-    if (
-      !guideRequest.title?.trim() ||
-      !guideRequest.description?.trim() ||
-      !guideRequest.file_url?.trim()
-    ) {
+    const parse = createGuideSchema.safeParse(req.body);
+    if (!parse.success) {
+      const first = parse.error.issues[0];
       res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'Title, description, and file_url are required',
+          message: first?.message ?? 'Invalid request',
+          details: parse.error.issues.map((i) => ({
+            path: i.path.join('.'),
+            message: i.message,
+          })),
         },
       });
       return;
     }
 
-    const guide = await guidesService.createGuide(guideRequest);
+    const { title, description, file_url } = parse.data;
+    const guide = await guidesService.createGuide({
+      title: sanitizeText(title),
+      description: sanitizeText(description),
+      file_url,
+    });
     res.status(201).json({
       success: true,
       data: guide,
