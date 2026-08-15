@@ -44,14 +44,20 @@ jobs:
       # in this job never sees it. Skips with a clear message rather than
       # failing when the secret is absent, so adding this step doesn't turn CI
       # red for anyone who hasn't configured it yet.
+      #
+      # The branching lives inside the step's shell, not an `if:` — the
+      # `secrets` context isn't available in step-level `if:` conditions
+      # (only in `env:`), and using it there fails workflow-file validation
+      # outright, taking every job in the run down with it.
       - name: City normalization guard
-        if: ${{ secrets.DATABASE_URL != '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm run check:city-normalization
-      - name: City normalization guard (skipped — DATABASE_URL not configured)
-        if: ${{ secrets.DATABASE_URL == '' }}
-        run: echo "Skipping city normalization guard — DATABASE_URL secret is not configured."
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Skipping city normalization guard — DATABASE_URL secret is not configured."
+          else
+            npm run check:city-normalization
+          fi
 
   frontend:
     runs-on: ubuntu-latest
