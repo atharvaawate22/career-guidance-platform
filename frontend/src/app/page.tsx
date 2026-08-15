@@ -1,18 +1,17 @@
-"use client";
-
 import Link from "next/link";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
-import { useRef } from "react";
 import FaqSection from "@/components/FaqSection";
 import LatestUpdates from "@/components/LatestUpdates";
 import Testimonials from "@/components/Testimonials";
 import QuickPredict from "@/components/QuickPredict";
 import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import ArrowRight from "@/components/ArrowRight";
+import FeatureCard, { type Feature } from "@/components/FeatureCard";
 import { BOOKINGS_ENABLED } from "@/lib/features";
 
 /* ── Feature cards data ──────────────────────────────────────────── */
-const features = [
+const features: Feature[] = [
   {
     title: "College Predictor",
     desc: "Get accurate college predictions based on your MHT-CET rank, category, and preferences.",
@@ -137,92 +136,6 @@ const steps = [
   },
 ];
 
-/* ── Arrow icon ──────────────────────────────────────────────────── */
-function ArrowRight({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-/* ── Feature Card with tilt effect ───────────────────────────────── */
-function FeatureCard({ feature, index }: { feature: typeof features[0]; index: number }) {
-  const cardRef = useRef<HTMLAnchorElement>(null);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    const card = cardRef.current;
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -4;
-    const rotateY = ((x - centerX) / centerX) * 4;
-    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
-  };
-
-  const handleMouseLeave = () => {
-    const card = cardRef.current;
-    if (card) card.style.transform = "perspective(800px) rotateX(0) rotateY(0) translateY(0)";
-  };
-
-  return (
-    <ScrollReveal animation="fade-up" delay={index * 80}>
-      <Link
-        ref={cardRef}
-        href={feature.href}
-        className="group block rounded-2xl p-6 border transition-all duration-300"
-        style={{
-          background: "var(--bg-primary)",
-          borderColor: "var(--slate-200)",
-          boxShadow: "var(--shadow-xs)",
-          textDecoration: "none",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = feature.borderHover;
-          e.currentTarget.style.boxShadow = "var(--shadow-lg)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "var(--slate-200)";
-          e.currentTarget.style.boxShadow = "var(--shadow-xs)";
-          handleMouseLeave();
-        }}
-        onMouseMove={handleMouseMove}
-      >
-        {/* Icon */}
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110"
-          style={{ background: feature.gradient, color: feature.iconColor }}
-        >
-          {feature.icon}
-        </div>
-
-        {/* Content */}
-        <h3
-          className="text-[17px] font-bold mb-2 transition-colors"
-          style={{ color: "var(--slate-900)" }}
-        >
-          {feature.title}
-        </h3>
-        <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--slate-500)" }}>
-          {feature.desc}
-        </p>
-
-        {/* Link indicator */}
-        <span
-          className="inline-flex items-center gap-1.5 text-sm font-semibold transition-all duration-200 group-hover:gap-2.5"
-          style={{ color: feature.iconColor }}
-        >
-          Explore
-          <ArrowRight size={14} />
-        </span>
-      </Link>
-    </ScrollReveal>
-  );
-}
-
 /* ── Homepage ────────────────────────────────────────────────────── */
 export default function Home() {
   // The status pill used to poll /api/v1/health on mount, retrying every 5s
@@ -344,21 +257,7 @@ export default function Home() {
                 </Link>
                 <Link
                   href={BOOKINGS_ENABLED ? "/cutoffs" : "/guides"}
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    color: "#ffffff",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-                  }}
+                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] backdrop-blur-[8px] transition-all duration-200 hover:bg-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)]"
                 >
                   {BOOKINGS_ENABLED ? "Browse Cutoffs" : "View Admission Guides"}
                 </Link>
@@ -551,18 +450,7 @@ export default function Home() {
               </Link>
               <Link
                 href={BOOKINGS_ENABLED ? "/book" : "/cutoffs"}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm transition-all duration-200"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  color: "#ffffff",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                }}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm text-white border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] transition-all duration-200 hover:bg-[rgba(255,255,255,0.12)]"
               >
                 {BOOKINGS_ENABLED ? "Book Free Session" : "Browse Cutoffs"}
               </Link>
