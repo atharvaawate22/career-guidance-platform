@@ -3,35 +3,24 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { publicGet } from "@/lib/api";
-import type { AnnouncementConfig } from "@/lib/serverAnnouncement";
+
+interface AnnouncementConfig {
+  enabled: boolean;
+  text: string;
+  type: string;
+  pages?: string[];
+  /** Bumped server-side on every admin save (see settings.controller.ts) — dismissal is keyed on this, not the literal text, so an old dismissal can't survive a wording change and an admin can force a banner back in front of everyone by just re-saving it. */
+  version?: number;
+}
 
 const DISMISSED_KEY = "cethub-announcement-dismissed-version";
 
-export default function AnnouncementBanner({
-  initialConfig = null,
-}: {
-  /** Server-rendered by RootLayout via fetchAnnouncement(), so the banner
-   *  can paint on first render instead of waiting on a client-side fetch. */
-  initialConfig?: AnnouncementConfig | null;
-}) {
-  const [config, setConfig] = useState<AnnouncementConfig | null>(initialConfig);
+export default function AnnouncementBanner() {
+  const [config, setConfig] = useState<AnnouncementConfig | null>(null);
   const [visible, setVisible] = useState(true);
   const pathname = usePathname();
 
   useEffect(() => {
-    // Dismissal lives in localStorage, so it has to be checked here even
-    // when initialConfig already arrived server-rendered.
-    if (initialConfig?.version !== undefined) {
-      try {
-        if (localStorage.getItem(DISMISSED_KEY) === String(initialConfig.version)) {
-          setVisible(false);
-        }
-      } catch { /* localStorage unavailable */ }
-    }
-
-    // Re-fetch on mount to catch edits made after the SSR response was
-    // cached (see ANNOUNCEMENT_REVALIDATE_SECONDS) and to cover the case
-    // where the server-side fetch failed (initialConfig === null).
     publicGet("announcement")
       .then((r) => r.json())
       .then((d) => {
@@ -45,7 +34,6 @@ export default function AnnouncementBanner({
         }
       })
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showOnCurrentPage = !config || !config.pages || config.pages.length === 0 || config.pages.includes("*") || config.pages.includes("all") || config.pages.includes(pathname);

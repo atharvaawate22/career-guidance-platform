@@ -4,7 +4,6 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
 import PublicShell from "@/components/PublicShell";
-import { fetchAnnouncement } from "@/lib/serverAnnouncement";
 import StructuredData from "@/components/StructuredData";
 import { inter, dmSerif, jetbrainsMono } from "@/lib/fonts";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
@@ -86,16 +85,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const initialAnnouncement = await fetchAnnouncement();
   return (
     <html lang="en">
       <body
         className={`${inter.variable} ${dmSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <PublicShell initialAnnouncement={initialAnnouncement}>{children}</PublicShell>
+        <PublicShell>{children}</PublicShell>
         <ErrorTrackingBridge />
         <StructuredData />
       </body>
