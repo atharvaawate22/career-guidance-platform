@@ -23,4 +23,6 @@ export interface LoginResponse {
 export interface JWTPayload {
   userId: string;
   role: string;
+  // Optional so tokens issued before jti support was added still decode.
+  jti?: string;
 }

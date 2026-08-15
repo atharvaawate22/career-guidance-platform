@@ -2,12 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWTPayload } from '../modules/auth/auth.types';
 import { ADMIN_AUTH_COOKIE } from '../modules/auth/auth.constants';
+import { isJtiRevoked } from '../modules/auth/auth.revocation';
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction,
-): void => {
+): Promise<void> => {
   try {
     // Prefer HttpOnly cookie session token, fallback to Authorization header.
     const cookieToken = req.cookies?.[ADMIN_AUTH_COOKIE] as string | undefined;
@@ -38,6 +39,17 @@ export const authMiddleware = (
     }
 
     const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+
+    if (await isJtiRevoked(decoded.jti)) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'TOKEN_REVOKED',
+          message: 'Session has been logged out. Please log in again.',
+        },
+      });
+      return;
+    }
 
     // Attach user to request
     req.user = decoded;

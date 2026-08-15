@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { findUserByEmail } from './auth.repository';
 import { LoginResponse, JWTPayload } from './auth.types';
@@ -72,6 +73,8 @@ export const login = async (
   const payload: JWTPayload = {
     userId: user.id,
     role: user.role,
+    // Gives logout something unique to revoke — see auth.revocation.ts.
+    jti: crypto.randomUUID(),
   };
 
   const expiresIn = (process.env.JWT_EXPIRES_IN || '24h') as jwt.SignOptions['expiresIn'];

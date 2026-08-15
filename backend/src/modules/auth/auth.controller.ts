@@ -9,6 +9,7 @@ import {
   ADMIN_CSRF_COOKIE,
   getSessionCookieMaxAgeMs,
 } from './auth.constants';
+import { isJtiRevoked, revokeJti } from './auth.revocation';
 
 type SameSiteMode = 'lax' | 'strict' | 'none';
 
@@ -115,6 +116,17 @@ export const sessionController = async (
 
     try {
       const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+
+      if (await isJtiRevoked(decoded.jti)) {
+        res.status(200).json({
+          success: true,
+          data: {
+            authenticated: false,
+          },
+        });
+        return;
+      }
+
       res.status(200).json({
         success: true,
         data: {
@@ -169,11 +181,38 @@ export const csrfController = async (
 };
 
 export const logoutController = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
+    // Revoke the token's jti (if it has one and JWT_SECRET can verify it) so
+    // it stops working immediately instead of staying valid until its natural
+    // expiry — clearing the cookie alone does not invalidate a copy of the
+    // token used elsewhere (e.g. via the Authorization header).
+    const cookieToken = req.cookies?.[ADMIN_AUTH_COOKIE] as string | undefined;
+    const authHeader = req.headers.authorization;
+    const headerToken =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : undefined;
+    const token = cookieToken || headerToken;
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (token && jwtSecret) {
+      try {
+        const decoded = jwt.verify(token, jwtSecret) as JWTPayload & {
+          exp?: number;
+        };
+        if (decoded.jti && decoded.exp) {
+          await revokeJti(decoded.jti, decoded.exp);
+        }
+      } catch {
+        // Already expired/invalid/unverifiable — nothing to revoke; cookies
+        // still get cleared below.
+      }
+    }
+
     const isProduction = process.env.NODE_ENV === 'production';
     const sameSite = resolveSameSiteMode();
     const secure = isProduction || sameSite === 'none';
