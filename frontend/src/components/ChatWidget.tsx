@@ -11,10 +11,14 @@ import { useFocusOnOpen } from "@/hooks/useFocusManagement";
  * the student had to read the path and navigate by hand. Only this fixed set is
  * linkified, so nothing a model or an admin-authored FAQ emits can turn into an
  * arbitrary outbound link.
+ *
+ * /book is intentionally excluded: all booking slots are currently greyed out
+ * (platform not accepting new meetings), so linking students there would set a
+ * false expectation. Re-add it here once real booking is available.
  */
-const LINKABLE_ROUTES = /(\/(?:cutoffs|predictor|updates|guides|resources|book))\b/g;
+const LINKABLE_ROUTES = /(\/(?:cutoffs|predictor|updates|guides|resources))\b/g;
 const isLinkableRoute = (part: string) =>
-  /^\/(?:cutoffs|predictor|updates|guides|resources|book)$/.test(part);
+  /^\/(?:cutoffs|predictor|updates|guides|resources)$/.test(part);
 
 function renderMessageText(text: string, onNavigate: () => void) {
   // split() with a capturing group keeps the delimiters, so the route tokens
@@ -135,6 +139,11 @@ export default function ChatWidget() {
   const [neverEngaged, setNeverEngaged] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
+  // Synchronous guard against double-submit. React state (`loading`) can't
+  // prevent a race on rapid Enter/double-click because setLoading(true) only
+  // takes effect after the re-render; a ref flip is synchronous and catches
+  // the second submit before the first render cycle fires.
+  const submittingRef = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -223,7 +232,8 @@ export default function ChatWidget() {
 
   const handleSend = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading || submittingRef.current) return;
+    submittingRef.current = true;
     setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
     setInput("");
     setLoading(true);
@@ -237,6 +247,7 @@ export default function ChatWidget() {
       ]);
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 

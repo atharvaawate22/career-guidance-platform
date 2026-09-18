@@ -15,17 +15,16 @@ import logger from '../../utils/logger';
 import { RagChunkMatch } from './chatbot.repository';
 
 /**
- * Model name — deliberately NOT gemini-2.5-flash, despite that being what
- * CHATBOT_ARCHITECTURE.md originally named. Verified live against this
- * project's actual API key (2026-07-23): gemini-2.5-flash and
- * gemini-2.5-flash-lite both 404 with "no longer available to new users";
- * gemini-2.0-flash is deprecated (shuts down 2026-06-01) and 429s on this
- * key. gemini-3.5-flash is the one that actually returns 200, and Google's
- * pricing docs confirm it has a free tier (free input/output tokens, with
- * the same "may be used to improve products" caveat the architecture doc
- * already discloses for the Gemini free tier generally).
+ * Model name — read from `GEMINI_MODEL` env var so it can be swapped without
+ * a code deploy when an API key's allowed model set changes. Defaults to
+ * `gemini-2.5-flash` (Google's current lite fast model with a free tier).
+ *
+ * If RAG stops answering after a key rotation or API change, check the model
+ * name first: set GEMINI_MODEL to a model that returns 200 for your key and
+ * redeploy. A wrong name here causes silent deferral (null return), not a
+ * crash — see the comment on generateGroundedAnswer below.
  */
-const MODEL = 'gemini-3.5-flash';
+const MODEL = process.env.GEMINI_MODEL ?? 'gemini-flash-latest';
 
 const SYSTEM_INSTRUCTION =
   'You are Avani, the admissions assistant for CET Hub, answering questions on Maharashtra ' +

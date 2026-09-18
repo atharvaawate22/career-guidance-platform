@@ -840,6 +840,18 @@ export async function getReply(
         return handlePredictorIntent();
       case '5':
         return handleCounselorIntent();
+      case '6':
+        return reply(
+          'Go ahead — type your question. Common topics: float vs freeze, TFWS, HU vs OHU, e-Scrutiny, seat acceptance fee.',
+          true,
+          [
+            { value: 'what is float and freeze', label: 'Float vs Freeze' },
+            { value: 'what is TFWS', label: 'TFWS' },
+            { value: 'what is HU vs OHU', label: 'HU vs OHU' },
+            { value: 'what is e-Scrutiny', label: 'e-Scrutiny' },
+            { value: 'seat acceptance fee', label: 'Seat acceptance fee' },
+          ],
+        );
       default:
         return reply(
           'Type your question — e.g. "difference between float and freeze" or "what is HU vs OHU".',

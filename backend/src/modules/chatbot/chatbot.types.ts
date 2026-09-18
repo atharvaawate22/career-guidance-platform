@@ -26,9 +26,3 @@ export interface ChatReply {
   /** True when the message matched a known intent; false when it fell through to the fallback (and was logged). */
   matched: boolean;
 }
-
-export interface ChatRequest {
-  message: string;
-  /** Per-channel contact identifier used only for unanswered-query logging (wa_id for WhatsApp, absent for the anonymous web widget). */
-  contactIdentifier?: string;
-}
