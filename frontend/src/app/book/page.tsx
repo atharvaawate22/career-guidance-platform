@@ -985,41 +985,21 @@ export default function BookPage() {
                   <p className="text-sm italic" style={{ color: "var(--slate-600)" }}>Loading slots…</p>
                 ) : (
                   <>
-                    <div className="flex gap-3 flex-wrap text-xs mb-2">
-                      <span className="flex items-center gap-1">
-                        <span className="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span>{" "}
-                        Available
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="inline-block w-3 h-3 rounded-sm bg-red-400"></span>{" "}
-                        Booked
-                      </span>
+                    <div className="flex gap-3 flex-wrap text-xs mb-4">
                       <span className="flex items-center gap-1">
                         <span className="inline-block w-3 h-3 rounded-sm bg-gray-300"></span>{" "}
                         Unavailable
                       </span>
                     </div>
+                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+                      Sorry, currently we&apos;re not accepting meetings/bookings.
+                    </div>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                       {slotConfig.slots.map((slot) => {
-                        const isBooked = bookedSlots.includes(slot);
-                        const isUnavailable =
-                          !getAvailableSlots(selectedDate, slotConfig).includes(slot);
-                        const isSelected = selectedTime === slot;
-                        let cls = "";
-                        if (isUnavailable) {
-                          cls =
-                            "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
-                        } else if (isBooked) {
-                          cls =
-                            "bg-red-100 text-red-400 border-red-200 cursor-not-allowed line-through";
-                        } else if (isSelected) {
-                          cls =
-                            "text-white border-transparent shadow-md scale-105";
-                          // inline style added below for primary bg
-                        } else {
-                          cls =
-                            "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 cursor-pointer";
-                        }
+                        const isBooked = false;
+                        const isUnavailable = true;
+                        const isSelected = false;
+                        const cls = "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
                         return (
                           <button
                             key={slot}
@@ -1042,7 +1022,7 @@ export default function BookPage() {
                       })}
                     </div>
                     {!selectedTime && (
-                      <p className="text-xs mt-2" style={{ color: "var(--slate-500)" }}>Select a green slot to book.</p>
+                      <p className="text-xs mt-2" style={{ color: "var(--slate-500)" }}>All slots are currently unavailable.</p>
                     )}
                     {slotError && (
                       <p className="text-xs mt-2 font-medium" style={{ color: "var(--danger-500)" }}>{slotError}</p>
@@ -1065,11 +1045,11 @@ export default function BookPage() {
             <div className="mt-8">
               <button
                 type="submit"
-                disabled={!slotConfig.enabled}
-                className="w-full text-white py-3 px-6 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={true}
+                className="w-full text-white py-3 px-6 rounded-xl font-semibold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={{ background: "linear-gradient(135deg, var(--primary-600), var(--primary-700))" }}
               >
-                {!slotConfig.enabled ? "Bookings Closed" : "Review Booking"}
+                Bookings Closed
               </button>
             </div>
           </form>

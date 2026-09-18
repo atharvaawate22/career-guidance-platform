@@ -1,5 +1,5 @@
 /**
- * Bookings are temporarily paused site-wide. Flip back to `true` to restore
- * the "Book a Session" links, homepage mentions, and the live /book form.
+ * Bookings are enabled, but currently not accepting new meetings.
+ * We render the booking page for visibility with slots greyed out.
  */
-export const BOOKINGS_ENABLED = false;
+export const BOOKINGS_ENABLED = true;
