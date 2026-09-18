@@ -301,7 +301,7 @@ export default function UpdatesPage() {
                     "url": "https://www.cethub.in",
                     "logo": {
                       "@type": "ImageObject",
-                      "url": "https://www.cethub.in/favicon.ico"
+                      "url": "https://www.cethub.in/new-logo.png"
                     }
                   },
                   "mainEntityOfPage": "https://www.cethub.in/updates"

@@ -13,11 +13,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.png", type: "image/png" },
+      { url: "/new-logo.png", type: "image/png" },
     ],
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    shortcut: "/new-logo.png",
+    apple: "/new-logo.png",
   },
   title: {
     default: "CET Hub — MHT-CET College Predictor, Cutoffs & Guidance",

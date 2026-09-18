@@ -98,7 +98,7 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
               <img
-                src="/logo-mark.svg"
+                src="/new-logo.png"
                 alt="CET Hub"
                 width={36}
                 height={36}
