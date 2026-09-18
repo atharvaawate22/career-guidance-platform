@@ -515,6 +515,18 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
 
   const anyConfirmed = rows.some((r) => r.is_confirmed);
   if (!anyConfirmed) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0 = Jan, 8 = Sep
+
+    // If it's the current year and it's September or later, the admission cycle has concluded
+    if (ACTIVE_CAP_SCHEDULE_YEAR === currentYear && currentMonth >= 8) {
+      return reply(
+        `The CAP ${ACTIVE_CAP_SCHEDULE_YEAR} admission season has concluded. I don't have the final archived dates, but you can check /updates for any recent notices.`,
+        true,
+      );
+    }
+
     return reply(
       `The official CAP ${ACTIVE_CAP_SCHEDULE_YEAR} schedule hasn't been released by DTE Maharashtra yet. ` +
         "I'll have exact dates as soon as they're published — check /updates for the latest notice in the meantime.",
@@ -527,6 +539,16 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
     .map((r) => `Round ${r.cap_round} — ${r.event_name}: ${r.start_date ?? '?'} to ${r.end_date ?? '?'}`)
     .join('\n');
   return reply(`CAP ${ACTIVE_CAP_SCHEDULE_YEAR} schedule:\n${lines}`, true);
+}
+
+async function handleUpdatesIntent(): Promise<ChatReply> {
+  const updates = await repo.getLatestUpdates(3);
+  if (updates.length === 0) {
+    return reply('There are no recent updates published at the moment.', true);
+  }
+
+  const lines = updates.map((u) => `• ${u.published_date}: ${u.title}`);
+  return reply(`Here are the latest updates:\n${lines.join('\n')}\n\nYou can read all notices and download the circulars at /updates.`, true);
 }
 
 async function handleDocumentsIntent(): Promise<ChatReply> {
@@ -774,6 +796,7 @@ const CAP_DATE_PATTERN = /\b(cap round|cap date|round date|schedule|when is roun
 const DOCUMENTS_PATTERN = /\b(document|documents|checklist|papers needed|required documents)\b/;
 const PREDICTOR_PATTERN = /\b(chance|chances|eligible|eligibility|which college|predict|predictor)\b/;
 const COUNSELOR_PATTERN = /\b(counselor|counsellor|talk to|human|real person|agent|call me|speak to)\b/;
+const UPDATES_PATTERN = /\b(latest update|latest updates|recent notice|recent notices|news|what\s*'*\s*s\s+new|any updates)\b/;
 
 type IntentHandler = (normalized: string, sessionId?: string) => ChatReply | Promise<ChatReply>;
 
@@ -797,6 +820,7 @@ const KEYWORD_INTENTS: Array<{ pattern: RegExp; handler: IntentHandler }> = [
   { pattern: CAP_DATE_PATTERN, handler: handleCapDatesIntent },
   { pattern: DOCUMENTS_PATTERN, handler: () => handleDocumentsIntent() },
   { pattern: COUNSELOR_PATTERN, handler: () => handleCounselorIntent() },
+  { pattern: UPDATES_PATTERN, handler: () => handleUpdatesIntent() },
 ];
 
 function detectKeywordIntent(normalized: string): IntentHandler | null {

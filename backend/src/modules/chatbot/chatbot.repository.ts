@@ -23,6 +23,12 @@ export interface CapScheduleRow {
   notes: string | null;
 }
 
+export interface ChatUpdateRow {
+  title: string;
+  published_date: string;
+  source_url: string | null;
+}
+
 export interface DocumentChecklistRow {
   document_name: string;
   description: string | null;
@@ -163,6 +169,22 @@ export async function getCapSchedule(
      ORDER BY cap_round ASC, start_date ASC NULLS LAST`,
     values,
     { name: 'chatbot.getCapSchedule' },
+  );
+  return result.rows;
+}
+
+/**
+ * Fetches the most recent live updates from the website so the chatbot 
+ * can quote them.
+ */
+export async function getLatestUpdates(limit = 3): Promise<ChatUpdateRow[]> {
+  const result = await query(
+    `SELECT title, TO_CHAR(published_date, 'Mon DD, YYYY') AS published_date, source_url
+     FROM updates
+     ORDER BY published_date DESC
+     LIMIT $1`,
+    [limit],
+    { name: 'chatbot.getLatestUpdates' },
   );
   return result.rows;
 }

@@ -11,6 +11,7 @@ const {
   searchRagChunksMock,
   logUnansweredQueryMock,
   generateGroundedAnswerMock,
+  getLatestUpdatesMock,
 } = vi.hoisted(() => ({
   scoreFaqsMock: vi.fn(),
   searchCollegesByNameMock: vi.fn(),
@@ -22,6 +23,7 @@ const {
   searchRagChunksMock: vi.fn(),
   logUnansweredQueryMock: vi.fn(),
   generateGroundedAnswerMock: vi.fn(),
+  getLatestUpdatesMock: vi.fn(),
 }));
 
 vi.mock('../src/modules/chatbot/chatbot.repository', () => ({
@@ -34,6 +36,7 @@ vi.mock('../src/modules/chatbot/chatbot.repository', () => ({
   getFeeSchedule: getFeeScheduleMock,
   searchRagChunks: searchRagChunksMock,
   logUnansweredQuery: logUnansweredQueryMock,
+  getLatestUpdates: getLatestUpdatesMock,
 }));
 
 vi.mock('../src/modules/chatbot/gemini.service', () => ({
@@ -78,6 +81,7 @@ beforeEach(() => {
   searchRagChunksMock.mockResolvedValue([]);
   logUnansweredQueryMock.mockResolvedValue(undefined);
   generateGroundedAnswerMock.mockResolvedValue(null);
+  getLatestUpdatesMock.mockResolvedValue([]);
 });
 
 describe('menu and numeric shortcuts', () => {
@@ -332,3 +336,55 @@ describe('fallback', () => {
     expect(logUnansweredQueryMock).not.toHaveBeenCalled();
   });
 });
+
+describe('cap schedule fallback logic', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('says the schedule hasn\'t been released if dates are unconfirmed and it is before September', async () => {
+    vi.setSystemTime(new Date(2026, 6, 15));
+    getCapScheduleMock.mockResolvedValue([
+      { is_confirmed: false, cap_round: 1, event_name: 'Registration' },
+    ]);
+
+    const reply = await getReply('when is cap round 1', 'website');
+    expect(reply.text).toContain('hasn\'t been released');
+  });
+
+  it('says the season has concluded if dates are unconfirmed and it is September or later', async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    getCapScheduleMock.mockResolvedValue([
+      { is_confirmed: false, cap_round: 1, event_name: 'Registration' },
+    ]);
+
+    const reply = await getReply('when is cap round 1', 'website');
+    expect(reply.text).toContain('season has concluded');
+  });
+});
+
+describe('latest updates intent', () => {
+  it('returns recent notices when requested', async () => {
+    getLatestUpdatesMock.mockResolvedValue([
+      { title: 'Notice 1', published_date: 'Sep 10, 2026' },
+      { title: 'Notice 2', published_date: 'Sep 09, 2026' },
+    ]);
+
+    const reply = await getReply('what is the latest update', 'website');
+    expect(reply.text).toContain('Notice 1');
+    expect(reply.text).toContain('Notice 2');
+    expect(getLatestUpdatesMock).toHaveBeenCalledWith(3);
+  });
+
+  it('returns a fallback message if no updates are found', async () => {
+    getLatestUpdatesMock.mockResolvedValue([]);
+
+    const reply = await getReply('what is the latest update', 'website');
+    expect(reply.text).toContain('no recent updates');
+  });
+});
+
