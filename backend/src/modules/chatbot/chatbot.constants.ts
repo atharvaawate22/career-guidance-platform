@@ -108,6 +108,11 @@ export const COLLEGE_ALIASES: Record<string, string> = {
   wce: 'Walchand College of Engineering, Sangli',
   walchand: 'Walchand College of Engineering, Sangli',
   dkte: 'Textile & Engineering Institute, Ichalkaranji',
+  // Formerly "Government College of Engineering, Aurangabad" — the city was
+  // renamed to Chhatrapati Sambhajinagar, but "GECA" (the old initialism) is
+  // still how students refer to it. Single row — verified against the live
+  // `colleges` table.
+  geca: 'Government College of Engineering, Chhatrapati Sambhajinagar',
 };
 
 export interface AcronymCandidate {
@@ -126,6 +131,58 @@ export interface AcronymCandidate {
  * that distinguishes one. Verified against the live `colleges` table (see
  * CHATBOT_ARCHITECTURE.md §2.9 for the enumeration this was built from).
  */
+// "DY Patil" names 8 genuinely distinct colleges — several trustee-run
+// institutions all founded by branches of the same family, none of them the
+// one obvious default the way COEP/VJTI are for their own acronyms. Shared
+// under both the 'dy' and 'dyp' keys below (both seen in real student
+// messages — "dy patil" typed with a space, "dyp akurdi" typed solid). Some
+// keywords are shared by more than one candidate on purpose (e.g.
+// "pratishthan", "talegaon"): resolveAmbiguousAcronym only auto-resolves on a
+// single distinguishing match, so an overlap just falls through to the full
+// list rather than guessing between the two it's shared by.
+const DY_PATIL_CANDIDATES: AcronymCandidate[] = [
+  {
+    label: 'Ajeenkya DY Patil School of Engineering, Lohegaon (Pune)',
+    hint: 'Ajeenkya DY Patil School of Engineering',
+    keywords: ['ajeenkya', 'lohegaon'],
+  },
+  {
+    label: 'D.Y. Patil College of Engineering and Technology, Kolhapur',
+    hint: 'D.Y. Patil College of Engineering and Technology, Kolhapur',
+    keywords: ['technology'],
+  },
+  {
+    label: 'D.Y. Patil Technical Campus, Talsande (Kolhapur)',
+    hint: 'D.Y.Patil Technical Campus, Faculty of Engineering & Faculty of Management,Talsande,Kolhapur',
+    keywords: ['talsande'],
+  },
+  {
+    label: "Dr. D Y Patil Pratishthan's College of Engineering, Kolhapur",
+    hint: "Dr. D Y Patil Pratishthan's College of Engineering, Kolhapur",
+    keywords: ['pratishthan'],
+  },
+  {
+    label: 'Dr. D. Y. Patil College of Engineering, Akurdi (Pune)',
+    hint: 'D.Y.Patil College of Engineering Akurdi',
+    keywords: ['akurdi'],
+  },
+  {
+    label: 'Dr. D. Y. Patil Institute of Technology, Pimpri (Pune)',
+    hint: 'Dr. D. Y. Patil Institute of Technology, Pimpri',
+    keywords: ['pimpri', 'unitech'],
+  },
+  {
+    label: 'Dr. D.Y. Patil Technical Campus, Varale, Talegaon (Pune)',
+    hint: 'Dr. D.Y. Patil Technical Campus, Varale, Talegaon',
+    keywords: ['varale'],
+  },
+  {
+    label: 'Dr.D.Y.Patil College Of Engineering & Innovation, Talegaon',
+    hint: 'Dr.D.Y.Patil College Of Engineering & Innovation,Talegaon',
+    keywords: ['innovation'],
+  },
+];
+
 export const AMBIGUOUS_COLLEGE_ACRONYMS: Record<string, AcronymCandidate[]> = {
   mit: [
     {
@@ -156,4 +213,8 @@ export const AMBIGUOUS_COLLEGE_ACRONYMS: Record<string, AcronymCandidate[]> = {
       keywords: ['vidyalankar', 'wadala', 'mumbai'],
     },
   ],
+  // Keyed on both 'dy' (typed with a space, "dy patil") and 'dyp' (typed
+  // solid, "dyp akurdi") — both seen in real student messages.
+  dy: DY_PATIL_CANDIDATES,
+  dyp: DY_PATIL_CANDIDATES,
 };

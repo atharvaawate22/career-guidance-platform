@@ -243,6 +243,82 @@ describe('college name resolution', () => {
   });
 });
 
+describe('DY Patil (a genuinely ambiguous acronym across 8 colleges)', () => {
+  it('resolves directly when the message names one distinguishing campus', async () => {
+    searchCollegesByNameMock.mockResolvedValue([
+      { college_code: '06272', name: "Dr. D. Y. Patil Pratishthan's D.Y.Patil College of Engineering Akurdi, Pune" },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: "Dr. D. Y. Patil Pratishthan's D.Y.Patil College of Engineering Akurdi, Pune", branch: 'Computer Engineering', cap_round: 1, percentile: 91.2 },
+    ]);
+
+    const reply = await getReply('cutoff for dy patil akurdi computer', 'website');
+
+    expect(reply.text).toContain('91.2');
+  });
+
+  it('prompts with all 8 campuses when nothing distinguishes one', async () => {
+    const reply = await getReply('cutoff for dy patil', 'website');
+
+    expect(reply.text).toMatch(/could mean a few different colleges/i);
+    expect(reply.text).toContain('Akurdi');
+    expect(reply.text).toContain('Talegaon');
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+  });
+
+  it('prompts rather than guesses when two different campus keywords both appear', async () => {
+    // Real message: "aissms mmcoe dy patil pimpari" — "pimpri"/"pimpari" and an
+    // MMCOE mention together don't distinguish a single DY Patil campus.
+    const reply = await getReply('cutoff for dyp akurdi pimpri computer', 'website');
+
+    expect(reply.text).toMatch(/could mean a few different colleges/i);
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves the "dyp" (no space) spelling the same way as "dy patil"', async () => {
+    searchCollegesByNameMock.mockResolvedValue([
+      { college_code: '06834', name: 'Dr.D.Y.Patil College Of Engineering & Innovation,Talegaon' },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: 'Dr.D.Y.Patil College Of Engineering & Innovation,Talegaon', branch: 'Computer Engineering', cap_round: 1, percentile: 89.9 },
+    ]);
+
+    const reply = await getReply('cutoff for dyp innovation talegaon computer', 'website');
+
+    expect(reply.text).toContain('89.9');
+  });
+
+  it('an explicit institute code wins over the ambiguous-acronym prompt', async () => {
+    searchCollegesByCodeMock.mockResolvedValue([
+      { college_code: '06991', name: 'Dr. D.Y. Patil Technical Campus, Varale, Talegaon, Pune' },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: 'Dr. D.Y. Patil Technical Campus, Varale, Talegaon, Pune', branch: 'Computer Engineering', cap_round: 1, percentile: 84.3 },
+    ]);
+
+    const reply = await getReply('cutoff for 06991 dy patil pune computer', 'website');
+
+    expect(reply.text).not.toMatch(/which one did you mean/i);
+    expect(reply.text).toContain('84.3');
+    expect(searchCollegesByNameMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('GECA alias', () => {
+  it('resolves the renamed-city acronym to its one college', async () => {
+    searchCollegesByNameMock.mockResolvedValue([
+      { college_code: '02008', name: 'Government College of Engineering, Chhatrapati Sambhajinagar' },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: 'Government College of Engineering, Chhatrapati Sambhajinagar', branch: 'Computer Engineering', cap_round: 1, percentile: 88.8 },
+    ]);
+
+    const reply = await getReply('cutoff for geca computer', 'website');
+
+    expect(reply.text).toContain('88.8');
+  });
+});
+
 describe('FAQ confidence rules', () => {
   /**
    * A confident FAQ overrides a matched keyword intent. "difference between

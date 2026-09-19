@@ -341,14 +341,10 @@ async function resolveCollege(
   normalized: string,
   words: string[],
 ): Promise<repo.CollegeMatch[]> {
-  // 1. Explicit institute code ("06834 dy pati collengg innovation talegaon").
-  const codeMatch = normalized.match(COLLEGE_CODE_PATTERN);
-  if (codeMatch) {
-    const byCode = await repo.searchCollegesByCode(codeMatch[0]);
-    if (byCode.length > 0) return byCode;
-  }
+  // An explicit institute code is handled earlier, in handleCutoffIntent —
+  // before the ambiguous-acronym check — so it isn't repeated here.
 
-  // 2. Known acronym (COEP, VJTI, ...)
+  // 1. Known acronym (COEP, VJTI, ...)
   for (const w of words) {
     if (COLLEGE_ALIASES[w]) {
       const matches = await repo.searchCollegesByName(COLLEGE_ALIASES[w]);
@@ -356,7 +352,7 @@ async function resolveCollege(
     }
   }
 
-  // 3. Strip stopwords/branch/category tokens, use what's left as a name hint.
+  // 2. Strip stopwords/branch/category tokens, use what's left as a name hint.
   const hint = words
     .filter((w) => !NAME_STOPWORDS.has(w) && !BRANCH_ALIASES[w] && !CATEGORY_ALIASES[w])
     .join(' ')
@@ -388,7 +384,7 @@ async function resolveCollege(
   // either.
   if (byName.length > MAX_NAME_MATCHES) return [];
 
-  // 4. Typo/partial-name fuzzy fallback, for a hint with zero literal
+  // 3. Typo/partial-name fuzzy fallback, for a hint with zero literal
   // substring matches (a misspelling, or a name quoted only partially).
   const fuzzy = await repo.searchCollegesByTokenSimilarity(hint);
   const [top, runnerUp] = fuzzy;
@@ -440,13 +436,23 @@ async function handleCutoffIntent(normalized: string, sessionId?: string): Promi
   const ladiesQuota = LADIES_QUOTA_PATTERN.test(normalized);
   const categoryLabel = ladiesQuota ? `${categoryToken} category (Ladies quota)` : `${categoryToken} category`;
 
-  // Shared acronyms (MIT, VIT) prompt for the specific college rather than
-  // silently resolving to one; skip straight to the prompt when still ambiguous.
-  const ambiguous = await resolveAmbiguousAcronym(normalized, words);
+  // An explicit institute code ("06834 dy pati collengg innovation talegaon")
+  // is the least ambiguous thing a student can give, so it's checked before
+  // even the ambiguous-acronym prompt — a message quoting both a code and a
+  // shared acronym like "dy patil" should resolve by the code, not stop to
+  // ask which DY Patil college was meant.
+  const codeMatch = normalized.match(COLLEGE_CODE_PATTERN);
+  const byCode = codeMatch ? await repo.searchCollegesByCode(codeMatch[0]) : [];
+
+  // Shared acronyms (MIT, VIT, DY Patil) prompt for the specific college
+  // rather than silently resolving to one; skip straight to the prompt when
+  // still ambiguous.
+  const ambiguous = byCode.length > 0 ? null : await resolveAmbiguousAcronym(normalized, words);
   if (ambiguous?.prompt) {
     return reply(ambiguous.prompt, true, ambiguous.chips ?? []);
   }
-  let collegeMatches = ambiguous?.resolved ?? (await resolveCollege(normalized, words));
+  let collegeMatches =
+    byCode.length > 0 ? byCode : (ambiguous?.resolved ?? (await resolveCollege(normalized, words)));
 
   // Nothing in THIS message named a college — fall back to what the session
   // last resolved, so a bare "computer" after "cutoff for COEP" still works.
