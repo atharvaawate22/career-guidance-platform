@@ -5,28 +5,45 @@ import { adminSessionWithCsrf, signAdminToken } from './helpers/auth';
 const SESSION_COOKIE = 'cgp_admin_session';
 
 const mockGetAllUpdates = vi.fn(async () => [
-  { id: 'u-1', title: 'MHT-CET Round 1 CAP schedule released', content: 'Details inside.', published_date: '2026-08-01', source_url: null },
+  {
+    id: 'u-1',
+    title: 'MHT-CET Round 1 CAP schedule released',
+    content: 'Details inside.',
+    published_date: '2026-08-01',
+    source_url: null,
+  },
 ]);
-const mockCreateUpdate = vi.fn(async (update: { title: string; content: string }) => ({
-  id: 'u-new',
-  title: update.title,
-  content: update.content,
-  published_date: '2026-08-15',
-  source_url: null,
-}));
+const mockCreateUpdate = vi.fn(
+  async (update: { title: string; content: string }) => ({
+    id: 'u-new',
+    title: update.title,
+    content: update.content,
+    published_date: '2026-08-15',
+    source_url: null,
+  }),
+);
 const mockUpdateUpdate = vi.fn(async (id: string) => {
   if (id === 'missing') return null;
-  return { id, title: 'Updated title', content: 'Updated content', published_date: '2026-08-15', edited_at: '2026-08-15T00:00:00.000Z', source_url: null };
+  return {
+    id,
+    title: 'Updated title',
+    content: 'Updated content',
+    published_date: '2026-08-15',
+    edited_at: '2026-08-15T00:00:00.000Z',
+    source_url: null,
+  };
 });
 const mockDeleteUpdate = vi.fn(async (id: string) => id !== 'missing');
 
 vi.mock('../src/modules/updates/updates.service', () => ({
-  UpdatesService: vi.fn().mockImplementation(() => ({
-    getAllUpdates: mockGetAllUpdates,
-    createUpdate: mockCreateUpdate,
-    updateUpdate: mockUpdateUpdate,
-    deleteUpdate: mockDeleteUpdate,
-  })),
+  UpdatesService: vi.fn().mockImplementation(function () {
+    return {
+      getAllUpdates: mockGetAllUpdates,
+      createUpdate: mockCreateUpdate,
+      updateUpdate: mockUpdateUpdate,
+      deleteUpdate: mockDeleteUpdate,
+    };
+  }),
 }));
 
 let app: typeof import('../src/server').app;
@@ -44,7 +61,10 @@ describe('GET /updates (public)', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data).toHaveLength(1);
-    expect(res.body.data[0]).toMatchObject({ id: 'u-1', title: 'MHT-CET Round 1 CAP schedule released' });
+    expect(res.body.data[0]).toMatchObject({
+      id: 'u-1',
+      title: 'MHT-CET Round 1 CAP schedule released',
+    });
   });
 });
 
@@ -108,7 +128,11 @@ describe('POST /admin/updates', () => {
       .post('/api/v1/admin/updates')
       .set('Cookie', cookies)
       .set(csrfHeader)
-      .send({ title: 'Title', content: 'Content body here.', source_url: 'not-a-valid-url' });
+      .send({
+        title: 'Title',
+        content: 'Content body here.',
+        source_url: 'not-a-valid-url',
+      });
 
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
@@ -120,13 +144,19 @@ describe('POST /admin/updates', () => {
       .post('/api/v1/admin/updates')
       .set('Cookie', cookies)
       .set(csrfHeader)
-      .send({ title: 'New CAP round announced', content: 'Full details of the new round.' });
+      .send({
+        title: 'New CAP round announced',
+        content: 'Full details of the new round.',
+      });
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.title).toBe('New CAP round announced');
     expect(mockCreateUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'New CAP round announced', content: 'Full details of the new round.' }),
+      expect.objectContaining({
+        title: 'New CAP round announced',
+        content: 'Full details of the new round.',
+      }),
     );
   });
 });

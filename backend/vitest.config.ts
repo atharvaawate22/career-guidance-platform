@@ -49,11 +49,19 @@ export default defineConfig({
        * the same reason: most repository functions are thin SQL wrappers that
        * only a live database would exercise.
        */
+      /**
+       * Re-baselined for vitest 5 (upgraded to clear the @vitest/mocker /
+       * esbuild advisories). The same 341 tests measured 60.79 / 72.25 / 55.00
+       * / 60.79 on vitest 3 and 55.51 / 45.23 / 51.65 / 56.20 on vitest 5 --
+       * v5's v8 coverage counts branches far more finely, so the drop is a
+       * measurement change, not lost coverage. Values below are just under the
+       * v5 numbers; raise them as tests are added.
+       */
       thresholds: {
-        statements: 60,
-        branches: 72,
-        functions: 54,
-        lines: 60,
+        statements: 55,
+        branches: 45,
+        functions: 51,
+        lines: 56,
       },
     },
   },
