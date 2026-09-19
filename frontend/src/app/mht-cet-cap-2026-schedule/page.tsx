@@ -77,7 +77,8 @@ const isChancesMoment = (event: CapScheduleEvent) =>
 
 function buildFaqs(events: CapScheduleEvent[]) {
   return events.map((event) => {
-    const question = `When is ${event.round_label} — ${event.event_label}?`;
+    const done = event.status === "completed";
+    const question = `When ${done ? "was" : "is"} ${event.round_label} — ${event.event_label}?`;
     const date = effectiveDate(event);
     let answer: string;
     if (event.result_note) {
@@ -87,7 +88,7 @@ function buildFaqs(events: CapScheduleEvent[]) {
         event.revised_date && event.planned_date && event.revised_date !== event.planned_date
           ? ` (revised from the originally planned ${formatDate(event.planned_date)})`
           : "";
-      answer = `${event.event_label} for ${event.round_label} is scheduled for ${formatDate(date)}${revisedNote}.`;
+      answer = `${event.event_label} for ${event.round_label} ${done ? "was" : "is"} scheduled for ${formatDate(date)}${revisedNote}.`;
     } else {
       answer = `The official date for ${event.event_label} (${event.round_label}) has not been released yet by DTE Maharashtra. This page is updated directly the moment it is.`;
     }
@@ -98,6 +99,9 @@ function buildFaqs(events: CapScheduleEvent[]) {
 export default async function CapSchedulePage() {
   const timeline = await fetchCapSchedule(CAP_SCHEDULE_YEAR);
   const events = timeline?.events ?? [];
+
+  // Every event done => the cycle is over and the page reads as an archive.
+  const concluded = events.length > 0 && events.every((e) => e.status === "completed");
 
   const rounds = new Map<string, CapScheduleEvent[]>();
   for (const event of events) {
@@ -151,11 +155,33 @@ export default async function CapSchedulePage() {
             MHT-CET CAP {CAP_SCHEDULE_YEAR} Schedule
           </h1>
           <p className="text-sm max-w-2xl" style={{ color: "var(--slate-500)" }}>
-            Registration, merit list, and every CAP round — option form, seat allotment result,
-            and seat acceptance — through the post-CAP admission cutoff date. This is a single,
-            continuously updated page: when DTE Maharashtra revises a date or declares a result,
-            we edit it here rather than posting a new article.
+            {concluded
+              ? "Registration, merit list, and every CAP round — option form, seat allotment result, and seat acceptance — through the final admission cut-off date. This is the complete record of the cycle; dates shown as revised were changed by DTE Maharashtra during the season."
+              : "Registration, merit list, and every CAP round — option form, seat allotment result, and seat acceptance — through the post-CAP admission cutoff date. This is a single, continuously updated page: when DTE Maharashtra revises a date or declares a result, we edit it here rather than posting a new article."}
           </p>
+          {concluded && (
+            <div
+              className="mt-4 rounded-xl p-4 text-sm max-w-2xl"
+              style={{
+                background: "var(--slate-100)",
+                color: "var(--slate-700)",
+                border: "1px solid var(--slate-200)",
+              }}
+            >
+              <strong>CAP {CAP_SCHEDULE_YEAR} has concluded.</strong> Admissions for the {CAP_SCHEDULE_YEAR}-
+              {String((CAP_SCHEDULE_YEAR + 1) % 100).padStart(2, "0")} academic year closed on the cut-off
+              date. The schedule for the next cycle will be published on a new page as soon as the State CET
+              Cell announces it — see{" "}
+              <Link href="/updates" style={{ color: "var(--primary-600)", textDecoration: "underline" }}>
+                Latest Updates
+              </Link>
+              , and use the{" "}
+              <Link href="/cutoffs" style={{ color: "var(--primary-600)", textDecoration: "underline" }}>
+                {CAP_SCHEDULE_YEAR} cutoffs
+              </Link>{" "}
+              to plan ahead.
+            </div>
+          )}
           {timeline?.last_updated && (
             <p
               className="text-xs font-semibold mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
@@ -286,7 +312,9 @@ export default async function CapSchedulePage() {
                               style={{ background: "linear-gradient(135deg, var(--primary-950), var(--slate-900))" }}
                             >
                               <p className="text-xs" style={{ color: "var(--slate-300)" }}>
-                                Check your chances for {roundLabel} with your MHT-CET percentile.
+                                {concluded
+                                  ? `See how ${roundLabel} closed — explore its final cutoffs and try the predictor.`
+                                  : `Check your chances for ${roundLabel} with your MHT-CET percentile.`}
                               </p>
                               <div className="flex gap-2 shrink-0">
                                 <Link
@@ -294,7 +322,7 @@ export default async function CapSchedulePage() {
                                   className="text-xs font-bold px-3.5 py-2 rounded-lg"
                                   style={{ background: "var(--primary-600)", color: "#ffffff" }}
                                 >
-                                  Check my chances →
+                                  {concluded ? "Try the predictor →" : "Check my chances →"}
                                 </Link>
                                 <Link
                                   href="/cutoffs"

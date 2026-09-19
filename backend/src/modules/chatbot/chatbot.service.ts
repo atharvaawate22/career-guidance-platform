@@ -534,11 +534,38 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
     );
   }
 
-  const lines = rows
-    .filter((r) => r.is_confirmed)
-    .map((r) => `Round ${r.cap_round} — ${r.event_name}: ${r.start_date ?? '?'} to ${r.end_date ?? '?'}`)
+  const confirmed = rows.filter((r) => r.is_confirmed);
+  const lines = confirmed
+    .map((r) => {
+      const start = formatCapDate(r.start_date);
+      const end = formatCapDate(r.end_date);
+      return `Round ${r.cap_round} — ${r.event_name}: ${start === end ? start : `${start} to ${end}`}`;
+    })
     .join('\n');
+
+  // Dates are 'YYYY-MM-DD' strings, so a plain string compare against today's
+  // IST date is a correct chronological compare.
+  const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const concluded = confirmed.every((r) => r.end_date !== null && r.end_date < todayIST);
+  if (concluded) {
+    return reply(
+      `The CAP ${ACTIVE_CAP_SCHEDULE_YEAR} admission season has concluded. Here are the final official dates:\n${lines}\n\n` +
+        "Dates for the next cycle will be announced by the State CET Cell — I'll have them once they're published.",
+      true,
+    );
+  }
   return reply(`CAP ${ACTIVE_CAP_SCHEDULE_YEAR} schedule:\n${lines}`, true);
+}
+
+/** 'YYYY-MM-DD' -> '02 Aug 2026'; the value has no time zone, so format it as UTC. */
+function formatCapDate(date: string | null): string {
+  if (!date) return '?';
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-IN', {
+    timeZone: 'UTC',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 async function handleUpdatesIntent(): Promise<ChatReply> {

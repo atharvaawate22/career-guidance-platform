@@ -365,6 +365,30 @@ describe('cap schedule fallback logic', () => {
     const reply = await getReply('when is cap round 1', 'website');
     expect(reply.text).toContain('season has concluded');
   });
+
+  it('gives the final dates when every confirmed date is in the past', async () => {
+    vi.setSystemTime(new Date(2026, 8, 19));
+    getCapScheduleMock.mockResolvedValue([
+      { is_confirmed: true, cap_round: 2, event_name: 'Seat Allotment Result', start_date: '2026-08-12', end_date: '2026-08-12' },
+      { is_confirmed: true, cap_round: 2, event_name: 'Reporting & Fee Payment', start_date: '2026-08-13', end_date: '2026-08-18' },
+    ]);
+
+    const reply = await getReply('when is cap round 2', 'website');
+    expect(reply.text).toContain('season has concluded');
+    expect(reply.text).toContain('Round 2 — Seat Allotment Result: 12 Aug 2026');
+    expect(reply.text).toContain('13 Aug 2026 to 18 Aug 2026');
+  });
+
+  it('does not claim the season concluded while confirmed dates are still ahead', async () => {
+    vi.setSystemTime(new Date(2026, 7, 10));
+    getCapScheduleMock.mockResolvedValue([
+      { is_confirmed: true, cap_round: 3, event_name: 'Seat Allotment Result', start_date: '2026-08-24', end_date: '2026-08-24' },
+    ]);
+
+    const reply = await getReply('when is cap round 3', 'website');
+    expect(reply.text).not.toContain('concluded');
+    expect(reply.text).toContain('Round 3 — Seat Allotment Result: 24 Aug 2026');
+  });
 });
 
 describe('latest updates intent', () => {

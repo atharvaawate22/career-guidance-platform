@@ -3,11 +3,11 @@ import { SITE_URL } from "@/lib/site";
 import { CAP_SCHEDULE_YEAR } from "@/lib/dataYear";
 
 const canonical = `${SITE_URL}/mht-cet-cap-2026-schedule`;
-const title = `MHT-CET CAP ${CAP_SCHEDULE_YEAR} Schedule — Round Dates, Seat Allotment & Results`;
+const title = `MHT-CET CAP ${CAP_SCHEDULE_YEAR} Schedule — Round Dates, Seat Allotment & Cut-off Date`;
 const description =
-  `Live MHT-CET CAP ${CAP_SCHEDULE_YEAR} schedule: registration, merit list, and CAP Round 1, 2, 3 ` +
-  `option form, seat allotment result dates, and seat acceptance deadlines. This page is updated ` +
-  `directly as DTE Maharashtra revises dates or declares results — no need to search for a new post.`;
+  `Complete MHT-CET CAP ${CAP_SCHEDULE_YEAR} schedule (archive): registration, merit list, option form, ` +
+  `seat allotment result and seat acceptance dates for all four CAP rounds, and the final admission ` +
+  `cut-off date. The ${CAP_SCHEDULE_YEAR} admission process has concluded.`;
 
 export const metadata: Metadata = {
   title,
