@@ -203,7 +203,43 @@ describe('college name resolution', () => {
     const reply = await getReply('cutoff for computer engineering', 'website');
 
     expect(searchCollegesByTokenSimilarityMock).not.toHaveBeenCalled();
+    expect(searchCollegesByNameMock).not.toHaveBeenCalled();
     expect(reply.text).toMatch(/which college/i);
+  });
+
+  it('shows the full shortlist for a substring hint with a small number of real matches', async () => {
+    searchCollegesByNameMock.mockResolvedValue([
+      { college_code: '01', name: 'A College of Engineering, Latur' },
+      { college_code: '02', name: 'B College of Engineering, Latur' },
+      { college_code: '03', name: 'C College of Engineering, Latur' },
+    ]);
+
+    const reply = await getReply('cutoff for latur college computer', 'website');
+
+    expect(reply.text).toContain('A College of Engineering, Latur');
+    expect(reply.text).toContain('B College of Engineering, Latur');
+    expect(reply.text).toContain('C College of Engineering, Latur');
+  });
+
+  it('asks for a more specific name instead of an arbitrary partial list when a substring hint is too broad', async () => {
+    // Six rows back from a MAX_NAME_MATCHES(5)+1 fetch signals "more than 5
+    // real matches exist" — a bare place name like "pune" alone, not a
+    // genuinely short candidate set.
+    searchCollegesByNameMock.mockResolvedValue([
+      { college_code: '01', name: 'One College, Pune' },
+      { college_code: '02', name: 'Two College, Pune' },
+      { college_code: '03', name: 'Three College, Pune' },
+      { college_code: '04', name: 'Four College, Pune' },
+      { college_code: '05', name: 'Five College, Pune' },
+      { college_code: '06', name: 'Six College, Pune' },
+    ]);
+
+    const reply = await getReply('cutoff for pune college computer', 'website');
+
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+    expect(searchCollegesByTokenSimilarityMock).not.toHaveBeenCalled();
+    expect(reply.text).toMatch(/which college/i);
+    expect(reply.text).not.toContain('College, Pune');
   });
 });
 

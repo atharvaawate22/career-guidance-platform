@@ -334,6 +334,9 @@ const GENERIC_INSTITUTION_WORDS = new Set([
 const FUZZY_MATCH_MIN_SCORE = 0.6;
 const FUZZY_MATCH_MIN_MARGIN = 0.12;
 
+/** Matches disambiguationChips' own display cap — a substring hint with more real matches than this is too broad to show as a shortlist. */
+const MAX_NAME_MATCHES = 5;
+
 async function resolveCollege(
   normalized: string,
   words: string[],
@@ -360,21 +363,33 @@ async function resolveCollege(
     .trim();
   if (hint.length < 3) return [];
 
-  const byName = await repo.searchCollegesByName(hint);
-  if (byName.length > 0) return byName;
-
-  // 4. Typo/partial-name fuzzy fallback. Only attempted once the hint still
-  // carries a genuinely distinguishing word — otherwise a message like
-  // "computer engineering" reduces to the single generic token "engineering"
-  // (present in most college names) and would score plausibly against
-  // whichever college happens to sort first, rather than correctly resolving
-  // to nothing.
+  // Gates both the substring search below and the fuzzy fallback — a hint
+  // reduced to only generic institution words ("computer engineering" minus
+  // its branch alias leaves just "engineering", present in most college
+  // names) can't distinguish one college from another, and neither search
+  // below is meaningful to even attempt.
   const hintTokens = hint.split(' ');
   const hasDistinguishingToken = hintTokens.some(
     (w) => w.length >= 4 && !GENERIC_INSTITUTION_WORDS.has(w),
   );
   if (!hasDistinguishingToken) return [];
 
+  // Fetched one over the cap so a result of MAX_NAME_MATCHES+1 unambiguously
+  // means "more exist" without a separate COUNT query.
+  const byName = await repo.searchCollegesByName(hint, MAX_NAME_MATCHES + 1);
+  if (byName.length > 0 && byName.length <= MAX_NAME_MATCHES) return byName;
+  // More than MAX_NAME_MATCHES real matches means the hint is a bare place
+  // name or similarly broad term ("latur" alone matches 5 colleges — a
+  // genuine, showable shortlist — but "pune" alone matches 52). The old
+  // behaviour silently returned only the 3 alphabetically-shortest names as
+  // if they were the complete candidate set, which reads as an arbitrary
+  // guess rather than the honest "be more specific" this actually calls for.
+  // Skip the fuzzy fallback too: a term this broad won't score usefully there
+  // either.
+  if (byName.length > MAX_NAME_MATCHES) return [];
+
+  // 4. Typo/partial-name fuzzy fallback, for a hint with zero literal
+  // substring matches (a misspelling, or a name quoted only partially).
   const fuzzy = await repo.searchCollegesByTokenSimilarity(hint);
   const [top, runnerUp] = fuzzy;
   const confident =
