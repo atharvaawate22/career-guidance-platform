@@ -58,6 +58,19 @@ const SESSION_ID_KEY = "avani_session_id";
 const TEASER_DISMISSED_KEY = "avani_teaser_dismissed";
 const OPENED_KEY = "avani_opened";
 
+function shouldShowQuickReplies(message: ChatMessage): boolean {
+  if (message.role !== "bot" || !message.quickReplies?.length) return false;
+
+  // The root menu already contains the numbered options in the message body.
+  // Repeating the same list as chips underneath makes the first view feel
+  // crowded, so keep quick replies for follow-up prompts only.
+  const isRootMenu =
+    message.text.includes("Reply with a number") &&
+    message.quickReplies.length >= 5;
+
+  return !isRootMenu;
+}
+
 function IconClose({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -381,11 +394,11 @@ export default function ChatWidget() {
           ref={panelRef}
           role="dialog"
           aria-label="Avani, CET Hub's admissions assistant"
-          className="fixed z-50 w-[min(92vw,420px)] flex flex-col overflow-hidden animate-scale-in"
+          className="fixed z-50 w-[min(92vw,380px)] flex flex-col overflow-hidden animate-scale-in"
           style={{
             right: "max(1.25rem, env(safe-area-inset-right))",
-            bottom: "calc(6.75rem + env(safe-area-inset-bottom, 0px))",
-            height: "min(610px, calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px)))",
+            bottom: "calc(6.25rem + env(safe-area-inset-bottom, 0px))",
+            height: "min(520px, calc(100dvh - 7.5rem - env(safe-area-inset-bottom, 0px)))",
             background: "var(--bg-primary)",
             border: "1px solid var(--slate-200)",
             borderRadius: "0.9rem",
@@ -399,21 +412,21 @@ export default function ChatWidget() {
           />
 
           <div className="relative shrink-0" style={{ background: "var(--bg-primary)", borderBottom: "1px solid var(--slate-100)" }}>
-            <div className="px-4 py-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="px-3.5 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="relative shrink-0">
-                  <Avatar size={42} />
+                  <Avatar size={36} />
                   <span
-                    className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full"
+                    className="absolute bottom-0 right-0 w-2 h-2 rounded-full"
                     style={{ background: "var(--success)", border: "2px solid #fff", boxShadow: "0 0 0 1px rgba(16,185,129,0.35)" }}
                     title="Available"
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[15px] leading-none text-[var(--slate-900)]" style={{ fontFamily: "var(--font-display)" }}>
+                  <p className="text-[14px] leading-none text-[var(--slate-900)]" style={{ fontFamily: "var(--font-display)" }}>
                     Avani
                   </p>
-                  <p className="mt-1.5 text-[11.5px] leading-tight truncate" style={{ color: "var(--slate-500)" }}>
+                  <p className="mt-1 text-[11px] leading-tight truncate" style={{ color: "var(--slate-500)" }}>
                     Academic admissions assistant
                   </p>
                 </div>
@@ -432,13 +445,6 @@ export default function ChatWidget() {
                 </button>
               </div>
             </div>
-            <div className="px-4 pb-3">
-              <div className="avani-context-strip">
-                <span>MHT-CET</span>
-                <span>CAP counselling</span>
-                <span>{CUTOFF_YEAR} cutoffs</span>
-              </div>
-            </div>
           </div>
 
           {/* role="log" + aria-live make Avani's replies actually reach a
@@ -453,7 +459,7 @@ export default function ChatWidget() {
             aria-live="polite"
             aria-relevant="additions"
             aria-label="Conversation with Avani"
-            className="avani-thread flex-1 overflow-y-auto px-3.5 py-4 space-y-3.5"
+            className="avani-thread flex-1 overflow-y-auto px-3 py-3.5 space-y-3"
           >
             {initialLoad && (
               <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center px-8">
@@ -469,10 +475,10 @@ export default function ChatWidget() {
 
             {messages.map((m, i) => (
               <div key={i} className={`avani-msg-in flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                {m.role === "bot" && <Avatar size={26} />}
-                <div className="max-w-[82%]">
+                {m.role === "bot" && <Avatar size={24} />}
+                <div className="max-w-[84%]">
                   <div
-                    className="px-3.5 py-2.5 text-[13.5px] leading-[1.55] whitespace-pre-line"
+                    className="px-3.5 py-2.5 text-[13px] leading-[1.5] whitespace-pre-line"
                     style={
                       m.role === "user"
                         ? {
@@ -492,9 +498,9 @@ export default function ChatWidget() {
                   >
                     {m.role === "bot" ? renderMessageText(m.text, closePanel) : m.text}
                   </div>
-                  {m.quickReplies && m.quickReplies.length > 0 && (
+                  {shouldShowQuickReplies(m) && (
                     <div className="flex flex-wrap gap-1.5 mt-2.5">
-                      {m.quickReplies.map((qr) => (
+                      {m.quickReplies!.map((qr) => (
                         <button
                           key={qr.value}
                           onClick={() => handleSend(qr.value)}
@@ -532,7 +538,7 @@ export default function ChatWidget() {
 
           <form
             onSubmit={(e) => { e.preventDefault(); handleSend(input); }}
-            className="shrink-0 px-3 pt-3 pb-2"
+            className="shrink-0 px-3 pt-2.5 pb-2"
             style={{ borderTop: "1px solid var(--slate-100)", background: "var(--bg-primary)" }}
           >
             <div className="flex items-center gap-2">
@@ -563,7 +569,7 @@ export default function ChatWidget() {
                 <IconSend />
               </button>
             </div>
-            <p className="flex items-center justify-center gap-1.5 mt-2 mb-0.5 text-[10.5px] leading-snug" style={{ color: "var(--slate-400)" }}>
+            <p className="flex items-center justify-center gap-1.5 mt-1.5 mb-0.5 text-[10px] leading-snug" style={{ color: "var(--slate-400)" }}>
               <span style={{ color: "var(--accent-600)" }}><IconShield /></span>
               Grounded in official {CUTOFF_YEAR} CAP records | guidance, not a guarantee
             </p>
