@@ -90,7 +90,9 @@ export const getOrLoadCutoffMeta = async (
   // v6 — added availableRounds; a v5-cached payload has no such field.
   // v7 — 13 colleges' city/city_normalized corrected (garbage college-name-as-city,
   // an orphaned town, a NULL row); force-busts any v6 payload cached before the fix.
-  const redisKey = `cutoffs:meta:v7:${cacheKey}`;
+  // v8 - 2026 CAP Rounds III+IV loaded (2026 is now a complete four-round year)
+  // and two new colleges added; force-busts any v7 payload that predates them.
+  const redisKey = `cutoffs:meta:v8:${cacheKey}`;
   const cached = metaCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;

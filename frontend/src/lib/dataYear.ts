@@ -23,7 +23,7 @@ export const CUTOFF_YEAR =
   process.env.NEXT_PUBLIC_CUTOFF_YEAR ||
   // Back-compat: the predictor and booking pages previously read this.
   process.env.NEXT_PUBLIC_PREDICTOR_YEAR ||
-  "2025";
+  "2026";
 
 /**
  * Academic-year span label: "2026" -> "2026-27".

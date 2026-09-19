@@ -4,7 +4,7 @@
  * TTL (see backend/src/modules/cutoffs/cutoffs.service.ts and
  * cutoffsMetaCache.ts). Every cache key this app writes for cutoffs data is
  * prefixed "cutoffs:" ("cutoffs:<filters>", "cutoffs:college:v1:...",
- * "cutoffs:meta:v7:..."), so one SCAN pattern covers all of them.
+ * "cutoffs:meta:v8:..."), so one SCAN pattern covers all of them.
  *
  * No-ops (with a log line) when REDIS_URL isn't set, matching the app's own
  * getRedis() behavior of treating "no Redis configured" as a soft feature

@@ -7,7 +7,7 @@
 
 /** The cutoff / predictor year currently active for public-facing queries. */
 export const ACTIVE_CUTOFF_YEAR = Number(
-  process.env.ACTIVE_CUTOFF_YEAR || '2025',
+  process.env.ACTIVE_CUTOFF_YEAR || '2026',
 );
 
 /**
