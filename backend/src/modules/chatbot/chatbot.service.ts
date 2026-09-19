@@ -590,6 +590,14 @@ async function handleDocumentsIntent(): Promise<ChatReply> {
   );
 }
 
+function handleScoreSharedIntent(): ChatReply {
+  return reply(
+    "Thanks for sharing your score! I can't run a prediction inside the chat, but the College Predictor at /predictor can — " +
+      'enter your percentile or rank, category, home university and preferred branches to see Safe / Target / Dream colleges.',
+    true,
+  );
+}
+
 function handlePredictorIntent(): ChatReply {
   return reply(
     'Use the College Predictor at /predictor — enter your percentile or rank, category, and preferred branches to see Safe / Target / Dream colleges.',
@@ -687,6 +695,19 @@ async function handleFeeIntent(): Promise<ChatReply> {
     .map((r) => `${r.seat_sequence}. ${r.label}: ₹${r.amount_inr.toLocaleString('en-IN')}`)
     .join('\n');
   const source = confirmed.find((r) => r.source_url)?.source_url;
+
+  // A single confirmed row means the fee is paid once, at the first acceptance
+  // (Admission Notice 5, 2026) — the escalating 2nd/3rd-seat wording below
+  // would be wrong for it.
+  if (confirmed.length === 1) {
+    return reply(
+      `The CAP ${ACTIVE_CAP_SCHEDULE_YEAR} seat acceptance fee is ₹${confirmed[0].amount_inr.toLocaleString('en-IN')} for every category. ` +
+        'You pay it once, online, when you accept your first seat — accepting a later seat (for example through betterment) does not add another fee. ' +
+        "It's a non-refundable processing fee." +
+        (source ? `\n\nSource: ${source}` : ''),
+      true,
+    );
+  }
 
   return reply(
     `The CAP ${ACTIVE_CAP_SCHEDULE_YEAR} seat acceptance fee is the same for every category — it only ` +
@@ -818,6 +839,16 @@ const PERSONALIZED_RECO_PATTERN =
 const FEE_PATTERN =
   /\bhow much (is|are|does|will|would|to pay|do i pay)\b|\bfee amount\b|\bfees? (amount|cost|structure|details)\b|\bseat acceptance fee\b|\bwhat (is|are) the fees?\b|\bcost of admission\b|\badmission fee\b/;
 
+/**
+ * A candidate typing their own score into the chat ("85.34% obc", "72 percentile
+ * sebc", "rank 48971", "82.71 general cse") — about one in seven of the messages
+ * the bot previously failed to answer. Routed to the predictor. Requires a unit
+ * (%, percentile, rank) or a leading number followed by a category word, and
+ * steps aside for anything mentioning a cutoff, which is a college lookup.
+ */
+const SCORE_INPUT_PATTERN =
+  /^(?!.*\bcut ?off\b)(?:.*(?:\b\d{1,3}(?:\.\d+)?\s*(?:%|percentile|persentile|%ile|%tile)|\brank\s*\d{3,6}\b|\b\d{3,6}\s*rank\b)|\d{2,3}(?:\.\d+)?\s+(?:open|general|obc|sebc|sc|st|ews|ntb|ntc|ntd|nt\d|vj|female|male)\b)/;
+
 const CUTOFF_PATTERN = /\b(cutoff|cut off|percentile)\b/;
 const CAP_DATE_PATTERN = /\b(cap round|cap date|round date|schedule|when is round|registration date|choice filling|seat allotment)\b/;
 const DOCUMENTS_PATTERN = /\b(document|documents|checklist|papers needed|required documents)\b/;
@@ -842,6 +873,7 @@ type IntentHandler = (normalized: string, sessionId?: string) => ChatReply | Pro
  */
 const KEYWORD_INTENTS: Array<{ pattern: RegExp; handler: IntentHandler }> = [
   { pattern: PREDICTOR_PATTERN, handler: () => handlePredictorIntent() },
+  { pattern: SCORE_INPUT_PATTERN, handler: () => handleScoreSharedIntent() },
   { pattern: FEE_PATTERN, handler: () => handleFeeIntent() },
   { pattern: CUTOFF_PATTERN, handler: handleCutoffIntent },
   { pattern: CAP_DATE_PATTERN, handler: handleCapDatesIntent },

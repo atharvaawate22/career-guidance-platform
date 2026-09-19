@@ -391,6 +391,38 @@ describe('cap schedule fallback logic', () => {
   });
 });
 
+describe('score shared in chat is sent to the predictor', () => {
+  it.each([
+    '85.34% obc',
+    '72 persentile, sebc category, home university pune',
+    'rank 48971 obc entc',
+    '82.71,general,cse',
+  ])('%p points the candidate to /predictor', async (message) => {
+    const reply = await getReply(message, 'website');
+    expect(reply.text).toContain('/predictor');
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+  });
+
+  it('leaves a cutoff lookup alone even when it mentions a percentile figure', async () => {
+    const reply = await getReply('cutoff for coep cs 95 percentile', 'website');
+    expect(reply.text).not.toContain('Thanks for sharing your score');
+  });
+});
+
+describe('seat acceptance fee', () => {
+  it('says the fee is paid once at the first acceptance when only one amount is confirmed', async () => {
+    getFeeScheduleMock.mockResolvedValue([
+      { seat_sequence: 1, label: '1st seat accepted', amount_inr: 1000, is_confirmed: true, source_url: 'https://example.test/notice' },
+      { seat_sequence: 2, label: '2nd seat accepted', amount_inr: 2000, is_confirmed: false, source_url: null },
+    ]);
+
+    const reply = await getReply('what is the seat acceptance fee', 'website');
+    expect(reply.text).toContain('₹1,000');
+    expect(reply.text).toContain('once');
+    expect(reply.text).not.toContain('₹2,000');
+  });
+});
+
 describe('latest updates intent', () => {
   it('returns recent notices when requested', async () => {
     getLatestUpdatesMock.mockResolvedValue([
