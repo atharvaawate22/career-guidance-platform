@@ -183,7 +183,94 @@ const DY_PATIL_CANDIDATES: AcronymCandidate[] = [
   },
 ];
 
+// "AISSMS" isn't spelled out anywhere in either college's official name (it
+// stands for "All India Shri Shivaji Memorial Society"), so neither the plain
+// substring search nor the fuzzy word-similarity fallback can find it —
+// same problem 'dkte' had, but here there are two distinct AISSMS colleges
+// rather than one, so it needs the prompt-based treatment instead of a plain
+// alias.
+const AISSMS_CANDIDATES: AcronymCandidate[] = [
+  {
+    label: 'AISSMS College of Engineering, Pune',
+    hint: "All India Shri Shivaji Memorial Society's College of Engineering, Pune",
+    keywords: ['college of engineering', 'coe'],
+  },
+  {
+    label: 'AISSMS Institute of Information Technology, Pune',
+    hint: "All India Shri Shivaji Memorial Society's Institute of Information Technology,Pune",
+    keywords: ['information technology', 'ioit'],
+  },
+];
+
+// The Sinhgad Technical Education Society runs 10 distinct colleges — more
+// than MAX_NAME_MATCHES (5) in chatbot.service.ts, so a bare "sinhgad" hint
+// hits that tier's "too broad, ask to be more specific" guard rather than
+// ever showing a shortlist. This is the one acronym that needs the dedicated
+// prompt UI (which has no such cap) simply to be listable at all, independent
+// of whether it's ambiguous in the MIT/VIT sense.
+//
+// One entry — Sinhgad Institute of Technology (Pune), which has no location
+// or founder name in it at all — has no keyword that safely distinguishes it
+// from the two "...Institute of Technology and Science..." campuses (its
+// name is a literal substring of both). Tapping it from the full list still
+// resolves it correctly, just via one extra disambiguation step rather than
+// directly; that's a real but minor rough edge, not a wrong-answer risk.
+const SINHGAD_CANDIDATES: AcronymCandidate[] = [
+  {
+    label: 'N. B. Navale Sinhgad College of Engineering, Kegaon (Solapur)',
+    hint: 'N. B. Navale Sinhgad College of Engineering, Kegaon, solapur',
+    keywords: ['kegaon'],
+  },
+  {
+    label: 'NBN Sinhgad Technical Institutes Campus, Pune',
+    hint: 'NBN Sinhgad Technical Institutes Campus, Pune',
+    keywords: ['nbn'],
+  },
+  {
+    label: 'Rasiklal M. Dhariwal Sinhgad Technical Institutes Campus, Warje (Pune)',
+    hint: 'Rasiklal M. Dhariwal Sinhgad Technical Institutes Campus, Warje, Pune',
+    keywords: ['rasiklal', 'dhariwal', 'warje'],
+  },
+  {
+    label: 'S K N Sinhgad College of Engineering, Korti (Pandharpur, Solapur)',
+    hint: 'S K N Sinhgad College of Engineering, Korti Tal. Pandharpur Dist Solapur',
+    keywords: ['korti', 'pandharpur'],
+  },
+  {
+    label: 'Sinhgad Academy of Engineering, Kondhwa (Pune)',
+    hint: 'Sinhgad Academy of Engineering, Kondhwa',
+    keywords: ['academy', 'kondhwa'],
+  },
+  {
+    label: 'Sinhgad College of Engineering, Vadgaon (Pune)',
+    hint: 'Sinhgad College of Engineering, Vadgaon (BK), Pune',
+    keywords: ['vadgaon'],
+  },
+  {
+    label: 'Sinhgad Institute of Technology (Pune)',
+    hint: 'Sinhgad Institute of Technology',
+    keywords: [],
+  },
+  {
+    label: 'Sinhgad Institute of Technology and Science, Narhe (Ambegaon, Pune)',
+    hint: 'Sinhgad Technical Education Society, Sinhgad Institute of Technology and Science, Narhe',
+    keywords: ['narhe', 'ambegaon'],
+  },
+  {
+    label: "Smt. Kashibai Navale College of Engineering, Vadgaon (Pune)",
+    hint: "Sinhgad Technical Education Society's Smt. Kashibai Navale College of Engineering,Vadgaon,Pune",
+    keywords: ['kashibai', 'navale', 'vadgaon'],
+  },
+  {
+    label: 'SKN Sinhgad Institute of Technology & Science, Kusgaon (Pune)',
+    hint: 'SKN Sinhgad Institute of Technology & Science, Kusgaon(BK),Pune',
+    keywords: ['kusgaon'],
+  },
+];
+
 export const AMBIGUOUS_COLLEGE_ACRONYMS: Record<string, AcronymCandidate[]> = {
+  aissms: AISSMS_CANDIDATES,
+  sinhgad: SINHGAD_CANDIDATES,
   mit: [
     {
       label: 'MIT Academy of Engineering, Alandi (Pune) — "MITAOE"',

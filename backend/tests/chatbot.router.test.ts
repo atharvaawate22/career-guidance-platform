@@ -304,6 +304,54 @@ describe('DY Patil (a genuinely ambiguous acronym across 8 colleges)', () => {
   });
 });
 
+describe('AISSMS (an acronym not spelled out in either college\'s name)', () => {
+  it('prompts with both AISSMS colleges when nothing distinguishes one', async () => {
+    const reply = await getReply('cutoff for aissms computer', 'website');
+
+    expect(reply.text).toMatch(/could mean a few different colleges/i);
+    expect(reply.text).toContain('AISSMS College of Engineering');
+    expect(reply.text).toContain('AISSMS Institute of Information Technology');
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves directly when the message names the Institute of Information Technology campus', async () => {
+    searchCollegesByNameMock.mockResolvedValue([
+      { college_code: '06282', name: "All India Shri Shivaji Memorial Society's Institute of Information Technology,Pune" },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: "All India Shri Shivaji Memorial Society's Institute of Information Technology,Pune", branch: 'Information Technology', cap_round: 1, percentile: 85.6 },
+    ]);
+
+    const reply = await getReply('cutoff for aissms information technology computer', 'website');
+
+    expect(reply.text).toContain('85.6');
+  });
+});
+
+describe('Sinhgad (10 colleges, exceeding the substring tier\'s own shortlist cap)', () => {
+  it('prompts with all 10 campuses when nothing distinguishes one', async () => {
+    const reply = await getReply('cutoff for sinhgad computer', 'website');
+
+    expect(reply.text).toMatch(/could mean a few different colleges/i);
+    expect(reply.text).toContain('Kegaon');
+    expect(reply.text).toContain('Kusgaon');
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves directly when the message names one campus', async () => {
+    searchCollegesByNameMock.mockResolvedValue([
+      { college_code: '06178', name: "Sinhgad Technical Education Society's Smt. Kashibai Navale College of Engineering,Vadgaon,Pune" },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: "Sinhgad Technical Education Society's Smt. Kashibai Navale College of Engineering,Vadgaon,Pune", branch: 'Computer Engineering', cap_round: 1, percentile: 94.7 },
+    ]);
+
+    const reply = await getReply('cutoff for sinhgad kashibai navale computer', 'website');
+
+    expect(reply.text).toContain('94.7');
+  });
+});
+
 describe('GECA alias', () => {
   it('resolves the renamed-city acronym to its one college', async () => {
     searchCollegesByNameMock.mockResolvedValue([
