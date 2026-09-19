@@ -91,6 +91,81 @@ export async function searchCollegesByTrigram(
   return result.rows;
 }
 
+/** Exact lookup by the 5-digit DTE institute code some students quote instead of a name. */
+export async function searchCollegesByCode(code: string): Promise<CollegeMatch[]> {
+  const result = await query(
+    `SELECT college_code, name FROM colleges WHERE college_code = $1 LIMIT 1`,
+    [code],
+    { name: 'chatbot.searchCollegesByCode' },
+  );
+  return result.rows;
+}
+
+export interface CollegeFuzzyMatch extends CollegeMatch {
+  score: number;
+}
+
+/**
+ * Token-level fuzzy fallback for a misspelled or partially-quoted college
+ * name ("ankusk shiksan sanstha" for "Ankush Shikshan Sanstha's...",
+ * "fabtech engineering college of sangola" missing the official "Technical
+ * Campus ... and Research" wording). `searchCollegesByTrigram`'s whole-string
+ * `similarity()` scores these too low to surface the right college, because
+ * one or two distinctive words get diluted by the rest of a long official
+ * name not being quoted at all.
+ *
+ * Scores each whitespace token in the hint against every college name with
+ * `word_similarity` (this direction — short string vs long string — is what
+ * lets a hint word match as a strong *substring* of the name rather than
+ * needing to resemble the whole name), then combines per-college with an
+ * IDF-style weight per token: a token that scores >= 0.6 against many
+ * colleges (generic words like "engineering", "college") is downweighted
+ * toward zero, while a token that distinguishes few colleges ("fabtech",
+ * "sangola") dominates the average. This is why "fabtech ... college ...
+ * sangola" resolves correctly even though "engineering"/"college" alone
+ * match hundreds of rows.
+ *
+ * Colleges table is small (~400 rows), so the token x college cross join
+ * this runs per call is cheap even at chat-request latency.
+ */
+export async function searchCollegesByTokenSimilarity(
+  hint: string,
+  limit = 3,
+): Promise<CollegeFuzzyMatch[]> {
+  const result = await query(
+    `WITH toks AS (
+       SELECT DISTINCT t AS tok
+       FROM unnest(regexp_split_to_array(lower($1), '[^a-z0-9]+')) t
+       WHERE length(t) >= 3 AND t !~ '^[0-9]+$'
+     ),
+     sim AS (
+       SELECT t.tok, c.college_code, c.name, word_similarity(t.tok, lower(c.name)) AS s
+       FROM toks t CROSS JOIN colleges c
+     ),
+     w AS (
+       SELECT tok,
+              GREATEST(ln((SELECT count(*) FROM colleges)::float8 / (1 + count(*) FILTER (WHERE s >= 0.6))), 0) AS wt
+       FROM sim
+       GROUP BY tok
+     )
+     SELECT s.college_code, s.name,
+            sum(s.s * w.wt) / nullif(sum(w.wt), 0) AS score
+     FROM sim s
+     JOIN w USING (tok)
+     GROUP BY s.college_code, s.name
+     HAVING sum(w.wt) > 0
+     ORDER BY score DESC NULLS LAST, LENGTH(s.name) ASC
+     LIMIT $2`,
+    [hint, limit],
+    { name: 'chatbot.searchCollegesByTokenSimilarity' },
+  );
+  return result.rows.map((r: { college_code: string; name: string; score: string }) => ({
+    college_code: r.college_code,
+    name: r.name,
+    score: Number(r.score),
+  }));
+}
+
 /**
  * Closing percentile per (course, CAP round) for a college + branch keyword.
  *

@@ -107,6 +107,7 @@ export const COLLEGE_ALIASES: Record<string, string> = {
   fcrit: 'Conceicao Rodrigues College of Engineering',
   wce: 'Walchand College of Engineering, Sangli',
   walchand: 'Walchand College of Engineering, Sangli',
+  dkte: 'Textile & Engineering Institute, Ichalkaranji',
 };
 
 export interface AcronymCandidate {

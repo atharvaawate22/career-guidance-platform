@@ -4,6 +4,8 @@ const {
   scoreFaqsMock,
   searchCollegesByNameMock,
   searchCollegesByTrigramMock,
+  searchCollegesByCodeMock,
+  searchCollegesByTokenSimilarityMock,
   getCutoffAnswerMock,
   getCapScheduleMock,
   getDocumentChecklistMock,
@@ -16,6 +18,8 @@ const {
   scoreFaqsMock: vi.fn(),
   searchCollegesByNameMock: vi.fn(),
   searchCollegesByTrigramMock: vi.fn(),
+  searchCollegesByCodeMock: vi.fn(),
+  searchCollegesByTokenSimilarityMock: vi.fn(),
   getCutoffAnswerMock: vi.fn(),
   getCapScheduleMock: vi.fn(),
   getDocumentChecklistMock: vi.fn(),
@@ -30,6 +34,8 @@ vi.mock('../src/modules/chatbot/chatbot.repository', () => ({
   scoreFaqs: scoreFaqsMock,
   searchCollegesByName: searchCollegesByNameMock,
   searchCollegesByTrigram: searchCollegesByTrigramMock,
+  searchCollegesByCode: searchCollegesByCodeMock,
+  searchCollegesByTokenSimilarity: searchCollegesByTokenSimilarityMock,
   getCutoffAnswer: getCutoffAnswerMock,
   getCapSchedule: getCapScheduleMock,
   getDocumentChecklist: getDocumentChecklistMock,
@@ -74,6 +80,8 @@ beforeEach(() => {
   scoreFaqsMock.mockResolvedValue(noFaqMatch());
   searchCollegesByNameMock.mockResolvedValue([]);
   searchCollegesByTrigramMock.mockResolvedValue([]);
+  searchCollegesByCodeMock.mockResolvedValue([]);
+  searchCollegesByTokenSimilarityMock.mockResolvedValue([]);
   getCutoffAnswerMock.mockResolvedValue([]);
   getCapScheduleMock.mockResolvedValue([]);
   getDocumentChecklistMock.mockResolvedValue([]);
@@ -141,6 +149,60 @@ describe('keyword router ordering', () => {
 
   it('asks which college when a cutoff question names none', async () => {
     const reply = await getReply('what is the cutoff', 'website');
+    expect(reply.text).toMatch(/which college/i);
+  });
+});
+
+describe('college name resolution', () => {
+  it('resolves by institute code before attempting any name match', async () => {
+    searchCollegesByCodeMock.mockResolvedValue([
+      { college_code: '06834', name: 'Dr.D.Y.Patil College Of Engineering & Innovation,Talegaon' },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: 'Dr.D.Y.Patil College Of Engineering & Innovation,Talegaon', branch: 'Computer Engineering', cap_round: 1, percentile: 90.1 },
+    ]);
+
+    const reply = await getReply('06834 dy pati collengg innovation talegaon cutoff cs branch', 'website');
+
+    expect(searchCollegesByCodeMock).toHaveBeenCalledWith('06834');
+    expect(searchCollegesByNameMock).not.toHaveBeenCalled();
+    expect(reply.text).toContain('90.1');
+  });
+
+  it('falls back to token-similarity fuzzy matching for a typo/partial college name', async () => {
+    searchCollegesByNameMock.mockResolvedValue([]);
+    searchCollegesByTokenSimilarityMock.mockResolvedValue([
+      { college_code: '06756', name: 'Fabtech Technical Campus College of Engineering and Research, Sangola', score: 0.82 },
+      { college_code: '06301', name: 'Some Other College of Engineering, Sangli', score: 0.4 },
+    ]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: 'Fabtech Technical Campus College of Engineering and Research, Sangola', branch: 'Computer Engineering', cap_round: 1, percentile: 78.4 },
+    ]);
+
+    const reply = await getReply('cutoff for fabtech engineering college of sangola computer', 'website');
+
+    expect(reply.text).toContain('78.4');
+  });
+
+  it('does not guess when the fuzzy top match has no clear margin over the runner-up', async () => {
+    searchCollegesByNameMock.mockResolvedValue([]);
+    searchCollegesByTokenSimilarityMock.mockResolvedValue([
+      { college_code: '01', name: 'A College of Engineering, Latur', score: 0.65 },
+      { college_code: '02', name: 'B College of Engineering, Latur', score: 0.6 },
+    ]);
+
+    const reply = await getReply('cutoff for latur college computer', 'website');
+
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+    expect(reply.text).toMatch(/which college/i);
+  });
+
+  it('does not run the fuzzy fallback when nothing in the hint is distinguishing', async () => {
+    searchCollegesByNameMock.mockResolvedValue([]);
+
+    const reply = await getReply('cutoff for computer engineering', 'website');
+
+    expect(searchCollegesByTokenSimilarityMock).not.toHaveBeenCalled();
     expect(reply.text).toMatch(/which college/i);
   });
 });

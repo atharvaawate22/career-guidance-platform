@@ -307,11 +307,45 @@ async function resolveAmbiguousAcronym(
   return null;
 }
 
+/** A 5-digit DTE institute code — the least ambiguous thing a student can quote, so it's checked before any name-based guess. */
+const COLLEGE_CODE_PATTERN = /\b\d{5}\b/;
+
+/**
+ * Words that are structurally part of almost every college name and carry no
+ * identifying information on their own. Kept separate from NAME_STOPWORDS
+ * (which also feeds narrowCoursesByMessage's course-name matching) so this
+ * gate affects only college resolution — stripping "engineering"/"institute"
+ * from course-name narrowing would lose real differentiators there.
+ */
+const GENERIC_INSTITUTION_WORDS = new Set([
+  'college', 'colleges', 'engineering', 'technology', 'institute', 'university', 'polytechnic', 'campus',
+]);
+
+// Picked against real previously-unanswered messages — see
+// scripts/_eval_college_matching.ts (not committed; a throwaway harness that
+// prints resolveCollege's candidate scores for a curated set of real
+// messages next to the intended college). A single confident-vs-nothing gate
+// rather than a middle "ambiguous, show a list" tier: the fuzzy fallback's
+// job is to find a typo'd/partial name that clearly points at ONE college,
+// not to turn a weak, coincidental word overlap into a disambiguation prompt
+// (several negative-control messages, e.g. "all in pune" and "institute
+// code", score respectably against 2-3 tied or near-tied colleges — genuine
+// multi-college ambiguity is what AMBIGUOUS_COLLEGE_ACRONYMS already covers).
+const FUZZY_MATCH_MIN_SCORE = 0.6;
+const FUZZY_MATCH_MIN_MARGIN = 0.12;
+
 async function resolveCollege(
   normalized: string,
   words: string[],
 ): Promise<repo.CollegeMatch[]> {
-  // 1. Known acronym (COEP, VJTI, ...)
+  // 1. Explicit institute code ("06834 dy pati collengg innovation talegaon").
+  const codeMatch = normalized.match(COLLEGE_CODE_PATTERN);
+  if (codeMatch) {
+    const byCode = await repo.searchCollegesByCode(codeMatch[0]);
+    if (byCode.length > 0) return byCode;
+  }
+
+  // 2. Known acronym (COEP, VJTI, ...)
   for (const w of words) {
     if (COLLEGE_ALIASES[w]) {
       const matches = await repo.searchCollegesByName(COLLEGE_ALIASES[w]);
@@ -319,7 +353,7 @@ async function resolveCollege(
     }
   }
 
-  // 2. Strip stopwords/branch/category tokens, use what's left as a name hint.
+  // 3. Strip stopwords/branch/category tokens, use what's left as a name hint.
   const hint = words
     .filter((w) => !NAME_STOPWORDS.has(w) && !BRANCH_ALIASES[w] && !CATEGORY_ALIASES[w])
     .join(' ')
@@ -329,7 +363,25 @@ async function resolveCollege(
   const byName = await repo.searchCollegesByName(hint);
   if (byName.length > 0) return byName;
 
-  return repo.searchCollegesByTrigram(hint);
+  // 4. Typo/partial-name fuzzy fallback. Only attempted once the hint still
+  // carries a genuinely distinguishing word — otherwise a message like
+  // "computer engineering" reduces to the single generic token "engineering"
+  // (present in most college names) and would score plausibly against
+  // whichever college happens to sort first, rather than correctly resolving
+  // to nothing.
+  const hintTokens = hint.split(' ');
+  const hasDistinguishingToken = hintTokens.some(
+    (w) => w.length >= 4 && !GENERIC_INSTITUTION_WORDS.has(w),
+  );
+  if (!hasDistinguishingToken) return [];
+
+  const fuzzy = await repo.searchCollegesByTokenSimilarity(hint);
+  const [top, runnerUp] = fuzzy;
+  const confident =
+    top &&
+    top.score >= FUZZY_MATCH_MIN_SCORE &&
+    (!runnerUp || top.score - runnerUp.score >= FUZZY_MATCH_MIN_MARGIN);
+  return confident ? [{ college_code: top.college_code, name: top.name }] : [];
 }
 
 /**
