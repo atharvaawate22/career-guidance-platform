@@ -14,7 +14,8 @@ the live database only as a revert backup and is intentionally NOT recreated
 by this baseline"). The migration that did ship as `013` is
 `013_secure_legacy_tables.sql`, and it is unrelated to this redesign: it
 enables RLS on `platform_settings` and `schema_migrations`. `cutoff_data`
-itself has had RLS with a public-read policy since March 2026 (see
+itself had RLS with a public-read policy from March 2026 until migration
+`028_lock_legacy_cutoff_data.sql` dropped the policy (see
 [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md) §2.1). Treat §5 below as
 historical planning intent, not as a description of what shipped.
 **Source data:** `cutoff_pdfs/Round 1.pdf` … `Round 4.pdf` — official MHT-CET CAP **Cut Off Lists**, A.Y. 2025-26.

@@ -58,16 +58,16 @@ category/gender/home_university/percentile) is superseded. It is kept in the
 live database only as a revert backup — not queried by the application and not
 recreated by `schema.sql`.
 
-Its RLS state is often misdescribed as "locked", so precisely: RLS was enabled
-on it in the March 2026 security pass (commit `1d8d9e6`, back when it was part
-of the baseline schema) **with a public-read policy**
-(`cutoff_data_public_read`, `FOR SELECT USING (true)`). So it is read-only
-through the Supabase Data API, not locked: anyone with the anon key can still
-read it (the same public cutoff data the site shows), but nobody can write it.
-Migration `013_secure_legacy_tables.sql` does not touch this table despite its
-name — it enables RLS on `platform_settings` and `schema_migrations`. If the
-backup should become fully unreadable through the Data API, drop that policy
-(or drop the table once the revert window is over).
+It is locked through the Supabase Data API: RLS enabled with **no policy**, so
+the anon/authenticated roles can neither read nor write it, while the backend's
+privileged connection and direct SQL still can (the revert path is intact).
+History, since it was long misdescribed: RLS was enabled in the March 2026
+security pass (commit `1d8d9e6`) together with a public-read policy
+(`cutoff_data_public_read`), so for months it was readable by anyone with the
+anon key. Migration `028_lock_legacy_cutoff_data.sql` dropped that policy on
+2026-09-27. Migration `013_secure_legacy_tables.sql` never touched this table
+despite its name — it enables RLS on `platform_settings` and
+`schema_migrations`. Drop the table itself once the revert window is over.
 
 ---
 
