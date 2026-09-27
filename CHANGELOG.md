@@ -5,7 +5,10 @@
 ### Added
 - Cutoffs database redesign: normalized `colleges` / `courses` / `cutoffs`
   schema replacing the flat `cutoff_data` table (migration 012); legacy table
-  RLS-locked and kept only as a revert backup, not dropped (migration 013)
+  kept only as a revert backup, not dropped (its RLS, with a public-read
+  policy, dates from the March 2026 security pass, not from a migration)
+- RLS on `platform_settings` (public read) and `schema_migrations` (no policy)
+  (migration 013)
 - CAP schedule table for registration/choice-filling/allotment dates (migration 014)
 - Document checklist content (migration 015)
 - Chatbot: rule-based FAQ matching + confidence-scored fallback, `unanswered_queries`

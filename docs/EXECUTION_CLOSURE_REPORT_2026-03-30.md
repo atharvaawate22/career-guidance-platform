@@ -19,9 +19,13 @@
 > production on the day it was written, it found 13 real violations — 9
 > college names that leaked into the `city` column during parsing, one town
 > mapped to a since-orphaned non-district value, one inconsistent duplicate,
-> and one NULL row. See the script's own header comment for why no code in
-> this repo actually computes the district mapping seen in production, and
-> for what a maintainer should do with each violation class.
+> and one NULL row. See the script's own header comment for what a maintainer
+> should do with each violation class.
+>
+> **Resolved (2026-09-27):** at the time of that note no code in this repo
+> computed the district mapping seen in production (it came from a manual
+> data pass). The loaders now share `backend/scripts/lib/cityNormalization.js`,
+> which reproduces it; see the header of `check_city_normalization.ts`.
 
 ## 1. Scope and Outcome
 

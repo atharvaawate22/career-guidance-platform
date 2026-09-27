@@ -113,18 +113,12 @@ const availabilityCache = publicCache({
 });
 
 app.use(
-  // Allow large JSON bodies for the admin bulk-cutoff import endpoint only.
-  // The global 50 kb parser below would reject a full-year import (~6–7 MB) with 413.
-  // body-parser sets req._body = true after parsing, so the global parser below
-  // skips re-parsing for requests already handled here.
-  '/api/v1/admin/cutoffs',
-  express.json({ limit: '20mb' }),
-);
-app.use(
   // The WhatsApp webhook needs the raw request bytes to verify Meta's
   // X-Hub-Signature-256 header (see whatsapp.middleware.ts) — JSON.parse
   // output can't be re-serialized byte-identically, so the raw buffer must
-  // be captured at parse time, same reasoning as the admin/cutoffs override above.
+  // be captured at parse time. Mounted before the global parser below:
+  // body-parser sets req._body = true after parsing, so the global parser
+  // skips requests already handled here.
   '/api/v1/whatsapp/webhook',
   express.json({ verify: captureRawBody }),
 );

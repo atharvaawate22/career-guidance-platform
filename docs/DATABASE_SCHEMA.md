@@ -54,10 +54,20 @@ full rationale and source-data mapping.
 - `idx_courses_college`, `idx_courses_branch`, trigram index on course_name
 
 **Legacy table:** the old flat `cutoff_data` table (year/college_name/branch/
-category/gender/home_university/percentile) is superseded. It's RLS-locked
-(migration `013_secure_legacy_tables.sql`) and kept in the live database only
-as a revert backup — not queried by the application and not recreated by
-`schema.sql`.
+category/gender/home_university/percentile) is superseded. It is kept in the
+live database only as a revert backup — not queried by the application and not
+recreated by `schema.sql`.
+
+Its RLS state is often misdescribed as "locked", so precisely: RLS was enabled
+on it in the March 2026 security pass (commit `1d8d9e6`, back when it was part
+of the baseline schema) **with a public-read policy**
+(`cutoff_data_public_read`, `FOR SELECT USING (true)`). So it is read-only
+through the Supabase Data API, not locked: anyone with the anon key can still
+read it (the same public cutoff data the site shows), but nobody can write it.
+Migration `013_secure_legacy_tables.sql` does not touch this table despite its
+name — it enables RLS on `platform_settings` and `schema_migrations`. If the
+backup should become fully unreadable through the Data API, drop that policy
+(or drop the table once the revert window is over).
 
 ---
 

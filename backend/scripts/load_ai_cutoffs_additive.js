@@ -21,6 +21,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { Client } = require('pg');
 const { bustCutoffsCache } = require('./lib/bustCutoffsCache');
 const { isValidCutoffRow } = require('./lib/validateCutoffRow');
+const { cityNormalizedFor, reportUnresolvedDistricts } = require('./lib/cityNormalization');
 
 function parseDbUrl(url) {
   const noScheme = url.replace(/^postgres(ql)?:\/\//, '');
@@ -83,6 +84,13 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
   );
   console.log('before:', beforeCounts[0]);
 
+  // District for city_normalized (see scripts/lib/cityNormalization.js).
+  // Only colleges not already in the database are warned about: the upsert below keeps their stored value.
+  const existingCollegeCodes = new Set(
+    (await client.query('SELECT college_code FROM colleges')).rows.map((r) => r.college_code),
+  );
+  const unresolvedDistricts = [];
+
   // ── colleges: upsert, filling only blanks ─────────────────────────────
   await batchInsert(client, 'colleges',
     ['college_code', 'name', 'status', 'minority_type', 'minority_group', 'home_university', 'city', 'city_normalized'],
@@ -90,7 +98,7 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
       college_code: c.college_code, name: c.name, status: nz(c.status),
       minority_type: nz(c.minority_type), minority_group: nz(c.minority_group),
       home_university: nz(c.home_university), city: nz(c.city),
-      city_normalized: c.city ? c.city.trim().toLowerCase() : null,
+      city_normalized: cityNormalizedFor(c, existingCollegeCodes, unresolvedDistricts),
     })),
     `ON CONFLICT (college_code) DO UPDATE SET
        name             = COALESCE(colleges.name, EXCLUDED.name),
@@ -100,6 +108,8 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
        home_university  = COALESCE(colleges.home_university, EXCLUDED.home_university),
        city             = COALESCE(colleges.city, EXCLUDED.city),
        city_normalized  = COALESCE(colleges.city_normalized, EXCLUDED.city_normalized)`);
+
+  reportUnresolvedDistricts(unresolvedDistricts);
 
   // ── courses: insert new, skip existing ─────────────────────────────────
   await batchInsert(client, 'courses',

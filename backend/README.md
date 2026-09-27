@@ -96,20 +96,25 @@ The API runs on `http://localhost:5000` by default.
 Main endpoints:
 
 - `GET /` - API information
-- `GET /api/health` - Health check
-- `GET /api/updates` - Get all updates
-- `GET /api/cutoffs` - Get cutoff data (with filters)
-- `POST /api/predict` - Predict college options
-- `GET /api/guides` - Get available guides
-- `POST /api/guides/download` - Download a guide
-- `POST /api/bookings` - Create a booking
-- `POST /api/admin/login` - Admin login
+- `GET /api/v1/health` - Health check
+- `GET /api/v1/updates` - Get all updates
+- `GET /api/v1/cutoffs` - Get cutoff data (with filters)
+- `POST /api/v1/predict` - Predict college options
+- `GET /api/v1/guides` - Get available guides
+- `POST /api/v1/guides/download` - Download a guide
+- `POST /api/v1/bookings` - Create a booking
+- `POST /api/v1/admin/login` - Admin login
 
-Protected admin endpoints (require JWT):
+Protected admin endpoints (require the admin session cookie, plus the
+`x-csrf-token` header on writes):
 
-- `POST /api/admin/updates` - Create update
-- `POST /api/admin/cutoffs` - Bulk insert cutoffs
-- `POST /api/admin/guides` - Create guide
+- `POST /api/v1/admin/updates` - Create update
+- `POST /api/v1/admin/guides` - Create guide
+
+Cutoff data has no admin endpoint: it is loaded offline by the ETL pipeline
+(`scripts/parse_cutoffs_v2.py` / `scripts/parse_ai_cutoffs.py`, then
+`backend/scripts/load_ai_cutoffs_additive.js`). The full endpoint list is in
+[`docs/API_SPEC.md`](../docs/API_SPEC.md).
 
 ## Testing
 

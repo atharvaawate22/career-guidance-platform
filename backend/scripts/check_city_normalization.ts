@@ -10,21 +10,20 @@
  * see the stale-claim notes at the top of that file and in
  * docs/PRODUCTION_AUDIT.md and docs/deployment.md. This closes that gap.
  *
- * IMPORTANT CONTEXT this script's existence should not paper over: nothing in
- * this repository currently computes a real town->district mapping.
- * backend/scripts/load_cutoffs.js, load_cutoffs_incremental.js and
- * load_ai_cutoffs_additive.js all set `city_normalized` as a plain
- * `city.trim().toLowerCase()` -- e.g. "Warora" becomes "warora", not
- * "chandrapur", the district Warora actually sits in. The correct
- * district-level values seen in production today were arrived at OUTSIDE this
- * repo (a manual data pass, at some point, against the live database) and are
- * not reproducible by re-running the loaders. So this script cannot verify
- * "did the code normalize correctly" -- there is no such code. What it CAN do,
- * and does, is verify that the DATA IN PRODUCTION today still resolves to a
- * real district, so a future load (a new admission cycle, an additive
- * incremental load) that reverts to the loaders' plain lower-case behaviour is
- * caught immediately instead of silently degrading the city filter one row at
- * a time.
+ * Context: the district mapping itself lives in scripts/lib/cityNormalization.js,
+ * shared by all three loaders (load_cutoffs.js, load_cutoffs_incremental.js,
+ * load_ai_cutoffs_additive.js). Until 2026-09-27 the loaders wrote a plain
+ * `city.trim().toLowerCase()` (so "Warora" became "warora", not "chandrapur"),
+ * and the correct district values in production came from a manual data pass
+ * that re-running a loader could not reproduce. The resolver now reproduces
+ * them: tested against all 390 colleges as if each were new, it places 337
+ * correctly, places none wrongly, and leaves 53 NULL (no usable location in
+ * the name, or conflicting signals) with a loud warning at load time.
+ *
+ * Those NULLs are exactly what this guard exists for. It verifies the DATA in
+ * the database, not the code: every `city_normalized` must be a district from
+ * the same shared list the loaders use, so a load that could not place a new
+ * college fails CI here instead of silently degrading the city filter.
  *
  * Read-only. Never mutates colleges or any other table.
  *
@@ -39,69 +38,13 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 import { Pool } from 'pg';
 
-/**
- * Maharashtra's 36 official revenue districts (post the 2014 Thane/Palghar
- * split), lower-cased to match how `city_normalized` is stored, PLUS one
- * deliberate grouping exception.
- *
- * Two things a future maintainer should NOT "fix":
- *
- * 1. Aurangabad and Osmanabad were officially renamed to Chhatrapati
- *    Sambhajinagar and Dharashiv in 2023. The data in this database still
- *    uses the pre-rename names throughout (city, city_normalized, and the
- *    frontend's city dropdown all say "Aurangabad"/"Osmanabad"), so the old
- *    names are the canonical values HERE -- renaming them in this list alone
- *    would make every Aurangabad/Osmanabad college fail this check without
- *    changing a single row of actual data.
- *
- * 2. "navi mumbai" is not an official revenue district -- administratively
- *    Navi Mumbai spans parts of Thane and Raigad. It is listed here anyway
- *    because the loaders' city_normalized already buckets it separately (13
- *    colleges as of writing), and collapsing it into "thane"/"raigad" would
- *    be a real, visible change to the city filter, not a data-integrity fix.
- *    If Navi Mumbai colleges should file under Thane/Raigad instead, that is
- *    a product decision to make deliberately, not a side effect of this
- *    guard.
- */
-const MAHARASHTRA_DISTRICTS: ReadonlySet<string> = new Set([
-  'ahmednagar',
-  'akola',
-  'amravati',
-  'aurangabad', // official: Chhatrapati Sambhajinagar — see note above
-  'beed',
-  'bhandara',
-  'buldhana',
-  'chandrapur',
-  'dhule',
-  'gadchiroli',
-  'gondia',
-  'hingoli',
-  'jalgaon',
-  'jalna',
-  'kolhapur',
-  'latur',
-  'mumbai',
-  'nagpur',
-  'nanded',
-  'nandurbar',
-  'nashik',
-  'osmanabad', // official: Dharashiv — see note above
-  'palghar',
-  'parbhani',
-  'pune',
-  'raigad',
-  'ratnagiri',
-  'sangli',
-  'satara',
-  'sindhudurg',
-  'solapur',
-  'thane',
-  'wardha',
-  'washim',
-  'yavatmal',
-  // Deliberate grouping exception, not an official district — see note above.
-  'navi mumbai',
-]);
+// The district list is shared with the loaders so the two can never drift
+// apart; see scripts/lib/cityNormalization.js for the list and for why
+// aurangabad/osmanabad and "navi mumbai" are deliberate.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { MAHARASHTRA_DISTRICTS } = require('./lib/cityNormalization') as {
+  MAHARASHTRA_DISTRICTS: ReadonlySet<string>;
+};
 
 interface CityGroupRow {
   city_normalized: string | null;
@@ -169,14 +112,13 @@ async function main(): Promise<void> {
 
     console.error(
       '\nEach row above needs one of:\n' +
-        '  - a corrected `city` value at the source (e.g. a college name leaked\n' +
-        '    into the city column during parsing), then a reload; or\n' +
-        '  - a corrected `city_normalized` value, if the town genuinely maps to a\n' +
-        '    real district that is missing from MAHARASHTRA_DISTRICTS in this\n' +
-        '    script (unlikely — the list covers all 36); or\n' +
-        '  - adding the value to MAHARASHTRA_DISTRICTS here, WITH A COMMENT\n' +
-        '    explaining why, if it is a deliberate grouping exception like\n' +
-        '    "navi mumbai" above.\n',
+        '  - the town added to TOWN_TO_DISTRICT in scripts/lib/cityNormalization.js,\n' +
+        '    then a reload (so future loads place it too); or\n' +
+        '  - colleges.city_normalized set directly to the district, for a one-off\n' +
+        '    (e.g. a college name with no location in it); or\n' +
+        '  - the value added to MAHARASHTRA_DISTRICTS in that same file, WITH A\n' +
+        '    COMMENT explaining why, only if it is a deliberate grouping exception\n' +
+        '    like "navi mumbai".\n',
     );
     process.exitCode = 1;
   } finally {

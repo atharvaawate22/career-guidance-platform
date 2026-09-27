@@ -20,6 +20,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { Client } = require('pg');
 const { bustCutoffsCache } = require('./lib/bustCutoffsCache');
 const { isValidCutoffRow } = require('./lib/validateCutoffRow');
+const { cityNormalizedFor, reportUnresolvedDistricts } = require('./lib/cityNormalization');
 
 function parseArgs(argv) {
   const out = {};
@@ -106,6 +107,13 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
   console.log('BEFORE — total rows:', before, '| cutoffs by year:',
     beforeYear.rows.map((r) => `${r.academic_year}=${r.n}`).join(' ') || '(none)');
 
+  // District for city_normalized (see scripts/lib/cityNormalization.js).
+  // Only colleges not already in the database are warned about: the insert below skips them (ON CONFLICT DO NOTHING).
+  const existingCollegeCodes = new Set(
+    (await client.query('SELECT college_code FROM colleges')).rows.map((r) => r.college_code),
+  );
+  const unresolvedDistricts = [];
+
   // ── colleges: reuse existing college_code rows, insert genuinely new ones ──
   await batchInsert(client, 'colleges',
     ['college_code', 'name', 'status', 'minority_type', 'minority_group', 'home_university', 'city', 'city_normalized'],
@@ -113,9 +121,11 @@ async function batchInsert(client, table, cols, rows, conflict = '') {
       college_code: c.college_code, name: c.name, status: nz(c.status),
       minority_type: nz(c.minority_type), minority_group: nz(c.minority_group),
       home_university: nz(c.home_university), city: nz(c.city),
-      city_normalized: c.city ? c.city.trim().toLowerCase() : null,
+      city_normalized: cityNormalizedFor(c, existingCollegeCodes, unresolvedDistricts),
     })),
     'ON CONFLICT (college_code) DO NOTHING');
+
+  reportUnresolvedDistricts(unresolvedDistricts);
 
   // ── courses: reuse existing choice_code rows, insert genuinely new ones ──
   await batchInsert(client, 'courses',

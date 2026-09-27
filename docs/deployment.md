@@ -79,9 +79,11 @@ about to release against — CI runs it the same way, gated on the
 `DATABASE_URL` secret in `.github/workflows/ci.yml`, so it's optional here
 too if you already saw it pass in CI for this commit. See
 `backend/scripts/check_city_normalization.ts`'s header comment for what it
-can and can't verify: nothing in this codebase currently computes the
-district mapping from a raw town name, so this checks that the data hasn't
-regressed, not that any code path here is producing it correctly.
+can and can't verify. Since 2026-09-27 the loaders compute the district
+themselves (`backend/scripts/lib/cityNormalization.js`, the same district list
+this check uses), and they leave `city_normalized` NULL with a warning when a
+new college can't be placed confidently. This check is what turns those NULLs
+into a failing gate instead of a silently broken city filter.
 
 ### Frontend
 

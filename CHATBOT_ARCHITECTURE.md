@@ -363,9 +363,8 @@ exists; the aging-out policy does not yet.
   body, keyed by `WHATSAPP_APP_SECRET`) so the endpoint can't be fed fake
   "incoming messages" by anyone who finds the URL. This needs the *raw* request
   bytes (JSON.parse output can't be re-serialized byte-identically), so the
-  route gets its own `express.json({ verify: captureRawBody })` ahead of the
-  global body parser — the same pattern already used in `server.ts` for the
-  admin/cutoffs bulk-import endpoint's larger body limit.
+  route gets its own `express.json({ verify: captureRawBody })` mounted in
+  `server.ts` ahead of the global body parser.
 
   The app secret is set *independently* of the send credentials, so the check
   keys off whether the bot can send, not just whether the secret is present:

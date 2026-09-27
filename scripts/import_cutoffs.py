@@ -1,8 +1,14 @@
 """
-MHT-CET Cutoff CSV Importer
-============================
-Reads a CSV produced by parse_cutoffs.py and bulk-inserts into the
-backend database via the admin API.
+MHT-CET Cutoff CSV Importer  --  OBSOLETE, DO NOT USE
+=====================================================
+This posted to POST /api/admin/cutoffs, which was removed along with the
+legacy flat `cutoff_data` table (see backend/src/modules/admin/admin.routes.ts).
+Running it now just fails: the route no longer exists. Cutoffs are loaded offline instead:
+scripts/parse_cutoffs_v2.py or scripts/parse_ai_cutoffs.py, then
+backend/scripts/load_ai_cutoffs_additive.js. Kept for history only.
+
+Original description: reads a CSV produced by parse_cutoffs.py and
+bulk-inserts into the backend database via the admin API.
 
 Usage:
     python scripts/import_cutoffs.py \
