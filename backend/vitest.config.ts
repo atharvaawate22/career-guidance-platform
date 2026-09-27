@@ -16,6 +16,16 @@ export default defineConfig({
     // were reported as skipped. Set once here so every hook gets the same
     // headroom rather than each file guessing.
     hookTimeout: 60_000,
+    // Half the cores, not the default (all but one). ~16 test files each load
+    // the full server graph in their own worker; on a 16-core dev machine that
+    // was 15 simultaneous cold module loads, and when the machine was busy
+    // (e.g. antivirus scanning freshly written files) some took past the 60s
+    // hookTimeout above and failed at random. Halving concurrency removed the
+    // contention and was measured slightly FASTER end to end (6.1s -> 5.4s).
+    // CI runners have few cores, so this changes nothing there. The other half
+    // of the fix: googleapis is now loaded lazily (src/utils/googleClient.ts),
+    // which roughly halved the server's load time.
+    maxWorkers: '50%',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

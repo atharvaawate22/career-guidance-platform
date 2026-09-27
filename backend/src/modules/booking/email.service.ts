@@ -1,6 +1,6 @@
 import logger from '../../utils/logger';
 import nodemailer from 'nodemailer';
-import { google } from 'googleapis';
+import { loadGoogle } from '../../utils/googleClient';
 import { BookingEmailTemplate } from './booking.emails';
 
 interface BookingConfirmation {
@@ -358,6 +358,7 @@ function formatEmailHTML(booking: BookingConfirmation): string {
  */
 async function sendViaGmailAPI(booking: BookingConfirmation): Promise<boolean> {
   try {
+    const google = await loadGoogle();
     const auth = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -418,6 +419,7 @@ async function sendTemplateViaGmailAPI(
   template: BookingEmailTemplate,
 ): Promise<boolean> {
   try {
+    const google = await loadGoogle();
     const auth = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,

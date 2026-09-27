@@ -1,5 +1,5 @@
 import logger from '../../utils/logger';
-import { google } from 'googleapis';
+import { loadGoogle } from '../../utils/googleClient';
 
 interface CalendarEvent {
   summary: string;
@@ -141,6 +141,7 @@ function generateMockMeetingId(): string {
  * Create a Google Calendar event with Meet link
  */
 async function createCalendarEvent(event: CalendarEvent) {
+  const google = await loadGoogle();
   const auth = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
