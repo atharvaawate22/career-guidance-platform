@@ -5,9 +5,9 @@
 ### Added
 - Cutoffs database redesign: normalized `colleges` / `courses` / `cutoffs`
   schema replacing the flat `cutoff_data` table (migration 012); legacy table
-  kept only as a revert backup, not dropped (its RLS dates from the March
-  2026 security pass; the public-read policy that pass added was dropped by
-  migration 028, so the backup is no longer readable via the Data API)
+  kept as a revert backup at first; its public-read policy was dropped by
+  migration 028, then the table itself by migration 029 after a verified
+  export (database 220 MB → 128 MB)
 - RLS on `platform_settings` (public read) and `schema_migrations` (no policy)
   (migration 013)
 - CAP schedule table for registration/choice-filling/allotment dates (migration 014)

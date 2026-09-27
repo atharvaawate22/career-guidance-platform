@@ -281,9 +281,8 @@ Example separation:
 
 - bookings → Booking module
 - colleges / courses / cutoffs → Cutoffs module (normalized schema; the
-  legacy flat `cutoff_data` table is retained only as a revert backup and
-  is not queried by any code — see
-  [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md) §2.1 for its exact RLS state)
+  legacy flat `cutoff_data` table it replaced was dropped in migration 029 —
+  see [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md) §2.1)
 - updates → Updates module
 - guide_downloads → Guides module
 - resources → Resources module

@@ -16,7 +16,13 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector's official image = stock Postgres 16 plus the `vector`
+    # extension. Plain postgres:16-alpine lacks it, so a fresh database stopped
+    # at migration 020 (rag_chunks). If you have a volume created by the old
+    # alpine image, recreate it (`docker compose down -v`) rather than reuse
+    # it: alpine (musl) and this Debian-based image can sort text differently,
+    # which can silently break existing text indexes. It is dev data only.
+    image: pgvector/pgvector:pg16
     container_name: cethub-postgres
     restart: unless-stopped
     environment:

@@ -57,10 +57,11 @@ router.delete(
 );
 
 // NOTE: Cutoff data is now managed entirely through the offline ETL pipeline
-// (scripts/parse_cutoffs_v2.py → scripts/load_cutoffs.js) which writes to the
-// normalized colleges/courses/cutoffs tables. The old admin bulk-insert and
-// delete-by-year endpoints (which wrote to the legacy cutoff_data table) have
-// been removed. The cutoff_data table is retained only as a revert backup.
+// (scripts/parse_cutoffs_v2.py / parse_ai_cutoffs.py →
+// scripts/load_ai_cutoffs_additive.js) which writes to the normalized
+// colleges/courses/cutoffs tables. The old admin bulk-insert and delete-by-year
+// endpoints (which wrote to the legacy cutoff_data table) have been removed,
+// and that table was dropped in migrations/029_drop_legacy_cutoff_data.sql.
 
 // Protected routes for guides management
 router.post(

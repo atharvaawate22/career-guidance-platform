@@ -53,21 +53,28 @@ full rationale and source-data mapping.
 - `idx_colleges_city_norm`, `idx_colleges_minority`
 - `idx_courses_college`, `idx_courses_branch`, trigram index on course_name
 
-**Legacy table:** the old flat `cutoff_data` table (year/college_name/branch/
-category/gender/home_university/percentile) is superseded. It is kept in the
-live database only as a revert backup — not queried by the application and not
-recreated by `schema.sql`.
+**Legacy table (dropped):** the old flat `cutoff_data` table (year/college_name/
+branch/category/gender/home_university/percentile, 113,887 rows) was superseded
+by this schema in June 2026, kept as a revert backup, and dropped on 2026-09-27
+by migration `029_drop_legacy_cutoff_data.sql` (the database went from 220 MB
+to 128 MB). A verified full export (rows as JSON plus column/index definitions)
+was taken first, in the gitignored `backups/cutoff_data-2026-09-27/` on the
+maintainer's machine.
 
-It is locked through the Supabase Data API: RLS enabled with **no policy**, so
-the anon/authenticated roles can neither read nor write it, while the backend's
-privileged connection and direct SQL still can (the revert path is intact).
-History, since it was long misdescribed: RLS was enabled in the March 2026
-security pass (commit `1d8d9e6`) together with a public-read policy
-(`cutoff_data_public_read`), so for months it was readable by anyone with the
-anon key. Migration `028_lock_legacy_cutoff_data.sql` dropped that policy on
-2026-09-27. Migration `013_secure_legacy_tables.sql` never touched this table
-despite its name — it enables RLS on `platform_settings` and
-`schema_migrations`. Drop the table itself once the revert window is over.
+It held 99,094 rows for 2025 (superseded by the re-parsed 2025 data in
+`cutoffs`) and **14,793 rows for 2022, which were never migrated into
+`cutoffs`** — so there is no 2022 data in the database now. Those rows came
+from the old, error-prone parser and had not been served since June 2026. If
+2022 is wanted, re-parse the original PDFs (in git history: added in
+`f146b5b`, removed in `cf6602e`) with `scripts/parse_cutoffs_v2.py` rather
+than restoring the backup.
+
+History, since it was long misdescribed: RLS was enabled on it in the March
+2026 security pass (commit `1d8d9e6`) together with a public-read policy
+(`cutoff_data_public_read`), so it stayed readable by anyone with the anon key
+until migration `028_lock_legacy_cutoff_data.sql` dropped that policy.
+Migration `013_secure_legacy_tables.sql` never touched this table despite its
+name — it enables RLS on `platform_settings` and `schema_migrations`.
 
 ---
 

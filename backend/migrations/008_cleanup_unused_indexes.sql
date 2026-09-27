@@ -10,16 +10,35 @@
 --    GIN indexes that depend on gin_trgm_ops survive because the
 --    operator class moves with the extension.
 -- ─────────────────────────────────────────────────────────────────
-DROP EXTENSION IF EXISTS pg_trgm CASCADE;
-CREATE EXTENSION IF NOT EXISTS pg_trgm
-  WITH SCHEMA extensions;
+--
+-- Guarded (2026-09-27) so this file also runs on a brand-new database.
+-- As originally written it assumed Supabase's `extensions` schema and the
+-- legacy `cutoff_data` table both existed; on plain Postgres (e.g. the
+-- docker-compose setup), where schema.sql creates neither, it failed here and
+-- left the server in degraded mode. The guards change nothing where 008
+-- already ran (it is recorded in schema_migrations and never re-runs), and
+-- on a database that does have both, the statements run exactly as before.
+-- `cutoff_data` itself was dropped by migration 029.
+DO $$
+DECLARE
+  trgm_schema text :=
+    CASE WHEN EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'extensions')
+      THEN 'extensions' ELSE 'public' END;
+BEGIN
+  DROP EXTENSION IF EXISTS pg_trgm CASCADE;
+  EXECUTE format('CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA %I', trgm_schema);
 
--- Recreate the two GIN indexes that were dropped by CASCADE above.
-CREATE INDEX IF NOT EXISTS idx_cutoff_branch_trgm
-  ON cutoff_data USING GIN (branch extensions.gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_cutoff_college_name_trgm
-  ON cutoff_data USING GIN (college_name extensions.gin_trgm_ops);
+  -- Recreate the two GIN indexes that were dropped by CASCADE above.
+  IF to_regclass('public.cutoff_data') IS NOT NULL THEN
+    EXECUTE format(
+      'CREATE INDEX IF NOT EXISTS idx_cutoff_branch_trgm ON cutoff_data USING GIN (branch %I.gin_trgm_ops)',
+      trgm_schema);
+    EXECUTE format(
+      'CREATE INDEX IF NOT EXISTS idx_cutoff_college_name_trgm ON cutoff_data USING GIN (college_name %I.gin_trgm_ops)',
+      trgm_schema);
+  END IF;
+END
+$$;
 
 
 -- ─────────────────────────────────────────────────────────────────

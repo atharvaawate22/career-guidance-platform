@@ -1,0 +1,33 @@
+-- 029: Drop the legacy `cutoff_data` table.
+--
+-- DESTRUCTIVE STEP (see migrations/README.md rule 4): drops a table and its
+-- 113,887 rows (93 MB, roughly 40% of the database at the time).
+--
+-- `cutoff_data` was the flat pre-2026-06 cutoffs table, superseded by the
+-- normalized colleges/courses/cutoffs schema in 012 and kept only as a revert
+-- backup. The revert window is over: the new schema has served every
+-- cutoff, predictor and chatbot query since June 2026, now holds two full
+-- admission cycles (2025 + 2026, all four CAP rounds), and no application
+-- code, view or foreign key references `cutoff_data`. Migration 028 had
+-- already closed its Data API access.
+--
+-- What was in it: 113,887 rows imported in March 2026 by the old parser —
+-- 99,094 for academic year 2025 (superseded by the re-parsed 2025 data in
+-- `cutoffs`) and 14,793 for 2022. The 2022 rows were NEVER migrated into
+-- `cutoffs`, so this drop removed the only database copy of 2022 cutoffs. They
+-- were never served by the site after June 2026, and 30 of them are visibly
+-- misparsed (rank/percentile text landed in the `stage` column), so
+-- they were not trustworthy data — but they can be recovered from:
+--   * a full export taken immediately before the drop (2026-09-27): every row
+--     as JSON plus the column and index definitions, verified against the
+--     live table (row count, unique ids, sum of cutoff_rank), in the
+--     gitignored backups/cutoff_data-2026-09-27/ on the maintainer's machine;
+--   * the original 2022 CAP I-III PDFs and CSVs in git history (added in
+--     commit f146b5b, removed from the tree in cf6602e); re-parsing those
+--     with scripts/parse_cutoffs_v2.py is the better path if 2022 is ever
+--     wanted in `cutoffs`.
+--
+-- Idempotent: IF EXISTS makes this a no-op on a fresh database, where
+-- schema.sql never creates the table.
+
+DROP TABLE IF EXISTS cutoff_data;

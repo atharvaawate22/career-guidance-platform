@@ -3,7 +3,7 @@
  * from scripts/parsed/round{1..4}/*.json (produced by scripts/parse_cutoffs_v2.py).
  *
  * Idempotent: creates tables IF NOT EXISTS, then TRUNCATEs the three NEW tables
- * and reloads. It NEVER touches the existing tables (cutoff_data, bookings, …).
+ * and reloads. It NEVER touches any other table (bookings, updates, …).
  *
  * Run from backend/:  node scripts/load_cutoffs.js
  */

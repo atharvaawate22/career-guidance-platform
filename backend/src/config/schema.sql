@@ -45,8 +45,8 @@ ON admin_users(email);
 -- ============================================================================
 -- CUTOFF SCHEMA (colleges + courses + cutoffs)
 -- Defined in migrations/012_cutoffs_redesign.sql. The legacy flat `cutoff_data`
--- table has been superseded; it is kept in the live database only as a revert
--- backup and is intentionally NOT recreated by this baseline.
+-- table it superseded is intentionally NOT created by this baseline; it was
+-- dropped from the live database by migrations/029_drop_legacy_cutoff_data.sql.
 -- ============================================================================
 
 -- ============================================================================
