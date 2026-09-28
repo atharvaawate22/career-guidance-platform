@@ -36,6 +36,55 @@ const resolveSslRejectUnauthorized = (): boolean => {
   return true;
 };
 
+/**
+ * SSL settings for a DATABASE_URL connection.
+ *
+ * `sslmode=disable` in the URL turns TLS off. That is what a local Postgres
+ * needs (e.g. the docker-compose one, which has no certificates): without it
+ * the pool asks for TLS and fails with "The server does not support SSL
+ * connections". Note that pg lets parameters parsed from the URL override the
+ * `ssl` option passed next to it, so the URL's sslmode has always won; this
+ * makes that an explicit, documented choice instead of a driver quirk.
+ *
+ * Production is the exception: a production database must never be reached
+ * in plaintext, so there `sslmode=disable` is stripped from the URL (it would
+ * otherwise override `ssl` below) and TLS stays on, with the usual
+ * rejectUnauthorized setting. Other sslmode values pass through unchanged.
+ */
+export function resolveDatabaseSsl(
+  connectionString: string,
+  nodeEnv: string | undefined,
+  rejectUnauthorized: boolean,
+): {
+  connectionString: string;
+  ssl: false | { rejectUnauthorized: boolean };
+  downgradeBlocked: boolean;
+} {
+  let url: URL;
+  try {
+    url = new URL(connectionString);
+  } catch {
+    // Not WHATWG-parseable (e.g. an unencoded '@' in the password); leave it
+    // to pg exactly as before rather than guess.
+    return { connectionString, ssl: { rejectUnauthorized }, downgradeBlocked: false };
+  }
+
+  if (url.searchParams.get('sslmode')?.toLowerCase() !== 'disable') {
+    return { connectionString, ssl: { rejectUnauthorized }, downgradeBlocked: false };
+  }
+
+  if (nodeEnv !== 'production') {
+    return { connectionString, ssl: false, downgradeBlocked: false };
+  }
+
+  url.searchParams.delete('sslmode');
+  return {
+    connectionString: url.toString(),
+    ssl: { rejectUnauthorized },
+    downgradeBlocked: true,
+  };
+}
+
 const compactSql = (text: string): string =>
   text.replace(/\s+/g, ' ').trim().slice(0, 240);
 
@@ -49,10 +98,25 @@ const POOL_IDLE_TIMEOUT_MS = Number(process.env.DB_POOL_IDLE_TIMEOUT_MS || '3000
 const POOL_CONNECTION_TIMEOUT_MS = Number(process.env.DB_POOL_CONNECTION_TIMEOUT_MS || '5000');
 const STATEMENT_TIMEOUT_MS = Number(process.env.DB_STATEMENT_TIMEOUT_MS || '10000');
 
-const pool = process.env.DATABASE_URL
+const urlSsl = process.env.DATABASE_URL
+  ? resolveDatabaseSsl(
+      process.env.DATABASE_URL,
+      process.env.NODE_ENV,
+      resolveSslRejectUnauthorized(),
+    )
+  : null;
+
+if (urlSsl?.downgradeBlocked) {
+  logger.error(
+    'DATABASE_URL has sslmode=disable in production; ignoring it and keeping TLS on. ' +
+      'Remove sslmode=disable from the production DATABASE_URL.',
+  );
+}
+
+const pool = urlSsl
   ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: resolveSslRejectUnauthorized() },
+      connectionString: urlSsl.connectionString,
+      ssl: urlSsl.ssl,
       max: POOL_MAX,
       idleTimeoutMillis: POOL_IDLE_TIMEOUT_MS,
       connectionTimeoutMillis: POOL_CONNECTION_TIMEOUT_MS,

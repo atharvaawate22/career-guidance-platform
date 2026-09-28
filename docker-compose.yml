@@ -10,8 +10,23 @@
 #   docker compose down      # stop (data is preserved in named volumes)
 #   docker compose down -v   # stop and wipe all data
 #
+# Ports already in use? (e.g. a Postgres installed on the host, or another
+# project's container, already listening on 5432.) Pick other HOST ports; the
+# containers still listen on 5432/6379 internally:
+#   POSTGRES_PORT=55432 REDIS_PORT=56379 docker compose up -d
+# (or put POSTGRES_PORT / REDIS_PORT in a .env file next to this one.)
+#
+# Pointing the backend at it: with the default port the backend's built-in
+# fallback (localhost:5432, no DATABASE_URL) works as-is. With a custom port,
+# set in backend/.env:
+#   DATABASE_URL=postgresql://postgres:postgres@localhost:55432/career_guidance?sslmode=disable
+#   REDIS_URL=redis://localhost:56379
+# `sslmode=disable` is required: this container has no TLS, and the backend
+# otherwise requests it (see resolveDatabaseSsl in src/config/database.ts;
+# it is refused in production).
+#
 # After first start, provision the schema:
-#   cd backend && psql "postgresql://postgres:${DB_PASSWORD:-postgres}@localhost:5432/career_guidance" -f src/config/schema.sql
+#   cd backend && psql "postgresql://postgres:${DB_PASSWORD:-postgres}@localhost:${POSTGRES_PORT:-5432}/career_guidance" -f src/config/schema.sql
 # then `npm run migrate` to apply the migration deltas.
 
 services:
@@ -30,7 +45,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: career_guidance
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - cethub-pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -45,7 +60,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - cethub-redisdata:/data
     healthcheck:
