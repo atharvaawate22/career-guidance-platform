@@ -526,8 +526,8 @@ Because those three do the safety work, the model choice is about phrasing
 quality, not the grounding guarantee. **Gemini 3.5 Flash (free tier)** is used
 for generation — the project already avoids paid API keys, and a Gemini key
 requires no credit card. The three safety layers are model-agnostic; only the
-integration adapter differs from an Anthropic one: the strict-grounding rule
-goes in Gemini's `systemInstruction` field, responses are parsed from
+integration adapter is Gemini-specific: the strict-grounding rule goes in
+Gemini's `systemInstruction` field, responses are parsed from
 `candidates[].content.parts[].text` with a `finishReason` guard, and a
 safety-blocked or empty Gemini response routes into the **same defer/fallback
 path** as a below-floor retrieval (never surfaced as an error). Gemini's
