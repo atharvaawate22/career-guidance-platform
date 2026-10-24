@@ -6,17 +6,17 @@ export const guideDownloadSchema = z.object({
 
 export const createGuideSchema = z.object({
   title: z
-    .string({ required_error: 'Title is required' })
+    .string()
     .trim()
     .min(1, 'Title cannot be empty')
     .max(300, 'Title must be under 300 characters'),
   description: z
-    .string({ required_error: 'Description is required' })
+    .string()
     .trim()
     .min(1, 'Description cannot be empty')
     .max(2000, 'Description must be under 2,000 characters'),
   file_url: z
-    .string({ required_error: 'file_url is required' })
+    .string()
     .trim()
     .url('file_url must be a valid URL')
     .max(1000, 'file_url must be under 1,000 characters'),

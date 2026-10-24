@@ -23,17 +23,17 @@ const noteField = (max: number) =>
 
 export const createCapScheduleEventSchema = z.object({
   academic_year: z
-    .number({ required_error: 'academic_year is required' })
+    .number()
     .int()
     .min(2020)
     .max(2100),
   round_label: z
-    .string({ required_error: 'round_label is required' })
+    .string()
     .trim()
     .min(1, 'round_label is required')
     .max(100),
   event_label: z
-    .string({ required_error: 'event_label is required' })
+    .string()
     .trim()
     .min(1, 'event_label is required')
     .max(200),

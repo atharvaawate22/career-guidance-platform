@@ -39,24 +39,20 @@ export const VALID_PREDICTOR_GENDERS = ['Male', 'Female', 'All'] as const;
 export const predictorRequestSchema = z
   .object({
     rank: z
-      .number({ invalid_type_error: 'Rank must be a number' })
+      .number()
       .int('Rank must be an integer')
       .positive('Rank must be a positive number')
       .optional(),
     percentile: z
-      .number({ invalid_type_error: 'Percentile must be a number' })
+      .number()
       .min(0, 'Percentile must be between 0 and 100')
       .max(100, 'Percentile must be between 0 and 100')
       .optional(),
     category: z.enum(VALID_PREDICTOR_CATEGORIES, {
-      errorMap: () => ({
-        message: 'Please select a valid admission category.',
-      }),
+      error: 'Please select a valid admission category.',
     }),
     gender: z.enum(VALID_PREDICTOR_GENDERS, {
-      errorMap: () => ({
-        message: 'Please select a valid gender.',
-      }),
+      error: 'Please select a valid gender.',
     }),
     homeUniversity: z.string().trim().min(1).max(120).optional(),
     branch: z.string().trim().min(1).max(150).optional(),

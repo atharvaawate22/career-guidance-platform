@@ -111,8 +111,8 @@ const collegeCodeParam = (label: string) =>
  * to land a cycle before the constant moves; five back keeps old shared links
  * working. Eight values instead of 101 is the point, not a hard boundary.
  */
-const yearParam = singleValued('year').pipe(
-  z.coerce
+const yearParam = singleValued('year').transform((v) => (v === undefined ? undefined : Number(v))).pipe(
+  z
     .number()
     .int()
     .min(ACTIVE_CUTOFF_YEAR - 5)
@@ -139,8 +139,8 @@ const MINORITY_TYPES = ['linguistic', 'religious'] as const;
 export const cutoffsQuerySchema = z.object({
   year: yearParam,
 
-  round: singleValued('round').pipe(
-    z.coerce
+  round: singleValued('round').transform((v) => (v === undefined ? undefined : Number(v))).pipe(
+    z
       .number()
       .int('round must be a whole number.')
       .min(1, 'round must be between 1 and 4.')
@@ -151,9 +151,7 @@ export const cutoffsQuerySchema = z.object({
   category: singleValued('category').pipe(
     z
       .enum(VALID_PREDICTOR_CATEGORIES, {
-        errorMap: () => ({
-          message: 'Please select a valid admission category.',
-        }),
+        error: 'Please select a valid admission category.',
       })
       .optional(),
   ),
@@ -163,9 +161,7 @@ export const cutoffsQuerySchema = z.object({
     .pipe(
       z
         .enum(GENDER_VALUES, {
-          errorMap: () => ({
-            message: `gender must be one of: ${VALID_PREDICTOR_GENDERS.join(', ')}.`,
-          }),
+          error: `gender must be one of: ${VALID_PREDICTOR_GENDERS.join(', ')}.`,
         })
         .optional(),
     ),
@@ -201,9 +197,7 @@ export const cutoffsQuerySchema = z.object({
     z
       .array(
         z.enum(MINORITY_TYPES, {
-          errorMap: () => ({
-            message: `minority_type must be one of: ${MINORITY_TYPES.join(', ')}.`,
-          }),
+          error: `minority_type must be one of: ${MINORITY_TYPES.join(', ')}.`,
         }),
       )
       .optional(),
@@ -213,7 +207,7 @@ export const cutoffsQuerySchema = z.object({
     z
       .array(
         z.enum(MINORITY_GROUP_KEYS, {
-          errorMap: () => ({ message: 'Unknown minority group.' }),
+          error: 'Unknown minority group.',
         }),
       )
       .optional(),

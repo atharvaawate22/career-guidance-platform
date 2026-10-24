@@ -54,13 +54,13 @@ export async function getBookingSlotConfig(): Promise<BookingSlotConfig> {
 // Base schema without time slot validation (time slot is validated dynamically)
 export const createBookingSchema = z.object({
   student_name: z
-    .string({ required_error: 'Full name is required' })
+    .string()
     .trim()
     .min(2, 'Name must be at least 2 characters')
     .max(120, 'Name must be under 120 characters'),
 
   email: z
-    .string({ required_error: 'Email address is required' })
+    .string()
     .trim()
     .email('Please enter a valid email address (e.g. name@gmail.com)')
     .superRefine((email, ctx) => {
@@ -74,35 +74,35 @@ export const createBookingSchema = z.object({
     }),
 
   phone: z
-    .string({ required_error: 'Phone number is required' })
+    .string()
     .trim()
     .min(10, 'Phone number must be at least 10 digits')
     .max(15, 'Phone number is too long')
     .regex(/^\+?[0-9\s()-]+$/, 'Phone number contains invalid characters'),
 
   percentile: z
-    .number({ required_error: 'Percentile is required', invalid_type_error: 'Percentile must be a number' })
+    .number()
     .min(0, 'Percentile must be between 0 and 100')
     .max(100, 'Percentile must be between 0 and 100'),
 
   category: z.enum(VALID_BOOKING_CATEGORIES, {
-    errorMap: () => ({ message: 'Please select a valid category (e.g. OPEN, OBC, SC)' }),
+    error: 'Please select a valid category (e.g. OPEN, OBC, SC)',
   }),
 
   branch_preference: z
-    .string({ required_error: 'Branch preference is required' })
+    .string()
     .trim()
     .min(2, 'Branch preference must be at least 2 characters')
     .max(200, 'Branch preference is too long'),
 
   meeting_purpose: z
-    .string({ required_error: 'Purpose of meeting is required' })
+    .string()
     .trim()
     .min(3, 'Please describe your purpose (at least 3 characters)')
     .max(500, 'Purpose must be under 500 characters'),
 
   meeting_time: z
-    .string({ required_error: 'Meeting date and time is required' })
+    .string()
     .datetime({ offset: true, message: 'Meeting time must be a valid ISO date-time with timezone offset' })
     .refine(
       (val) => new Date(val) > new Date(),

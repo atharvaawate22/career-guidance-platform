@@ -8,12 +8,12 @@ const updatesService = new UpdatesService();
 
 const createUpdateSchema = z.object({
   title: z
-    .string({ required_error: 'Title is required' })
+    .string()
     .trim()
     .min(1, 'Title cannot be empty')
     .max(300, 'Title must be under 300 characters'),
   content: z
-    .string({ required_error: 'Content is required' })
+    .string()
     .trim()
     .min(1, 'Content cannot be empty')
     .max(10000, 'Content must be under 10,000 characters'),

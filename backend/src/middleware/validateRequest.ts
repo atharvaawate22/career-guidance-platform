@@ -1,13 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodType, ZodTypeDef, ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 
 /**
  * Generic over input AND output, not just output. The query schemas coerce and
  * normalize (string -> number, "Male" -> "male", string -> string[]), so their
  * input type differs from their output type; the narrower `ZodSchema<T>` alias
  * assumes the two are identical and rejects any schema carrying a transform.
+ * In zod v4, ZodTypeDef was removed; using the structural intersection approach
+ * to preserve input/output variance without depending on removed internals.
  */
-type AnySchema<TOut, TIn> = ZodType<TOut, ZodTypeDef, TIn>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySchema<TOut, TIn> = z.ZodType<TOut, any> & { _input: TIn };
 
 /**
  * Single 400 envelope shared by validateBody and validateQuery so a rejected

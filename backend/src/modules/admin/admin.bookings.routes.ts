@@ -26,8 +26,7 @@ const ALLOWED_STATUSES = [
 
 const updateBookingStatusSchema = z.object({
   status: z.enum(ALLOWED_STATUSES, {
-    required_error: 'Status is required',
-    invalid_type_error: `Invalid status. Must be one of: ${ALLOWED_STATUSES.join(', ')}`,
+    error: `Invalid status. Must be one of: ${ALLOWED_STATUSES.join(', ')}`,
   }),
   // Free-text admin note; capped and stripped of any markup before it can
   // reach the cancellation email template (see booking.emails.ts).

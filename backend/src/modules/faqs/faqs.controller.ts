@@ -5,12 +5,12 @@ import { sanitizeText } from '../../utils/sanitize';
 
 const createFaqSchema = z.object({
   question: z
-    .string({ required_error: 'Question is required' })
+    .string()
     .trim()
     .min(5, 'Question must be at least 5 characters')
     .max(500, 'Question must be under 500 characters'),
   answer: z
-    .string({ required_error: 'Answer is required' })
+    .string()
     .trim()
     .min(5, 'Answer must be at least 5 characters')
     .max(3000, 'Answer must be under 3,000 characters'),
