@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
@@ -84,9 +85,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Read the per-request nonce injected by src/proxy.ts so inline scripts
+  // emitted by GoogleAnalytics carry the correct nonce attribute and are
+  // allowed by the strict nonce-based CSP (no more 'unsafe-inline').
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en">
       <body
@@ -97,7 +103,7 @@ export default function RootLayout({
         <StructuredData />
       </body>
       {process.env.NEXT_PUBLIC_GA_ID && (
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} nonce={nonce} />
       )}
     </html>
   );
