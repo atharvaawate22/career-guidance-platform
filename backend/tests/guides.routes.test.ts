@@ -4,9 +4,9 @@ import { adminSessionWithCsrf, signAdminToken } from './helpers/auth';
 
 const SESSION_COOKIE = 'cgp_admin_session';
 
-const ACTIVE_GUIDE_ID = '11111111-1111-1111-1111-111111111111';
-const INACTIVE_GUIDE_ID = '33333333-3333-3333-3333-333333333333';
-const MISSING_GUIDE_ID = '22222222-2222-2222-2222-222222222222';
+const ACTIVE_GUIDE_ID = '11111111-1111-4111-8111-111111111111';
+const INACTIVE_GUIDE_ID = '33333333-3333-4333-8333-333333333333';
+const MISSING_GUIDE_ID = '22222222-2222-4222-8222-222222222222';
 
 vi.mock('../src/modules/guides/guides.repository', () => ({
   getActiveGuides: vi.fn(async () => [

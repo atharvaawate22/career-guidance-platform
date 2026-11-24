@@ -106,31 +106,6 @@ export default function PredictorForm() {
     return () => controller.abort();
   }, []);
 
-  // Prefill from a quick-predict deep link (/predictor?percentile=&category=&gender=)
-  // and auto-run once we have score + category + gender. Reads
-  // window.location.search (not useSearchParams) so the page stays static.
-  useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    const p = sp.get("percentile");
-    const r = sp.get("rank");
-    const c = sp.get("category");
-    const g = sp.get("gender");
-    if (r) { setInputMode("rank"); setRank(r); }
-    else if (p) { setInputMode("percentile"); setPercentile(p); }
-    // TFWS is a seat scheme here (checkbox), not a category — map old links
-    // that carried category=TFWS onto the checkbox and let the user pick
-    // their actual reservation category before running.
-    const cat = c === "TFWS" ? null : c;
-    if (c === "TFWS") setIncludeTfws(true);
-    if (cat) setCategory(cat);
-    if (g) setGender(g);
-    if ((r || p) && cat && g) {
-      fromDeepLink.current = true;
-      void runPrediction({ mode: r ? "rank" : "percentile", percentile: p, rank: r, category: cat, gender: g });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // After a deep-link auto-run, jump to the results rather than leaving the user
   // at the top of the (already-filled) form.
   useEffect(() => {
@@ -207,6 +182,31 @@ export default function PredictorForm() {
     e.preventDefault();
     void runPrediction();
   };
+
+  // Prefill from a quick-predict deep link (/predictor?percentile=&category=&gender=)
+  // and auto-run once we have score + category + gender. Reads
+  // window.location.search (not useSearchParams) so the page stays static.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const p = sp.get("percentile");
+    const r = sp.get("rank");
+    const c = sp.get("category");
+    const g = sp.get("gender");
+    if (r) { setInputMode("rank"); setRank(r); }
+    else if (p) { setInputMode("percentile"); setPercentile(p); }
+    // TFWS is a seat scheme here (checkbox), not a category — map old links
+    // that carried category=TFWS onto the checkbox and let the user pick
+    // their actual reservation category before running.
+    const cat = c === "TFWS" ? null : c;
+    if (c === "TFWS") setIncludeTfws(true);
+    if (cat) setCategory(cat);
+    if (g) setGender(g);
+    if ((r || p) && cat && g) {
+      fromDeepLink.current = true;
+      void runPrediction({ mode: r ? "rank" : "percentile", percentile: p, rank: r, category: cat, gender: g });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const totalResults = results ? results.safe.length + results.target.length + results.dream.length : 0;
 
