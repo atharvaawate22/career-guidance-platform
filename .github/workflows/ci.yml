@@ -77,7 +77,8 @@ jobs:
       - run: npm run build
 
   e2e:
-    runs-on: ubuntu-latest
+    # Playwright 1.58 cannot install Chromium on ubuntu-latest (26.04).
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
