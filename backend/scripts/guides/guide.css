@@ -1,0 +1,101 @@
+/* Shared print stylesheet for the CET Hub admission guides (A4 PDFs).
+   Built by build-guides.mjs with headless Chromium. Keep it print-only:
+   no web fonts to fetch, no JS. */
+
+@page { size: A4; margin: 22mm 18mm 20mm 18mm; }
+
+:root {
+  --ink: #0f172a;
+  --body: #334155;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --indigo: #4338ca;
+  --indigo-soft: #eef2ff;
+  --amber: #b45309;
+  --amber-soft: #fffbeb;
+  --green: #047857;
+  --green-soft: #ecfdf5;
+  --red: #b91c1c;
+  --red-soft: #fef2f2;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: var(--body);
+}
+
+/* Light diagonal watermark, repeated on every printed page (position: fixed). */
+.watermark {
+  position: fixed; inset: 0; z-index: -1;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.watermark span {
+  font-size: 88pt; font-weight: 800; letter-spacing: 2px;
+  color: rgba(15, 23, 42, 0.025);
+  transform: rotate(-35deg);
+}
+
+/* Cover */
+.cover { height: 235mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+.cover .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+.cover .brand img { width: 46px; height: 46px; }
+.cover .brand b { font-size: 15pt; color: var(--ink); }
+.cover .brand b span { color: var(--indigo); }
+.cover h1 { font-size: 31pt; line-height: 1.12; color: var(--ink); margin: 0 0 10px; }
+.cover .subtitle { font-size: 14pt; color: var(--muted); margin: 0 0 22px; }
+.cover .summary { font-size: 11pt; max-width: 150mm; margin: 0 0 34px; }
+.cover .meta { font-size: 9.5pt; color: var(--muted); line-height: 1.7; }
+.cover .meta strong { color: var(--ink); }
+
+/* Headings & text */
+h2 {
+  font-size: 17pt; color: var(--indigo); margin: 0 0 8px; line-height: 1.25;
+  page-break-after: avoid; break-after: avoid;
+}
+h2 + p, h3 + p { margin-top: 0; }
+h3 { font-size: 12pt; color: var(--ink); margin: 16px 0 6px; page-break-after: avoid; break-after: avoid; }
+section { margin: 0 0 20px; }
+section.new-page { page-break-before: always; break-before: page; }
+p { margin: 0 0 10px; }
+ul, ol { margin: 0 0 10px; padding-left: 20px; }
+li { margin: 0 0 4px; }
+strong { color: var(--ink); }
+.toc ol { padding-left: 26px; }
+.toc li { margin: 0 0 5px; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: 9.6pt; page-break-inside: avoid; break-inside: avoid; }
+th { background: var(--indigo); color: #fff; text-align: left; font-weight: 600; padding: 7px 9px; }
+td { padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:nth-child(even) td { background: #f8fafc; }
+td.nowrap, th.nowrap { white-space: nowrap; }
+
+/* Callouts */
+.box {
+  border-left: 4px solid var(--indigo); background: var(--indigo-soft);
+  padding: 10px 14px; margin: 10px 0 14px; border-radius: 3px;
+  page-break-inside: avoid; break-inside: avoid;
+}
+.box .t { display: block; font-weight: 700; color: var(--indigo); margin-bottom: 3px; }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+.box.warn { border-color: var(--amber); background: var(--amber-soft); }
+.box.warn .t { color: var(--amber); }
+.box.ok { border-color: var(--green); background: var(--green-soft); }
+.box.ok .t { color: var(--green); }
+.box.stop { border-color: var(--red); background: var(--red-soft); }
+.box.stop .t { color: var(--red); }
+
+/* Checklist */
+ul.check { list-style: none; padding-left: 0; }
+ul.check li { padding-left: 22px; position: relative; }
+ul.check li::before { content: ""; position: absolute; left: 0; top: 4px; width: 11px; height: 11px; border: 1.6px solid var(--indigo); border-radius: 2px; }
+
+ol.mistakes li { margin-bottom: 7px; }
+
+.disclaimer { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 8.6pt; font-style: italic; color: var(--muted); }

@@ -92,7 +92,7 @@ const CHUNKS: ChunkSeed[] = [
     sourceSection: '§4',
     content:
       'Topic: Who can edit choices between CAP rounds\n' +
-      'Between CAP rounds there is usually a limited window to modify the option form — but only for students who chose Float or Slide in the previous round. A student who chose Freeze cannot edit choices between rounds, because Freeze already exited them from CAP. A floating or sliding student can add choices, remove choices, or reorder the list during this window.',
+      'In the 2026 cycle every CAP round had its own option-form window, opened after that round\'s vacant seats were published (Round II: 7 to 9 August, Round III: 20 to 22 August, Round IV: 30 August to 1 September 2026). Students still in CAP — those who accepted a seat with Float (or Slide, where offered) and those not yet allotted a seat — could build a fresh list from that round\'s vacancies: add, remove or reorder choices, and then confirm the form within the window. A student who chose Freeze, or whose seat was frozen automatically, has left CAP and cannot take part in later rounds. Check each year\'s notice, because the round structure can change.',
   },
   {
     topicLabel: 'betterment-mechanics',
