@@ -69,6 +69,62 @@ services:
       timeout: 5s
       retries: 5
 
+  # ──────────────────────────────────────────────────────────────────
+  # App services (opt-in via --profile app)
+  #
+  # Start everything:  docker compose --profile app up -d
+  # Stateful deps only (default): docker compose up -d
+  #
+  # The backend and frontend Dockerfiles live in their respective
+  # subdirectories. Build first time or after changes with:
+  #   docker compose --profile app build
+  # ──────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cethub-backend
+    profiles: [app]
+    restart: unless-stopped
+    env_file:
+      # Copy backend/.env.example → backend/.env and fill in values.
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      # Override DB/Redis URLs to point at the sibling containers.
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-postgres}@postgres:5432/career_guidance
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      # NEXT_PUBLIC_* vars are baked into the static bundle at build time.
+      # Set them here or in a .env file next to docker-compose.yml.
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_CUTOFF_YEAR: ${NEXT_PUBLIC_CUTOFF_YEAR:-2026}
+        NEXT_PUBLIC_CAP_SCHEDULE_YEAR: ${NEXT_PUBLIC_CAP_SCHEDULE_YEAR:-2026}
+        NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: ${NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION:-}
+        CSP_ENFORCE: ${CSP_ENFORCE:-false}
+    container_name: cethub-frontend
+    profiles: [app]
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+
 volumes:
   cethub-pgdata:
   cethub-redisdata:
