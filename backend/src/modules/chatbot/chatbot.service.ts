@@ -651,6 +651,34 @@ async function handleUpdatesIntent(): Promise<ChatReply> {
   return reply(`Here are the latest updates:\n${lines.join('\n')}\n\nYou can read all notices and download the circulars at /updates.`, true);
 }
 
+/**
+ * MHT-CET exam-cycle date questions ("when is the MHT-CET 2027 exam", "exam
+ * dates", "is there a second attempt"). Distinct from handleCapDatesIntent,
+ * which covers CAP counselling after the exam. Answers ONLY by quoting the
+ * official notices in `updates` (title, date, one-line summary, source link) —
+ * never a model-generated date — because the router pre-filter rule (§3.2/§3.4
+ * in CHATBOT_ARCHITECTURE.md) keeps dates out of RAG generation.
+ */
+async function handleExamDatesIntent(): Promise<ChatReply> {
+  const notices = await repo.getCurrentCycleExamNotices(4);
+  if (notices.length === 0) {
+    return reply(
+      "The State CET Cell hasn't published exam dates for the next MHT-CET yet. " +
+        "I'll have them as soon as they're out — check /updates for the latest official notices.",
+      true,
+    );
+  }
+  const lines = notices.map((n) => {
+    const title = n.title.replace(/^\[[^\]]+\]\s*/, '');
+    return `• ${n.published_date} — ${title}\n${n.content}` + (n.source_url ? `\nOfficial notice: ${n.source_url}` : '');
+  });
+  return reply(
+    `Here's the latest from the State CET Cell on the MHT-CET exam:\n\n${lines.join('\n\n')}\n\n` +
+      'Dates are quoted from the official notice and can be revised — see /updates for every notice.',
+    true,
+  );
+}
+
 async function handleDocumentsIntent(): Promise<ChatReply> {
   const rows = await repo.getDocumentChecklist('general');
   const lines = rows
@@ -924,6 +952,19 @@ const SCORE_INPUT_PATTERN =
 
 const CUTOFF_PATTERN = /\b(cutoff|cut off|percentile)\b/;
 const CAP_DATE_PATTERN = /\b(cap round|cap date|round date|schedule|when is round|registration date|choice filling|seat allotment)\b/;
+/**
+ * MHT-CET exam-cycle date questions. Needs BOTH an exam word and a timing word
+ * (or the phrase "second attempt"), and steps aside for anything about CAP
+ * counselling (cap/round/option form/allotment), which handleCapDatesIntent
+ * owns. Measured against the live FAQ table on 2026-11-25: exam-date questions
+ * top out at 0.298 similarity (vs "What is the MHT-CET…"), below
+ * FAQ_OVERRIDE_CONFIDENCE, so this intent wins; the FAQs that mention exams or
+ * dates ("Is CAP registration separate from exam registration?", "When should
+ * I start getting my admission documents ready?") lack the other half of the
+ * pattern and are not caught.
+ */
+const EXAM_DATE_PATTERN =
+  /^(?!.*\b(cap|round|rounds|counselling|counseling|option form|allotment)\b)(?:.*\bsecond attempt\b|(?=.*\b(exam|exams|examination|mht ?-?cet|cet|attempt|session|admit card|hall ticket)\b)(?=.*\b(when|date|dates|schedule|timetable|time table|held|conducted|tentative)\b))/;
 const DOCUMENTS_PATTERN = /\b(document|documents|checklist|papers needed|required documents)\b/;
 const PREDICTOR_PATTERN = /\b(chance|chances|eligible|eligibility|which college|predict|predictor)\b/;
 const COUNSELOR_PATTERN = /\b(counselor|counsellor|talk to|human|real person|agent|call me|speak to)\b/;
@@ -949,6 +990,9 @@ const KEYWORD_INTENTS: Array<{ pattern: RegExp; handler: IntentHandler }> = [
   { pattern: SCORE_INPUT_PATTERN, handler: () => handleScoreSharedIntent() },
   { pattern: FEE_PATTERN, handler: () => handleFeeIntent() },
   { pattern: CUTOFF_PATTERN, handler: handleCutoffIntent },
+  // Before CAP_DATE: "exam schedule" contains "schedule", which CAP_DATE also
+  // matches. EXAM_DATE itself refuses anything mentioning CAP/rounds.
+  { pattern: EXAM_DATE_PATTERN, handler: () => handleExamDatesIntent() },
   { pattern: CAP_DATE_PATTERN, handler: handleCapDatesIntent },
   { pattern: DOCUMENTS_PATTERN, handler: () => handleDocumentsIntent() },
   { pattern: COUNSELOR_PATTERN, handler: () => handleCounselorIntent() },

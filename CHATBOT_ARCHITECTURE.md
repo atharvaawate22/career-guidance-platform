@@ -481,6 +481,22 @@ message
                    (still nothing) ───────────────────────── fallback + log
 ```
 
+**Exam-date questions get their own structured intent (added 2026-11-25).**
+"When is the MHT-CET 2027 exam?" used to have no route: the CAP-schedule
+intent only covers counselling, so the question matched the generic "What is
+the MHT-CET…" FAQ (0.298) or fell through to RAG, whose 0.85 floor is
+calibrated for the seat-mechanics corpus, and dead-ended in the fallback even
+though the official notice was already indexed. `EXAM_DATE_PATTERN` (an exam
+word AND a timing word, or "second attempt"; never anything mentioning
+CAP/round/option form/allotment) now routes to `handleExamDatesIntent`, which
+quotes the current cycle's `[Exam]`/`[Registration]`/`[Admit Card]`/
+`[Answer Key]`/`[Result]` rows from `updates` verbatim, with publish date and
+official link. "Current cycle" means published after the latest `[CAP]`
+notice, so last year's exam rows drop out without a hardcoded year. This
+keeps the §3.4 rule intact: dates come from official rows, never from
+generation. It sits before `CAP_DATE_PATTERN` in `KEYWORD_INTENTS` because
+"exam schedule" also contains "schedule".
+
 The **defer branches are already live** (step a): personalised-recommendation
 questions ("which branch is best for me") point to /predictor and /book;
 fee-amount questions point to /updates. They run *before* the keyword/FAQ

@@ -14,6 +14,7 @@ const {
   logUnansweredQueryMock,
   generateGroundedAnswerMock,
   getLatestUpdatesMock,
+  getCurrentCycleExamNoticesMock,
 } = vi.hoisted(() => ({
   scoreFaqsMock: vi.fn(),
   searchCollegesByNameMock: vi.fn(),
@@ -28,6 +29,7 @@ const {
   logUnansweredQueryMock: vi.fn(),
   generateGroundedAnswerMock: vi.fn(),
   getLatestUpdatesMock: vi.fn(),
+  getCurrentCycleExamNoticesMock: vi.fn(),
 }));
 
 vi.mock('../src/modules/chatbot/chatbot.repository', () => ({
@@ -43,6 +45,7 @@ vi.mock('../src/modules/chatbot/chatbot.repository', () => ({
   searchRagChunks: searchRagChunksMock,
   logUnansweredQuery: logUnansweredQueryMock,
   getLatestUpdates: getLatestUpdatesMock,
+  getCurrentCycleExamNotices: getCurrentCycleExamNoticesMock,
 }));
 
 vi.mock('../src/modules/chatbot/gemini.service', () => ({
@@ -90,6 +93,7 @@ beforeEach(() => {
   logUnansweredQueryMock.mockResolvedValue(undefined);
   generateGroundedAnswerMock.mockResolvedValue(null);
   getLatestUpdatesMock.mockResolvedValue([]);
+  getCurrentCycleExamNoticesMock.mockResolvedValue([]);
 });
 
 describe('menu and numeric shortcuts', () => {
@@ -666,3 +670,55 @@ describe('latest updates intent', () => {
   });
 });
 
+
+describe('exam-date intent (MHT-CET exam cycle, separate from CAP dates)', () => {
+  const examNotice = {
+    title: '[Exam] MHT-CET 2027 Tentative Exam Dates Announced (A.Y. 2027-28)',
+    content: 'PCM first attempt 16 to 26 April 2027 and optional second attempt 10 to 15 May 2027.',
+    published_date: '16 Nov 2026',
+    source_url: 'https://cetcell.mahacet.org/notice.pdf',
+  };
+
+  it.each([
+    'When is MHT-CET 2027 PCM exam?',
+    'What are the tentative exam dates for 2027?',
+    'Is there a second attempt in 2027?',
+    'when is the cet exam',
+    'exam schedule 2027',
+  ])('quotes the official exam notice for "%s"', async (q) => {
+    getCurrentCycleExamNoticesMock.mockResolvedValue([examNotice]);
+    const reply = await getReply(q, 'website');
+    expect(reply.matched).toBe(true);
+    expect(reply.text).toContain('16 to 26 April 2027');
+    expect(reply.text).toContain('16 Nov 2026');
+    expect(reply.text).toContain('https://cetcell.mahacet.org/notice.pdf');
+    expect(reply.text).not.toContain('[Exam]');
+    expect(generateGroundedAnswerMock).not.toHaveBeenCalled();
+  });
+
+  it('says dates are not out yet when the current cycle has no exam notice', async () => {
+    const reply = await getReply('when is the cet exam', 'website');
+    expect(reply.matched).toBe(true);
+    expect(reply.text).toContain("hasn't published exam dates");
+    expect(logUnansweredQueryMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['when is round 2', 'cap schedule'])(
+    'leaves CAP date questions to the CAP schedule intent: "%s"',
+    async (q) => {
+      await getReply(q, 'website');
+      expect(getCurrentCycleExamNoticesMock).not.toHaveBeenCalled();
+      expect(getCapScheduleMock).toHaveBeenCalled();
+    },
+  );
+
+  it('never answers a CAP question with exam notices, even when it also says "mht cet"', async () => {
+    await getReply('when is cap registration for mht cet', 'website');
+    expect(getCurrentCycleExamNoticesMock).not.toHaveBeenCalled();
+  });
+
+  it('does not catch the FAQ that mentions exam registration without a timing word', async () => {
+    await getReply('Is CAP registration separate from exam registration?', 'website');
+    expect(getCurrentCycleExamNoticesMock).not.toHaveBeenCalled();
+  });
+});

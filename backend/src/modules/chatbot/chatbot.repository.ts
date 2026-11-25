@@ -248,8 +248,42 @@ export async function getCapSchedule(
   return result.rows;
 }
 
+export interface ExamNoticeRow {
+  title: string;
+  content: string;
+  published_date: string;
+  source_url: string | null;
+}
+
 /**
- * Fetches the most recent live updates from the website so the chatbot 
+ * Official exam-cycle notices (exam dates, registration, admit card, answer
+ * key, result) for the CURRENT MHT-CET cycle, newest first — the grounding for
+ * the chatbot's exam-date answers. "Current cycle" = published after the latest
+ * [CAP] notice: the previous cycle's admissions always end with CAP notices, so
+ * this drops last year's exam/result rows without hardcoding a year. During
+ * CAP season itself it returns nothing, and the bot points to /updates.
+ */
+export async function getCurrentCycleExamNotices(limit = 4): Promise<ExamNoticeRow[]> {
+  const result = await query(
+    `SELECT title, content,
+            TO_CHAR(published_date AT TIME ZONE 'Asia/Kolkata', 'DD Mon YYYY') AS published_date,
+            source_url
+     FROM updates
+     WHERE (title LIKE '[Exam]%' OR title LIKE '[Registration]%' OR title LIKE '[Admit Card]%'
+            OR title LIKE '[Answer Key]%' OR title LIKE '[Result]%')
+       AND published_date > COALESCE(
+             (SELECT max(published_date) FROM updates WHERE title LIKE '[CAP]%'),
+             '-infinity')
+     ORDER BY published_date DESC
+     LIMIT $1`,
+    [limit],
+    { name: 'chatbot.getCurrentCycleExamNotices' },
+  );
+  return result.rows;
+}
+
+/**
+ * Fetches the most recent live updates from the website so the chatbot
  * can quote them.
  */
 export async function getLatestUpdates(limit = 3): Promise<ChatUpdateRow[]> {
