@@ -115,32 +115,46 @@ require either a student having messaged in the last 24h, or a paid
 both of which are a deliberate cost/scope line for a later phase, not an
 oversight.
 
-### 2.3 Statelessness — no conversation/session state
+### 2.3 Mostly stateless — one scoped exception for cutoff follow-ups
 
-The bot does not store any per-user or per-session conversation state,
-anywhere (no Redis session, no DB row keyed by phone number or browser
-session). This was a genuine design choice, not a shortcut:
+Phase 1 shipped fully stateless: no per-user or per-session conversation
+state anywhere (no Redis session, no DB row keyed by phone number or browser
+session). The core of that design still holds:
 
 - The root menu (`MENU_OPTIONS`) is **flat and globally numbered** — there
   is no nested sub-menu where "1" means one thing after picking option A and
-  something else after picking option B. That means a bare `"1"`–`"6"` reply
-  is unambiguous **without remembering what was shown before it**.
-- Every other intent match works off the content of the single incoming
-  message alone (keyword regex, or extracting a college/branch/category from
-  one sentence like "cutoff for COEP CS OBC").
+  something else after picking option B. That means a bare `"1"`–`"7"` reply
+  is unambiguous **without remembering what was shown before it**. (Option 7,
+  exam dates, was appended rather than inserted so 1–6 kept their meaning.)
+- Every intent is still classified from the content of the single incoming
+  message (keyword regex, or extracting a college/branch/category from one
+  sentence like "cutoff for COEP CS OBC").
 
-The tradeoff: there is no multi-turn slot-filling dialogue. If a student asks
-"cutoff for COEP" without a branch, the bot asks for the branch back — but
-if they reply with just the branch name, the bot has no memory of "COEP" and
-re-asks from scratch instead of continuing the thread. For Phase 1's scope
-(quick lookups, not a conversation), this was judged an acceptable
-simplification: it avoids building session infrastructure (a Redis TTL store
-keyed by browser session id / WhatsApp `wa_id`) for a rule-based bot where
-most real questions ("cutoff for COEP CS OBC") already fit in one message.
-If usage data shows students frequently drop off at a partial-info prompt,
-revisit with a short-TTL Redis session (the project already uses Redis for
-caching, so the infra exists) storing only the last extracted filter, not a
-general conversation history.
+The original tradeoff was that a split lookup broke: "cutoff for COEP"
+prompted for the branch, and a bare "computer" reply had no memory of COEP,
+so the bot re-asked from scratch. The fallback plan written here was "if this
+turns out to matter, add a short-TTL Redis entry storing only the last
+extracted filter, not a general conversation history" — and that is exactly
+what was later built (commit `d8d3e10`, "add follow-up memory"):
+
+- **What is stored:** only cutoff-lookup slots — `collegeCode`,
+  `collegeName`, `branchHint`, `categoryToken` (`ChatSlots` in
+  `chatbot.service.ts`). No message history, no other intents.
+- **Where and how long:** Redis key `chatbot:slots:<sessionId>`, TTL 20
+  minutes (`CHAT_SLOTS_TTL_SECONDS`) — long enough for one conversational
+  burst, short enough that it never carries over to a returning visitor.
+- **Session id:** a random UUID the web widget generates with
+  `crypto.randomUUID()` and keeps in `sessionStorage`, sent as the optional
+  `sessionId` field on `POST /api/v1/chatbot/message`. It identifies a browser
+  tab, not a person.
+- **When it is written:** only once exactly one college has resolved; the
+  branch and category are added when present. An explicit value in the new
+  message always wins over a remembered one.
+- **Website only.** The WhatsApp adapter passes no `sessionId`, so that
+  channel keeps the original fully stateless behaviour.
+- **Degrades to stateless:** with no `sessionId`, an expired entry, or Redis
+  unavailable, the lookup behaves exactly as before — a bare branch reply gets
+  a "which college would you like the cutoff for?" prompt (see §6).
 
 ### 2.4 FAQ matching and confidence-based routing
 
@@ -693,10 +707,12 @@ the actual size of this corpus.
   service-conversation window; sending unprompted notifications would incur
   per-message cost and was scoped out, not forgotten.
 
-- **No per-session conversation state** (Phase 1, see
-  [§2.3](#23-statelessness--no-conversationsession-state)). The bot
-  classifies each message independently; multi-turn slot-filling dialogue
-  was scoped out in favor of a flat, globally-numbered menu.
+- **No general conversation state** (see
+  [§2.3](#23-mostly-stateless--one-scoped-exception-for-cutoff-follow-ups)).
+  The bot classifies each message independently and keeps no chat history.
+  The single exception is a 20-minute Redis entry holding the last cutoff
+  lookup's college/branch/category on the website channel, so a bare branch
+  follow-up works; nothing broader than that was built.
 
 ---
 
@@ -742,12 +758,13 @@ justifies any of it yet:
   keyword matches (specific form numbers, exact certificate names) that BM25
   would catch, and the tuning cost of a second retrieval path is justified
   by a real recall problem instead of a hypothetical one.
-- **Per-session conversation state (§2.3)** becomes worth it if usage data
-  from `unanswered_queries` / real conversations shows students frequently
-  abandon a multi-step lookup (e.g. give a college but never follow up with
-  a branch) — a short-TTL Redis session keyed by browser session id / WhatsApp
-  `wa_id`, storing only the last partial filter, would fix that without a
-  full conversation-history system.
+- ✅ **Per-session cutoff slot memory (§2.3)** — built for the website
+  channel: a 20-minute Redis entry keyed by a browser-tab `sessionId`, storing
+  only the last college/branch/category. Still open at scale: extending it to
+  WhatsApp (keyed by `wa_id`, which would then need its own privacy-policy
+  line since it ties state to a phone number), and anything beyond cutoff
+  slots — only worth it if real conversations show students abandoning other
+  multi-step questions.
 - **Reranking (§4)** becomes worth it alongside hybrid retrieval, once
   retrieval is regularly returning many marginally-relevant candidates that
   need reordering — not before.
@@ -768,12 +785,16 @@ justifies any of it yet:
   ~20 well-known Maharashtra engineering colleges students actually abbreviate,
   curating and spot-checking a static list against the live data was faster
   and more predictable than standing up a fuzzy-entity-resolution system.
-- **`cap_schedule` admin UI**: the table is currently seeded with placeholder
-  rows for the cycle active when the migration was written and updated only
-  by direct SQL. At any real usage volume this needs an admin-editable UI
-  (matching the existing `platform_settings` pattern) so dates can be
-  published the moment DTE releases them, instead of waiting on a code
-  change.
+- **`cap_schedule` admin UI**: the table the chatbot reads for round dates
+  (`chatbot.repository.ts`, migration 014) is still updated only by direct
+  SQL. Note that `/admin/cap-schedule` does **not** cover it: that page edits
+  `cap_schedule_events` (migration 027), a separate, revision-tracked table
+  behind the public CAP schedule page. 027 deliberately left the chatbot's
+  table untouched, so keeping the two in sync is currently a manual step.
+  The fix is either pointing the chatbot's date lookup at
+  `cap_schedule_events` (one source of truth, already admin-editable) or
+  giving `cap_schedule` its own admin form; the first is less work and
+  removes the drift risk.
 - ✅ **WhatsApp webhook rate limiting + `msg.id` dedup**: flagged in an
   earlier review, now fixed. `whatsappWebhookLimiter` (`middleware/rateLimit`)
   is keyed on the sender's `wa_id` rather than IP (every request here comes

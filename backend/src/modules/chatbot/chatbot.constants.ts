@@ -1,7 +1,7 @@
 /**
  * Root menu shown on greeting/help and logged into every reply's quickReplies.
- * Numbers are globally stable and never nested — see chatbot.service.ts for
- * why this bot is deliberately stateless (no per-session menu context).
+ * Numbers are globally stable and never nested, so a bare number reply needs
+ * no per-session menu context — see the chatbot.service.ts header comment.
  */
 export const MENU_OPTIONS = [
   { number: 1, label: 'Cutoff percentile for a college & branch' },
