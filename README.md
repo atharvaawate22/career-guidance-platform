@@ -35,8 +35,10 @@ Captured from the live site, [cethub.in](https://cethub.in), in November 2026.
 
 ### Admin panel
 
-Role-protected, at `/admin`. Pages that list students' or reviewers' personal
-details (bookings, testimonials) are left out here.
+Role-protected: only signed-in admins can use it. The login page is
+deliberately hidden and shows a "404" to ordinary visitors. Pages that list
+students' or reviewers' personal details (bookings, testimonials) are left out
+here.
 
 <table>
   <tr>
