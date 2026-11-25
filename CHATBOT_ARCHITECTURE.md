@@ -634,7 +634,17 @@ evidence, flag uncertainty, no unrelated files in commits).
    questions (top-1 similarity 0.8720–0.9424) and 10 out-of-corpus/near-miss
    questions (top-1 similarity 0.7628–0.8308) — a small first-pass sample,
    not permanently correct; revisit if real RAG-deferred traffic in
-   `unanswered_queries` suggests otherwise. All top-5 chunks are passed to
+   `unanswered_queries` suggests otherwise. **Reviewed 2026-11-26** against
+   the Jul–Nov 2026 log: every logged question the corpus covers ("can I
+   edit my option form between rounds?", the float/seat-floor question,
+   auto-freeze, choice count) now gets a grounded answer when re-asked live,
+   and the questions still falling through are genuinely out of corpus
+   (spot rounds, direct second-year admission, NEET/medical). No evidence to
+   move the floor. The one real miss the review found was in FAQ routing,
+   not RAG: "what is hu vs ohu" scored 0.194 against its own FAQ, fixed with
+   `FAQ_TERM_EXPANSIONS` (acronyms expanded before scoring). Spot rounds are
+   the clearest content gap, but they need an officially sourced FAQ row,
+   not generated text. All top-5 chunks are passed to
    generation regardless of individual score once the top chunk clears the
    floor — a legitimately relevant 2nd/3rd chunk is exactly what a multi-hop
    synthesis question needs, and the strict-grounding prompt handles
@@ -785,16 +795,18 @@ justifies any of it yet:
   ~20 well-known Maharashtra engineering colleges students actually abbreviate,
   curating and spot-checking a static list against the live data was faster
   and more predictable than standing up a fuzzy-entity-resolution system.
-- **`cap_schedule` admin UI**: the table the chatbot reads for round dates
-  (`chatbot.repository.ts`, migration 014) is still updated only by direct
-  SQL. Note that `/admin/cap-schedule` does **not** cover it: that page edits
-  `cap_schedule_events` (migration 027), a separate, revision-tracked table
-  behind the public CAP schedule page. 027 deliberately left the chatbot's
-  table untouched, so keeping the two in sync is currently a manual step.
-  The fix is either pointing the chatbot's date lookup at
-  `cap_schedule_events` (one source of truth, already admin-editable) or
-  giving `cap_schedule` its own admin form; the first is less work and
-  removes the drift risk.
+- ✅ **CAP dates are admin-editable, with one source of truth.** The chatbot
+  originally read round dates from `cap_schedule` (migration 014), which
+  could only be changed by direct SQL, while `/admin/cap-schedule` edited
+  `cap_schedule_events` (migration 027) behind the public schedule page — so
+  the two could drift. `getCapSchedule()` now reads `cap_schedule_events`:
+  the effective date is `revised_date` when set, else `planned_date`; an
+  event with no date counts as "not announced"; a `postponed` event is shown
+  with a "check /updates" flag; and "round N" questions filter on
+  `round_label = 'CAP Round N'`. Trade-off: that table stores one date per
+  event rather than a start–end range, so the bot now shows the same single
+  dates as the public page. `cap_schedule` is no longer read by any code and
+  can be dropped in a later migration.
 - ✅ **WhatsApp webhook rate limiting + `msg.id` dedup**: flagged in an
   earlier review, now fixed. `whatsappWebhookLimiter` (`middleware/rateLimit`)
   is keyed on the sender's `wa_id` rather than IP (every request here comes

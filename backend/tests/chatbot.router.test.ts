@@ -575,7 +575,7 @@ describe('cap schedule fallback logic', () => {
   it('says the schedule hasn\'t been released if dates are unconfirmed and it is before September', async () => {
     vi.setSystemTime(new Date(2026, 6, 15));
     getCapScheduleMock.mockResolvedValue([
-      { is_confirmed: false, cap_round: 1, event_name: 'Registration' },
+      { round_label: 'CAP Round 1', event_label: 'Option Form Submission', event_date: null, status: 'upcoming' },
     ]);
 
     const reply = await getReply('when is cap round 1', 'website');
@@ -585,7 +585,7 @@ describe('cap schedule fallback logic', () => {
   it('says the season has concluded if dates are unconfirmed and it is September or later', async () => {
     vi.setSystemTime(new Date(2026, 8, 15));
     getCapScheduleMock.mockResolvedValue([
-      { is_confirmed: false, cap_round: 1, event_name: 'Registration' },
+      { round_label: 'CAP Round 1', event_label: 'Option Form Submission', event_date: null, status: 'upcoming' },
     ]);
 
     const reply = await getReply('when is cap round 1', 'website');
@@ -595,25 +595,47 @@ describe('cap schedule fallback logic', () => {
   it('gives the final dates when every confirmed date is in the past', async () => {
     vi.setSystemTime(new Date(2026, 8, 19));
     getCapScheduleMock.mockResolvedValue([
-      { is_confirmed: true, cap_round: 2, event_name: 'Seat Allotment Result', start_date: '2026-08-12', end_date: '2026-08-12' },
-      { is_confirmed: true, cap_round: 2, event_name: 'Reporting & Fee Payment', start_date: '2026-08-13', end_date: '2026-08-18' },
+      { round_label: 'CAP Round 2', event_label: 'Seat Allotment Result', event_date: '2026-08-12', status: 'completed' },
+      { round_label: 'CAP Round 2', event_label: 'Seat Acceptance & Reporting (Fee Payment)', event_date: '2026-08-18', status: 'completed' },
     ]);
 
     const reply = await getReply('when is cap round 2', 'website');
     expect(reply.text).toContain('season has concluded');
-    expect(reply.text).toContain('Round 2 — Seat Allotment Result: 12 Aug 2026');
-    expect(reply.text).toContain('13 Aug 2026 to 18 Aug 2026');
+    expect(reply.text).toContain('CAP Round 2 — Seat Allotment Result: 12 Aug 2026');
+    expect(reply.text).toContain('CAP Round 2 — Seat Acceptance & Reporting (Fee Payment): 18 Aug 2026');
+    expect(getCapScheduleMock).toHaveBeenCalledWith(expect.any(Number), 2);
   });
 
   it('does not claim the season concluded while confirmed dates are still ahead', async () => {
     vi.setSystemTime(new Date(2026, 7, 10));
     getCapScheduleMock.mockResolvedValue([
-      { is_confirmed: true, cap_round: 3, event_name: 'Seat Allotment Result', start_date: '2026-08-24', end_date: '2026-08-24' },
+      { round_label: 'CAP Round 3', event_label: 'Seat Allotment Result', event_date: '2026-08-24', status: 'upcoming' },
     ]);
 
     const reply = await getReply('when is cap round 3', 'website');
     expect(reply.text).not.toContain('concluded');
-    expect(reply.text).toContain('Round 3 — Seat Allotment Result: 24 Aug 2026');
+    expect(reply.text).toContain('CAP Round 3 — Seat Allotment Result: 24 Aug 2026');
+  });
+
+  it('flags a postponed event instead of presenting its date as settled', async () => {
+    vi.setSystemTime(new Date(2026, 7, 10));
+    getCapScheduleMock.mockResolvedValue([
+      { round_label: 'CAP Round 3', event_label: 'Seat Allotment Result', event_date: '2026-08-26', status: 'postponed' },
+    ]);
+
+    const reply = await getReply('when is cap round 3', 'website');
+    expect(reply.text).toContain('26 Aug 2026 (postponed — check /updates)');
+  });
+
+  it('asks for the whole timeline when no round is named', async () => {
+    vi.setSystemTime(new Date(2026, 6, 1));
+    getCapScheduleMock.mockResolvedValue([
+      { round_label: 'Registration', event_label: 'Registration & Document Upload', event_date: '2027-07-20', status: 'upcoming' },
+    ]);
+
+    const reply = await getReply('cap schedule', 'website');
+    expect(getCapScheduleMock).toHaveBeenCalledWith(expect.any(Number), undefined);
+    expect(reply.text).toContain('Registration — Registration & Document Upload: 20 Jul 2027');
   });
 });
 
@@ -787,5 +809,20 @@ describe('menu option 7 (exam dates)', () => {
   it('lists option 7 in the greeting menu', async () => {
     const reply = await getReply('menu', 'website');
     expect(reply.text).toContain('7. MHT-CET exam dates & latest notices');
+  });
+});
+
+describe('FAQ acronym expansion', () => {
+  it('scores "hu vs ohu" as the words the FAQ uses', async () => {
+    await getReply('what is hu vs ohu', 'website');
+    expect(scoreFaqsMock).toHaveBeenCalledWith(
+      'what is hu vs ohu',
+      'home university other than home university',
+    );
+  });
+
+  it('leaves words that are not listed acronyms alone', async () => {
+    await getReply('what is float', 'website');
+    expect(scoreFaqsMock).toHaveBeenCalledWith('what is float', 'float');
   });
 });

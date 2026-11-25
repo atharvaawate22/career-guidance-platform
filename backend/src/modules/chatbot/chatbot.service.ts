@@ -81,6 +81,20 @@ const FAQ_STOPWORDS = new Set([
 ]);
 
 /**
+ * Short acronyms expanded to the words the FAQ rows actually use, applied to
+ * the filtered form only (after stopword removal, so "than" survives inside
+ * an expansion). Two- and three-letter tokens carry almost no trigrams, so
+ * "what is hu vs ohu" scored 0.194 against its own FAQ — just under
+ * FAQ_MIN_CONFIDENCE — and fell through. Expanded, the same FAQ scores 0.391
+ * (similarity) / 1.000 (word_similarity), with the runner-up at 0.100.
+ * Only add an entry after measuring it against the live faqs table.
+ */
+const FAQ_TERM_EXPANSIONS: Record<string, string> = {
+  hu: 'home university',
+  ohu: 'other than home university',
+};
+
+/**
  * Minimum confidence for an FAQ answer to be used when no keyword intent
  * matched at all. On the `similarity()` scale. Matches the previous SQL
  * threshold.
@@ -602,8 +616,8 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
     );
   }
 
-  const anyConfirmed = rows.some((r) => r.is_confirmed);
-  if (!anyConfirmed) {
+  const confirmed = rows.filter((r) => r.event_date !== null);
+  if (confirmed.length === 0) {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0 = Jan, 8 = Sep
@@ -623,19 +637,19 @@ async function handleCapDatesIntent(normalized: string): Promise<ChatReply> {
     );
   }
 
-  const confirmed = rows.filter((r) => r.is_confirmed);
   const lines = confirmed
     .map((r) => {
-      const start = formatCapDate(r.start_date);
-      const end = formatCapDate(r.end_date);
-      return `Round ${r.cap_round} — ${r.event_name}: ${start === end ? start : `${start} to ${end}`}`;
+      const postponed = r.status === 'postponed' ? ' (postponed — check /updates)' : '';
+      return `${r.round_label} — ${r.event_label}: ${formatCapDate(r.event_date)}${postponed}`;
     })
     .join('\n');
 
   // Dates are 'YYYY-MM-DD' strings, so a plain string compare against today's
   // IST date is a correct chronological compare.
   const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  const concluded = confirmed.every((r) => r.end_date !== null && r.end_date < todayIST);
+  const concluded = confirmed.every(
+    (r) => r.status === 'completed' || (r.event_date !== null && r.event_date < todayIST),
+  );
   if (concluded) {
     return reply(
       `The CAP ${ACTIVE_CAP_SCHEDULE_YEAR} admission season has concluded. Here are the final official dates:\n${lines}\n\n` +
@@ -901,7 +915,8 @@ interface FaqScoreResult {
 async function scoreBestFaq(normalized: string): Promise<FaqScoreResult> {
   const contentWords = normalized
     .split(/\s+/)
-    .filter((w) => w && !FAQ_STOPWORDS.has(w));
+    .filter((w) => w && !FAQ_STOPWORDS.has(w))
+    .flatMap((w) => FAQ_TERM_EXPANSIONS[w]?.split(' ') ?? [w]);
   const filtered = contentWords.length > 0 ? contentWords.join(' ') : normalized;
 
   const rows = await repo.scoreFaqs(normalized, filtered);

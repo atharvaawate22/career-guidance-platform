@@ -14,13 +14,18 @@ export interface ChatCutoffRow {
   percentile: number | null;
 }
 
+/**
+ * One CAP timeline event, read from `cap_schedule_events` — the table the
+ * /admin/cap-schedule page edits and the public schedule page shows, so the
+ * chatbot and the site can never disagree on a date.
+ */
 export interface CapScheduleRow {
-  cap_round: number;
-  event_name: string;
-  start_date: string | null;
-  end_date: string | null;
-  is_confirmed: boolean;
-  notes: string | null;
+  /** 'Registration', 'Merit List', 'CAP Round 1'…'CAP Round 4', 'Post-CAP'. */
+  round_label: string;
+  event_label: string;
+  /** revised_date when set, else planned_date ('YYYY-MM-DD'); null = not announced yet. */
+  event_date: string | null;
+  status: 'upcoming' | 'today' | 'completed' | 'postponed';
 }
 
 export interface ChatUpdateRow {
@@ -234,14 +239,16 @@ export async function getCapSchedule(
   const conditions = ['academic_year = $1'];
   const values: unknown[] = [academicYear];
   if (round !== undefined) {
-    conditions.push('cap_round = $2');
+    conditions.push("round_label = 'CAP Round ' || $2::text");
     values.push(round);
   }
   const result = await query(
-    `SELECT cap_round, event_name, start_date, end_date, is_confirmed, notes
-     FROM cap_schedule
+    `SELECT round_label, event_label,
+            TO_CHAR(COALESCE(revised_date, planned_date), 'YYYY-MM-DD') AS event_date,
+            status
+     FROM cap_schedule_events
      WHERE ${conditions.join(' AND ')}
-     ORDER BY cap_round ASC, start_date ASC NULLS LAST`,
+     ORDER BY display_order ASC`,
     values,
     { name: 'chatbot.getCapSchedule' },
   );
