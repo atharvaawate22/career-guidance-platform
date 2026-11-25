@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
-import { COLLEGE_COUNT, CUTOFF_RECORDS_COUNTER, PREDICTOR_RECORDS_LABEL } from "@/lib/siteStats";
+import { COLLEGE_COUNT, PREDICTOR_RECORDS_LABEL } from "@/lib/siteStats";
 import FaqSection from "@/components/FaqSection";
 import LatestUpdates from "@/components/LatestUpdates";
 import Testimonials from "@/components/Testimonials";
 import QuickPredict from "@/components/QuickPredict";
 import ScrollReveal from "@/components/ScrollReveal";
-import AnimatedCounter from "@/components/AnimatedCounter";
 import ArrowRight from "@/components/ArrowRight";
 import FeatureCard, { type Feature } from "@/components/FeatureCard";
 import { BOOKINGS_ENABLED } from "@/lib/features";
@@ -289,36 +288,6 @@ export default function Home() {
               />
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* STATS — platform credibility, moved out of the hero */}
-      <section className="py-12 lg:py-16" style={{ background: "var(--bg-primary)", borderBottom: "1px solid var(--slate-100)" }}>
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <ScrollReveal>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              {[
-                { val: CUTOFF_RECORDS_COUNTER, suffix: "+", label: "Cutoff Records" },
-                { val: COLLEGE_COUNT, suffix: "", label: "Colleges Covered" },
-                { val: 4, suffix: "", label: "CAP Rounds" },
-                { val: 0, suffix: "", label: "Expert Sessions", display: "Free" },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="rounded-2xl border p-5 text-center"
-                  style={{ background: "var(--bg-secondary)", borderColor: "var(--slate-200)" }}
-                >
-                  <div className="text-3xl font-bold mb-1" style={{ color: "var(--primary-600)", fontFamily: "var(--font-mono)" }}>
-                    {s.display ? s.display : <AnimatedCounter target={s.val} suffix={s.suffix} />}
-                  </div>
-                  <div className="text-sm" style={{ color: "var(--slate-600)" }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-xs mt-6" style={{ color: "var(--slate-500)" }}>
-              Powered by official {CUTOFF_YEAR} Maharashtra CAP data
-            </p>
-          </ScrollReveal>
         </div>
       </section>
 

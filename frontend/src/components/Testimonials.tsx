@@ -33,11 +33,18 @@ function Stars({ rating, size = 16 }: { rating: number; size?: number }) {
   );
 }
 
+/** Reviews shown before "Show all" — one row on desktop. */
+const REVIEWS_PREVIEW = 3;
+
 export default function Testimonials() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  // One row of reviews on the homepage; the rest behind "Show all", like the
+  // Latest Updates section above it. Reviews are fetched client-side, so
+  // collapsing them has no SEO effect.
+  const [showAll, setShowAll] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -158,8 +165,9 @@ export default function Testimonials() {
             </p>
           </div>
         ) : (
+          <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {testimonials.map((t, i) => (
+            {(showAll ? testimonials : testimonials.slice(0, REVIEWS_PREVIEW)).map((t, i) => (
               <ScrollReveal key={t.id} animation="fade-up" delay={i * 60}>
                 <div
                   className="rounded-2xl border p-6 h-full flex flex-col"
@@ -187,6 +195,21 @@ export default function Testimonials() {
               </ScrollReveal>
             ))}
           </div>
+          {testimonials.length > REVIEWS_PREVIEW && (
+            <div className="flex justify-center mt-6">
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                aria-expanded={showAll}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold cursor-pointer"
+                style={{ color: "var(--primary-600)" }}
+              >
+                {showAll ? "Show fewer reviews" : `Show all ${testimonials.length} reviews`}
+                <span aria-hidden="true" style={{ display: "inline-block", transform: showAll ? "rotate(180deg)" : "none" }}>▾</span>
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
 

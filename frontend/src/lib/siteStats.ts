@@ -19,6 +19,3 @@ export const PREDICTOR_RECORDS_LABEL = "38,000+";
 
 /** Colleges with cutoff pages / in the explorer. */
 export const COLLEGE_COUNT = 390;
-
-/** Numeric forms for the animated homepage counters. */
-export const CUTOFF_RECORDS_COUNTER = 100000;
