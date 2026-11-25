@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "How CET Hub collects, uses and protects your data across the college predictor, cutoff explorer, counselling bookings and the Avani chatbot.",
+  alternates: { canonical: "https://www.cethub.in/privacy" },
+};
 
 const contactEmail = "support@cethub.in";
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CUTOFF_RECORDS_LABEL } from "@/lib/siteStats";
 import CutoffsExplorer from "@/components/CutoffsExplorer";
 import ExpandableRows from "@/components/ExpandableRows";
 import { collegeSlug } from "@/lib/collegeSlug";
@@ -35,7 +36,7 @@ const BASE_CUTOFFS_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Which cutoff data does CET Hub cover?",
-    a: `CET Hub's explorer covers 90,000+ official MHT-CET ${CUTOFF_YEAR} CAP cutoff records published by DTE/State CET Cell Maharashtra — every engineering college, branch, seat category (GOPEN, GOBC, GSC, GST, EWS, TFWS and more), and CAP Rounds 1–4.`,
+    a: `CET Hub's explorer covers ${CUTOFF_RECORDS_LABEL} official MHT-CET ${CUTOFF_YEAR} CAP cutoff records published by DTE/State CET Cell Maharashtra — every engineering college, branch, seat category (GOPEN, GOBC, GSC, GST, EWS, TFWS and more), and CAP Rounds 1–4.`,
   },
   {
     q: `How do I check the MHT CET ${CUTOFF_YEAR} cutoff for a specific college?`,
@@ -80,7 +81,7 @@ export default async function CutoffsPage() {
         "@type": "Dataset",
         name: `MHT-CET ${CUTOFF_YEAR} CAP Round Engineering Cutoff Dataset`,
         description:
-          "Structured historical cutoff dataset containing 90,000+ percentile and rank admission records across engineering colleges, branches, categories, and rounds in Maharashtra.",
+          `Structured historical cutoff dataset containing ${CUTOFF_RECORDS_LABEL} percentile and rank admission records across engineering colleges, branches, categories, and rounds in Maharashtra.`,
         url: `${SITE_URL}/cutoffs`,
         keywords: [
           "MHT-CET cutoffs",

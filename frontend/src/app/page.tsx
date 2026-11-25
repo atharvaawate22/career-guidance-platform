@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
+import { COLLEGE_COUNT, CUTOFF_RECORDS_COUNTER, PREDICTOR_RECORDS_LABEL } from "@/lib/siteStats";
 import FaqSection from "@/components/FaqSection";
 import LatestUpdates from "@/components/LatestUpdates";
 import Testimonials from "@/components/Testimonials";
@@ -27,7 +28,7 @@ const features: Feature[] = [
   },
   {
     title: "Cutoff Explorer",
-    desc: "Access comprehensive cutoff data for 300+ colleges across all CAP rounds.",
+    desc: `Access comprehensive cutoff data for ${COLLEGE_COUNT} colleges across all CAP rounds.`,
     href: "/cutoffs",
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -114,7 +115,7 @@ const steps = [
   {
     n: 2,
     title: "Explore predictions",
-    desc: `Instantly see Safe, Target, and Dream college options — powered by 90,000+ actual ${CUTOFF_YEAR} CAP cutoff records.`,
+    desc: `Instantly see Safe, Target, and Dream college options — powered by ${PREDICTOR_RECORDS_LABEL} official ${CUTOFF_YEAR} CAP Round I cutoff records.`,
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -199,9 +200,11 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left — Text */}
             <div className="animate-fade-up">
-              {/* Status pill */}
-              <div
-                className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full text-xs font-semibold"
+              {/* Status pill — what's current: the finished CAP dataset, and a
+                  pointer to the next exam cycle's official notices. */}
+              <Link
+                href="/updates"
+                className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full text-xs font-semibold hover:opacity-90"
                 style={{
                   background: "rgba(255,255,255,0.06)",
                   border: "1px solid rgba(255,255,255,0.1)",
@@ -216,8 +219,9 @@ export default function Home() {
                     boxShadow: "0 0 8px rgba(34,197,94,0.5)",
                   }}
                 />
-                Platform Live · {CUTOFF_YEAR} Data Ready
-              </div>
+                {CUTOFF_YEAR} CAP data complete · MHT-CET {Number(CUTOFF_YEAR) + 1} updates
+                <span aria-hidden="true">→</span>
+              </Link>
 
               {/* Heading */}
               <h1
@@ -294,8 +298,8 @@ export default function Home() {
           <ScrollReveal>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
               {[
-                { val: 90000, suffix: "+", label: "Cutoff Records" },
-                { val: 300, suffix: "+", label: "Colleges Covered" },
+                { val: CUTOFF_RECORDS_COUNTER, suffix: "+", label: "Cutoff Records" },
+                { val: COLLEGE_COUNT, suffix: "", label: "Colleges Covered" },
                 { val: 4, suffix: "", label: "CAP Rounds" },
                 { val: 0, suffix: "", label: "Expert Sessions", display: "Free" },
               ].map((s) => (

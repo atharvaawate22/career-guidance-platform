@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
+import { CUTOFF_RECORDS_LABEL, COLLEGE_COUNT } from "@/lib/siteStats";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import ErrorTrackingBridge from "@/components/ErrorTrackingBridge";
@@ -24,8 +25,8 @@ export const metadata: Metadata = {
     template: "%s | CET Hub",
   },
   description: BOOKINGS_ENABLED
-    ? `All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank, explore 90,000+ ${CUTOFF_YEAR} CAP cutoff records across 300+ colleges, and book free expert counseling for Maharashtra engineering admissions.`
-    : `All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank and explore 90,000+ ${CUTOFF_YEAR} CAP cutoff records across 300+ colleges for Maharashtra engineering admissions.`,
+    ? `All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank, explore ${CUTOFF_RECORDS_LABEL} ${CUTOFF_YEAR} CAP cutoff records across ${COLLEGE_COUNT} colleges, and book free expert counseling for Maharashtra engineering admissions.`
+    : `All-in-one MHT-CET guidance platform by CET Hub — predict colleges from your percentile or rank and explore ${CUTOFF_RECORDS_LABEL} ${CUTOFF_YEAR} CAP cutoff records across ${COLLEGE_COUNT} colleges for Maharashtra engineering admissions.`,
   keywords: [
     "MHT-CET",
     "MHT CET",
@@ -58,7 +59,7 @@ export const metadata: Metadata = {
     locale: "en_IN",
     title: "CET Hub — MHT-CET College Predictor, Cutoffs & Guidance",
     description:
-      `Predict colleges, explore 90,000+ ${CUTOFF_YEAR} cutoff records, and get free expert guidance for MHT-CET engineering admissions in Maharashtra.`,
+      `Predict colleges, explore ${CUTOFF_RECORDS_LABEL} ${CUTOFF_YEAR} cutoff records, and get free expert guidance for MHT-CET engineering admissions in Maharashtra.`,
   },
   twitter: {
     card: "summary_large_image",

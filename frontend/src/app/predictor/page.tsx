@@ -2,6 +2,7 @@ import Link from "next/link";
 import PredictorForm from "@/components/PredictorForm";
 import { BOOKINGS_ENABLED } from "@/lib/features";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
+import { PREDICTOR_RECORDS_LABEL } from "@/lib/siteStats";
 
 /**
  * Server component shell for the predictor: the page header, methodology
@@ -12,7 +13,7 @@ import { CUTOFF_YEAR } from "@/lib/dataYear";
 const PREDICTOR_FAQ: { q: string; a: string }[] = [
   {
     q: "How does the MHT CET college predictor work?",
-    a: `Enter your MHT-CET percentile or CAP rank, category, and gender. The predictor compares your effective rank against 90,000+ official ${CUTOFF_YEAR} CAP Round I closing cutoffs and sorts eligible colleges into Safe (comfortably within cutoff), Target (realistic), and Dream (competitive but possible) tiers.`,
+    a: `Enter your MHT-CET percentile or CAP rank, category, and gender. The predictor compares your effective rank against ${PREDICTOR_RECORDS_LABEL} official ${CUTOFF_YEAR} CAP Round I closing cutoffs and sorts eligible colleges into Safe (comfortably within cutoff), Target (realistic), and Dream (competitive but possible) tiers.`,
   },
   {
     q: "Is the CET Hub college predictor free?",
@@ -96,7 +97,7 @@ export default function PredictorPage() {
               How the MHT-CET College Predictor Works
             </h2>
             <p className="text-sm max-w-3xl" style={{ color: "var(--slate-500)" }}>
-              Every prediction is computed against 90,000+ official DTE Maharashtra CAP cutoff
+              Every prediction is computed against {PREDICTOR_RECORDS_LABEL} official DTE Maharashtra CAP Round I cutoff
               records from {CUTOFF_YEAR} — not surveys or self-reported data. Explore the underlying numbers
               in the <Link href="/cutoffs" style={{ color: "var(--primary-600)", textDecoration: "underline" }}>cutoff explorer</Link>.
             </p>

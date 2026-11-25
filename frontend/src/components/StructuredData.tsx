@@ -1,5 +1,6 @@
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
+import { PREDICTOR_RECORDS_LABEL } from "@/lib/siteStats";
 
 /**
  * Global structured data (JSON-LD), rendered once in the root layout so it is
@@ -43,7 +44,7 @@ export default function StructuredData() {
         browserRequirements: "Requires a modern web browser with JavaScript.",
         offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
         description:
-          `Free MHT-CET college predictor — enter your percentile or CAP rank to see Safe, Target, and Dream engineering colleges across Maharashtra, based on 90,000+ official ${CUTOFF_YEAR} CAP cutoff records.`,
+          `Free MHT-CET college predictor — enter your percentile or CAP rank to see Safe, Target, and Dream engineering colleges across Maharashtra, based on ${PREDICTOR_RECORDS_LABEL} official ${CUTOFF_YEAR} CAP Round I cutoff records.`,
         provider: { "@id": `${SITE_URL}/#organization` },
         inLanguage: "en-IN",
       },

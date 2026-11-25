@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Terms of Use",
+  description:
+    "Terms for using CET Hub's MHT-CET college predictor, cutoff data, guides and counselling sessions.",
+  alternates: { canonical: "https://www.cethub.in/terms" },
+};
 
 export default function TermsPage() {
   return (

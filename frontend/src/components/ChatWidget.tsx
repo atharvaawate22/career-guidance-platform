@@ -54,6 +54,15 @@ interface ChatMessage {
 }
 
 const TEASER_DELAY_MS = 2200;
+/** The greeting card hides itself after this long if ignored — it covers page content. */
+const TEASER_AUTO_HIDE_MS = 10000;
+/**
+ * localStorage, not sessionStorage: the greeting is shown ONCE per visitor
+ * (per browser), not once per tab/session. It used to reappear on every new
+ * visit and sat over page content until clicked; the "Ask Avani" launcher is
+ * always there for anyone who wants it.
+ */
+const TEASER_SEEN_KEY = "avani_teaser_seen";
 const SESSION_ID_KEY = "avani_session_id";
 const TEASER_DISMISSED_KEY = "avani_teaser_dismissed";
 const OPENED_KEY = "avani_opened";
@@ -191,14 +200,29 @@ export default function ChatWidget() {
   useEffect(() => {
     let alreadySeen = false;
     try {
-      alreadySeen = sessionStorage.getItem(OPENED_KEY) === "1" || sessionStorage.getItem(TEASER_DISMISSED_KEY) === "1";
+      alreadySeen =
+        sessionStorage.getItem(OPENED_KEY) === "1" ||
+        sessionStorage.getItem(TEASER_DISMISSED_KEY) === "1" ||
+        localStorage.getItem(TEASER_SEEN_KEY) === "1";
     } catch {
       alreadySeen = false;
     }
     if (alreadySeen) return;
     setNeverEngaged(true);
-    const timer = setTimeout(() => setShowTeaser(true), TEASER_DELAY_MS);
-    return () => clearTimeout(timer);
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    const showTimer = setTimeout(() => {
+      setShowTeaser(true);
+      try {
+        localStorage.setItem(TEASER_SEEN_KEY, "1");
+      } catch {
+        // Best-effort; worst case the greeting shows again next visit.
+      }
+      hideTimer = setTimeout(() => setShowTeaser(false), TEASER_AUTO_HIDE_MS);
+    }, TEASER_DELAY_MS);
+    return () => {
+      clearTimeout(showTimer);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
   }, []);
 
   const markOpened = () => {

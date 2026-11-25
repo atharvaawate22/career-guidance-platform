@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
+import { CUTOFF_RECORDS_LABEL } from "@/lib/siteStats";
 
 // Dynamically generated Open Graph / Twitter card image (1200x630). Next.js
 // auto-attaches this to OG + Twitter metadata for every route, so social shares
@@ -58,7 +59,7 @@ export default function OpengraphImage() {
             explicit display, and interpolating inline would split this into
             three nodes. */}
         <div style={{ fontSize: 30, marginTop: 30, color: "#cbd5e1", maxWidth: 940 }}>
-          {`Predict colleges by percentile · 90,000+ ${CUTOFF_YEAR} CAP cutoff records · Free expert guidance for Maharashtra engineering admissions`}
+          {`Predict colleges by percentile · ${CUTOFF_RECORDS_LABEL} ${CUTOFF_YEAR} CAP cutoff records · Free expert guidance for Maharashtra engineering admissions`}
         </div>
       </div>
     ),
