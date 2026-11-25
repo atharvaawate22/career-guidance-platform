@@ -6,7 +6,8 @@
 A full-stack web platform helping Maharashtra engineering students navigate 
 MHT-CET CAP admissions. Features a percentile-based college predictor, 
 historical cutoff explorer, consultation booking with Google Meet, 
-CET update tracking, an FAQ + RAG-backed chatbot (web widget and WhatsApp), 
+CET update tracking, an FAQ + RAG-backed chatbot (web widget; a WhatsApp
+channel is built but not yet switched on), 
 and a role-protected admin dashboard.
 
 **Stack:** Next.js · TypeScript · Node.js · Express · PostgreSQL (Supabase, 
@@ -69,7 +70,8 @@ The system separates content delivery, prediction logic, booking automation, and
 - Consultation Booking with Google Meet Integration
 - Automated Email Confirmation System
 - Chatbot (rule-based FAQ matching + RAG generation via Gemini) — available as
-  a web widget and over WhatsApp (Meta Cloud API)
+  a web widget. A WhatsApp channel (Meta Cloud API) shares the same backend
+  and is built, but not live yet: no business number is configured
 
 ### Admin Modules
 
@@ -95,7 +97,7 @@ Client → API Layer → Service Layer → Data Layer
 - Email Service (SMTP)
 - Google Calendar API (for meeting creation)
 - Gemini API (RAG generation for the chatbot)
-- WhatsApp Cloud API (Meta) — chatbot channel
+- WhatsApp Cloud API (Meta) — chatbot channel (built, not yet switched on)
 - Redis — caching, rate limiting, WhatsApp dedup (optional; degrades gracefully if unset)
 
 Each feature (predictor, booking, updates, cutoffs, guides, resources, faqs, settings, chatbot, whatsapp, admin, auth) is implemented as an independent module. Errors within one module do not cascade into others. All modules are always registered — there is no environment-based feature-flag toggling.
@@ -127,7 +129,7 @@ Detailed architecture is documented in [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 - SMTP (Email Service)
 - Google Calendar API
 - Gemini API (chatbot RAG generation)
-- WhatsApp Cloud API (Meta)
+- WhatsApp Cloud API (Meta) — built, not yet switched on
 
 **Deployment**
 
