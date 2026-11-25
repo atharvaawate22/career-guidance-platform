@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
-import { COLLEGE_COUNT, PREDICTOR_RECORDS_LABEL } from "@/lib/siteStats";
+import { COLLEGE_COUNT } from "@/lib/siteStats";
 import FaqSection from "@/components/FaqSection";
 import { fetchFaqs } from "@/lib/serverFaqs";
 import LatestUpdates from "@/components/LatestUpdates";
@@ -97,43 +97,6 @@ const features: Feature[] = [
     gradient: "linear-gradient(135deg, #fef2f2, #fecaca40)",
     iconColor: "#dc2626",
     borderHover: "#fecaca",
-  },
-];
-
-const steps = [
-  {
-    n: 1,
-    title: "Enter your score",
-    desc: "Provide your MHT-CET percentile or official CAP rank along with your reservation category.",
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-      </svg>
-    ),
-  },
-  {
-    n: 2,
-    title: "Explore predictions",
-    desc: `Instantly see Safe, Target, and Dream college options — powered by ${PREDICTOR_RECORDS_LABEL} official ${CUTOFF_YEAR} CAP Round I cutoff records.`,
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-    ),
-  },
-  {
-    n: 3,
-    title: "Finalise your list",
-    desc: BOOKINGS_ENABLED
-      ? "Still have doubts? Book a free one-on-one session with our expert counselors."
-      : "Compare your Safe, Target, and Dream options and lock in your CAP preference list.",
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
-    ),
   },
 ];
 
@@ -327,61 +290,6 @@ export default async function Home() {
           still strong (and clear of the FAQ/CTA close, which read as the
           page's natural wrap-up) */}
       <Testimonials />
-
-      {/* HOW IT WORKS — the process, after the feature overview */}
-      <section className="py-20 lg:py-28" style={{ background: "var(--bg-secondary)" }}>
-        <div className="max-w-5xl mx-auto px-6 lg:px-8">
-          <ScrollReveal>
-            <div className="text-center mb-16">
-              <p className="section-label mb-3">The Process</p>
-              <h2
-                className="text-3xl lg:text-4xl font-bold"
-                style={{ color: "var(--slate-900)", fontFamily: "var(--font-display)" }}
-              >
-                How it works
-              </h2>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-12 relative">
-            {/* Connecting line (desktop) */}
-            <div
-              className="hidden md:block absolute top-12 left-[16.66%] right-[16.66%] h-px"
-              style={{ background: "var(--slate-200)" }}
-            />
-
-            {steps.map((step, i) => (
-              <ScrollReveal key={i} animation="fade-up" delay={i * 150}>
-                <div className="flex flex-col items-center text-center">
-                  <div
-                    className="w-24 h-24 rounded-2xl flex items-center justify-center mb-6 relative z-10 transition-transform duration-300 hover:scale-105"
-                    style={{
-                      background: "var(--bg-primary)",
-                      border: "2px solid var(--primary-200)",
-                      color: "var(--primary-600)",
-                      boxShadow: "0 0 0 6px var(--bg-secondary), var(--shadow-md)",
-                    }}
-                  >
-                    {step.icon}
-                  </div>
-                  <span
-                    className="text-xs font-bold uppercase tracking-widest mb-2"
-                    style={{ color: "var(--primary-500)" }}
-                  >
-                    Step {step.n}
-                  </span>
-                  <h3 className="text-lg font-bold mb-2" style={{ color: "var(--slate-900)" }}>
-                    {step.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--slate-500)" }}>
-                    {step.desc}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ═══════════════ FAQ ══════════════════════════════════════════ */}
       <FaqSection initialFaqs={faqs} />

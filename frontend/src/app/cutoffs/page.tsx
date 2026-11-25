@@ -29,18 +29,33 @@ const fmtPercentile = (v: number | string | null) =>
   v == null ? "—" : Number(v).toFixed(2);
 const fmtRank = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-IN"));
 
+/**
+ * What students actually wonder while reading this table (Nov 2026 rewrite;
+ * the old three were a definition, a self-description and "use the filters
+ * above"). Examples are real rows from the cutoffs table (GOPENS, stage I):
+ * COEP CSE Round I closing rank 243 (2025) and 150 (2026); WCE Sangli
+ * Electrical 2026: 4,332 (R1), 3,836 (R3), 4,558 (R4).
+ */
 const BASE_CUTOFFS_FAQ: { q: string; a: string }[] = [
   {
-    q: "What is an MHT CET cutoff?",
-    a: "A cutoff is the closing percentile (and rank) at which a college admitted its last student for a specific branch, seat category, and CAP round. If your percentile is at or above a cutoff, you had a realistic chance of that seat in that round.",
+    q: "A branch shows many cutoffs. Which ones apply to me?",
+    a: "Each row is a separate pool of seats with its own last admitted rank. Only the rows that match you apply: your category (OPEN, OBC, SC and so on); your gender, because codes starting with L are ladies-only seats while G seats are open to everyone; and the seat type shown on each result, which is State Level (any Maharashtra candidate), Home University (candidates from that college's university region) or Other Than Home University. All India rows are for candidates admitted through the All India quota. Filter by your category and gender to hide the rest.",
   },
   {
-    q: "Which cutoff data does CET Hub cover?",
-    a: `CET Hub's explorer covers ${CUTOFF_RECORDS_LABEL} official MHT-CET ${CUTOFF_YEAR} CAP cutoff records published by DTE/State CET Cell Maharashtra — every engineering college, branch, seat category (GOPEN, GOBC, GSC, GST, EWS, TFWS and more), and CAP Rounds 1–4.`,
+    q: "Should I look at Round I or Round IV cutoffs?",
+    a: `Start with Round I: almost every seat is still available then, so it is the most reliable picture of how competitive a seat is. Later rounds usually close at larger rank numbers as students move or drop out, but not always. Walchand Sangli's Electrical Engineering (state-level OPEN) closed at rank 4,332 in Round I of ${CUTOFF_YEAR}, tightened to 3,836 in Round III, then eased to 4,558 in Round IV. Use Round IV to see a seat's last chance, not as your baseline.`,
   },
   {
-    q: `How do I check the MHT CET ${CUTOFF_YEAR} cutoff for a specific college?`,
-    a: "Use the interactive explorer above with the college filter, or open that college's dedicated cutoff page from the directory below — each page lists branch-wise closing percentiles and ranks for every category and CAP round.",
+    q: "Should I compare my percentile or my rank with the cutoff?",
+    a: "Your rank. Percentiles are normalised across exam sessions and many students share nearly the same one, so two cutoffs can show the same percentile but very different ranks. The closing rank is the exact merit position of the last student admitted, so if your rank number is smaller than a seat's closing rank, you would have cleared it.",
+  },
+  {
+    q: "How much do cutoffs change from one year to the next?",
+    a: `Enough that last year's number is a guide, not a promise. COEP's Computer Science (state-level OPEN) closed at rank 243 in Round I of 2025 and at rank 150 in ${CUTOFF_YEAR}. To see how a seat moved, switch the Academic Year filter in the explorer above and compare the same college, branch and category across years.`,
+  },
+  {
+    q: "Why is there no cutoff for my category at a college?",
+    a: "Either the college has no seat for that category in that branch, or no candidate was admitted to it in that round, so there is no closing rank to report. Minority institutions also reserve many of their seats for their own minority group. Try a different round, or check the seat matrix linked under Resources.",
   },
 ];
 
