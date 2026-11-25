@@ -63,7 +63,8 @@ export interface CollegeCutoffsPayload {
   year: number;
 }
 
-async function backendGet<T>(
+/** Exported for other server-only fetchers (e.g. lib/serverFaqs.ts) so they share the proxy-token header and the never-hard-fail behaviour. */
+export async function backendGet<T>(
   path: string,
   revalidate: number,
 ): Promise<T | null> {

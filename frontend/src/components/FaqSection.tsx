@@ -6,13 +6,28 @@ import ScrollReveal from "@/components/ScrollReveal";
 
 interface Faq { id: string; question: string; answer: string; display_order: number; }
 
-export default function FaqSection() {
-  const [faqs, setFaqs] = useState<Faq[]>([]);
+/** Questions shown before "Show all" — the rest stay in the HTML, CSS-hidden. */
+const FAQ_PREVIEW = 8;
+
+/**
+ * `initialFaqs` comes from the server (app/page.tsx → lib/serverFaqs.ts), so
+ * every question, answer and the FAQPage JSON-LD are in the server HTML. The
+ * client fetch below is only a fallback for when the server fetch came back
+ * empty (backend asleep at build/revalidate time).
+ *
+ * All items start collapsed: opening the first one by default spent the most
+ * visible space on the most basic question. Items past FAQ_PREVIEW are hidden
+ * with CSS, never left unrendered, so crawlers still see all of them.
+ */
+export default function FaqSection({ initialFaqs = [] }: { initialFaqs?: Faq[] }) {
+  const [faqs, setFaqs] = useState<Faq[]>(initialFaqs);
   const [openId, setOpenId] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(initialFaqs.length === 0);
   const [loadError, setLoadError] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
+    if (initialFaqs.length > 0) return;
     const fetch_ = async () => {
       try {
         setIsLoading(true); setLoadError("");
@@ -24,7 +39,6 @@ export default function FaqSection() {
         const d = await r.json();
         if (d.success && Array.isArray(d.data)) {
           setFaqs(d.data);
-          setOpenId(d.data[0]?.id ?? "");
         } else throw new Error("Invalid response");
       } catch (err) {
         console.error("FAQ load failed:", err);
@@ -33,6 +47,8 @@ export default function FaqSection() {
       } finally { setIsLoading(false); }
     };
     fetch_();
+    // initialFaqs is fixed for the page's lifetime; run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -68,8 +84,10 @@ export default function FaqSection() {
           <div className="space-y-3">
             {faqs.map((faq, idx) => {
               const isOpen = openId === faq.id;
+              const hidden = !showAll && idx >= FAQ_PREVIEW;
               return (
-                <ScrollReveal key={faq.id} animation="fade-up" delay={idx * 60}>
+                <div key={faq.id} hidden={hidden}>
+                <ScrollReveal animation="fade-up" delay={Math.min(idx, FAQ_PREVIEW) * 60}>
                   <article
                     className="rounded-2xl border transition-all duration-300"
                     style={{
@@ -129,8 +147,23 @@ export default function FaqSection() {
                     </div>
                   </article>
                 </ScrollReveal>
+                </div>
               );
             })}
+            {faqs.length > FAQ_PREVIEW && (
+              <div className="flex justify-center pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAll((v) => !v)}
+                  aria-expanded={showAll}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold cursor-pointer"
+                  style={{ color: "var(--primary-600)" }}
+                >
+                  {showAll ? "Show fewer questions" : `Show all ${faqs.length} questions`}
+                  <span aria-hidden="true" style={{ display: "inline-block", transform: showAll ? "rotate(180deg)" : "none" }}>▾</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

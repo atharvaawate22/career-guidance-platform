@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CUTOFF_YEAR } from "@/lib/dataYear";
 import { COLLEGE_COUNT, PREDICTOR_RECORDS_LABEL } from "@/lib/siteStats";
 import FaqSection from "@/components/FaqSection";
+import { fetchFaqs } from "@/lib/serverFaqs";
 import LatestUpdates from "@/components/LatestUpdates";
 import Testimonials from "@/components/Testimonials";
 import QuickPredict from "@/components/QuickPredict";
@@ -137,7 +138,12 @@ const steps = [
 ];
 
 /* ── Homepage ────────────────────────────────────────────────────── */
-export default function Home() {
+// ISR: the FAQ section is server-rendered from the backend (see lib/serverFaqs.ts);
+// refresh hourly so admin FAQ edits show up the same day.
+export const revalidate = 3600;
+
+export default async function Home() {
+  const faqs = await fetchFaqs();
   // The status pill used to poll /api/v1/health on mount, retrying every 5s
   // until it succeeded. That endpoint runs SELECT 1 plus a Redis PING, is
   // deliberately uncacheable, and carries no rate limiter — so the highest
@@ -378,7 +384,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════ FAQ ══════════════════════════════════════════ */}
-      <FaqSection />
+      <FaqSection initialFaqs={faqs} />
 
       {/* ═══════════════ CTA ══════════════════════════════════════════ */}
       <section
