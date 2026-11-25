@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import ComboBox from "@/components/ComboBox";
@@ -306,11 +305,14 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
           <div className="card mb-6 lg:mb-0 lg:sticky lg:top-4" style={{ borderRadius: "1rem", overflow: "hidden", borderColor: "var(--slate-200)" }}>
             <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--slate-200)", background: "var(--bg-secondary)" }}>
               <h2 className="text-sm font-bold" style={{ color: "var(--slate-900)" }}>Filters</h2>
-              <p className="text-xs mt-0.5" style={{ color: "var(--slate-500)" }}>
-                {selectedYearComplete
-                  ? `${yearDisplayLabel} cutoff data only`
-                  : `${yearDisplayLabel} CAP ${roundsRangeLabel(selectedYearRounds)} data`}
-              </p>
+              {/* Only worth saying when a year is still partial. "2026 cutoff data
+                  only" read as if no other year existed, right above a year
+                  selector that offers 2025 too. */}
+              {!selectedYearComplete && selectedYearRounds.length > 0 && (
+                <p className="text-xs mt-0.5" style={{ color: "var(--slate-500)" }}>
+                  {`${yearDisplayLabel} CAP ${roundsRangeLabel(selectedYearRounds)} data`}
+                </p>
+              )}
             </div>
             <div className="p-5 space-y-0">
 
@@ -411,11 +413,6 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
                   Reset
                 </button>
               </div>
-
-              <p className="text-xs mt-3 text-center" style={{ color: "var(--slate-500)" }}>
-                Previous year data?{" "}
-                <Link href="/resources" style={{ color: "var(--primary-600)", textDecoration: "underline" }}>Resources →</Link>
-              </p>
             </div>
           </div>
 
@@ -430,19 +427,19 @@ export default function CutoffsExplorer({ initialMeta }: { initialMeta?: CutoffM
             ) : error ? (
               <div className="rounded-xl p-4 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }}>{error}</div>
             ) : !hasSearched ? (
-              <div className="card py-20 text-center">
-                <div className="text-5xl mb-4">🔍</div>
-                <p className="text-lg font-semibold mb-1" style={{ color: "var(--slate-900)" }}>Set filters and search</p>
-                <p className="text-sm" style={{ color: "var(--slate-500)" }}>
-                  {selectedYearComplete
-                    ? `Search across ${yearDisplayLabel} CAP Rounds 1–4`
-                    : `Search ${yearDisplayLabel} CAP ${roundsRangeLabel(selectedYearRounds)}`}
-                </p>
+              <div className="card py-10 px-6 text-center">
+                <p className="text-base font-semibold mb-1" style={{ color: "var(--slate-900)" }}>Pick a college, branch or category, then Search</p>
+                {selectedYearRounds.length > 0 && (
+                  <p className="text-sm" style={{ color: "var(--slate-500)" }}>
+                    {selectedYearComplete
+                      ? `Searches all ${yearDisplayLabel} CAP rounds (I–IV) unless you choose one.`
+                      : `Searches ${yearDisplayLabel} CAP ${roundsRangeLabel(selectedYearRounds)}.`}
+                  </p>
+                )}
               </div>
             ) : cutoffs.length === 0 ? (
-              <div className="card py-20 text-center">
-                <div className="text-5xl mb-4">📭</div>
-                <p className="text-base" style={{ color: "var(--slate-500)" }}>No results found. Try different filters.</p>
+              <div className="card py-10 px-6 text-center">
+                <p className="text-base" style={{ color: "var(--slate-500)" }}>No cutoffs match these filters. Try a broader branch, another category, or All CAP Rounds.</p>
               </div>
             ) : (
               <div className="card" style={{ overflow: "hidden" }}>

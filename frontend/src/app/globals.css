@@ -439,26 +439,6 @@ input, select, textarea { font-family: inherit; }
 .faq-answer-grid[data-open="true"] { grid-template-rows: 1fr; }
 .faq-answer-inner { overflow: hidden; }
 
-/* ─── Step indicator (backward-compat) ──────────────────────────────────── */
-.step-indicator {
-  display: flex; align-items: center; gap: 0;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--slate-50);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  overflow: hidden;
-}
-.step-dot {
-  width: 1.75rem; height: 1.75rem; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .75rem; font-weight: 700; flex-shrink: 0;
-  transition: background .3s var(--ease-default), color .3s var(--ease-default);
-}
-.step-dot.active   { background: var(--primary-600); color: white; }
-.step-dot.done     { background: var(--safe); color: white; }
-.step-dot.inactive { background: var(--slate-200); color: var(--slate-500); }
-.step-line { flex: 1; height: 2px; background: var(--slate-200); margin: 0 .5rem; }
-
 /* ─── Stat box (backward-compat) ────────────────────────────────────────── */
 .stat-box {
   background: var(--slate-50);

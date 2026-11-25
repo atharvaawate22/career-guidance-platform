@@ -243,19 +243,8 @@ export default function PredictorForm() {
     <>
         {/* Form card */}
         <div className="card mb-8" style={{ borderRadius: "1rem", overflow: "hidden", borderColor: "var(--slate-200)" }}>
-          {/* Step header strip */}
-          <div className="step-indicator">
-            {["Your Score", "Candidate Profile", "Preferences"].map((s, i) => (
-              <div key={s} className="flex items-center flex-1 min-w-0">
-                {i > 0 && <div className="step-line" />}
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className={`step-dot active`}>{i + 1}</div>
-                  <span className="text-xs font-semibold hidden sm:block" style={{ color: "var(--slate)" }}>{s}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
+          {/* No separate step strip: the numbered section labels below already
+              show the three steps, and the strip just repeated them. */}
           <form onSubmit={handlePredict} className="p-6 space-y-8">
 
             {/* Step 1 */}
@@ -375,16 +364,13 @@ export default function PredictorForm() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid sm:grid-cols-2 gap-3">
-                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--primary-50)", border: "1px solid var(--primary-200)", color: "var(--slate-700)" }}>
-                    <span className="font-semibold" style={{ color: "var(--primary-600)" }}>Seat rule:</span>{" "}
-                    Male → gender-neutral seats only. Female → gender-neutral + ladies seats.
-                  </div>
-                  <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--slate-50)", border: "1px solid var(--slate-200)", color: "var(--slate-500)" }}>
-                    <span className="font-semibold" style={{ color: "var(--slate-700)" }}>Minority:</span>{" "}
-                    Add type/group only if applicable. Groups require a type selection first.
-                  </div>
-                </div>
+                {/* One quiet line instead of two callout boxes: the gender rule is
+                    worth knowing; the minority hint was already said by the
+                    group field's own "Select minority type first" placeholder. */}
+                <p className="mt-3 text-xs" style={{ color: "var(--slate-500)" }}>
+                  Male candidates are matched to gender-neutral seats; female candidates to gender-neutral and ladies seats.
+                  Minority fields are optional.
+                </p>
               </div>
             </div>
 
