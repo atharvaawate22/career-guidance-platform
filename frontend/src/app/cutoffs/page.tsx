@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CutoffsExplorer from "@/components/CutoffsExplorer";
+import ExpandableRows from "@/components/ExpandableRows";
 import { collegeSlug } from "@/lib/collegeSlug";
 import { SITE_URL } from "@/lib/site";
 import {
@@ -20,6 +21,8 @@ import {
 export const revalidate = 21600;
 
 const TOP_TABLE_ROWS = 100;
+/** Rows of the top-cutoffs table shown before "Show all" (the rest stay in the HTML, just hidden). */
+const TOP_TABLE_PREVIEW = 10;
 
 const fmtPercentile = (v: number | string | null) =>
   v == null ? "—" : Number(v).toFixed(2);
@@ -123,6 +126,7 @@ export default async function CutoffsPage() {
               </p>
             </div>
             <div className="card" style={{ overflow: "hidden" }}>
+              <ExpandableRows total={topRows.length} previewCount={TOP_TABLE_PREVIEW}>
               <div style={{ overflowX: "auto" }}>
                 <table className="w-full text-sm" style={{ borderCollapse: "collapse", minWidth: "640px" }}>
                   <thead>
@@ -134,8 +138,9 @@ export default async function CutoffsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {topRows.map((row: CutoffRow) => (
-                      <tr key={row.id} style={{ borderBottom: "1px solid var(--slate-100)" }}>
+                    {topRows.map((row: CutoffRow, i: number) => (
+                      <tr key={row.id} style={{ borderBottom: "1px solid var(--slate-100)" }}
+                        className={i >= TOP_TABLE_PREVIEW ? "group-data-[collapsed=true]:hidden" : undefined}>
                         <td className="px-4 py-2.5" style={{ color: "var(--slate-900)" }}>
                           {row.college_code ? (
                             <Link href={`/cutoffs/${collegeSlug(row.college_code, row.college_name)}`}
@@ -157,6 +162,7 @@ export default async function CutoffsPage() {
                   </tbody>
                 </table>
               </div>
+              </ExpandableRows>
             </div>
           </section>
         )}
@@ -174,8 +180,20 @@ export default async function CutoffsPage() {
                 Branch-wise closing percentiles and ranks for every CAP round — {colleges.length} engineering colleges across Maharashtra.
               </p>
             </div>
-            <div className="card p-5">
-              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm list-none">
+            {/* Native <details>: the links stay in the server HTML while collapsed
+                (crawlable, and Chrome's find-in-page opens it on a match). */}
+            <details className="card group">
+              <summary
+                className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden text-sm font-semibold"
+                style={{ color: "var(--primary-600)" }}
+              >
+                <span>
+                  <span className="group-open:hidden">Show all {colleges.length} colleges (A–Z)</span>
+                  <span className="hidden group-open:inline">Hide college list</span>
+                </span>
+                <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
+              </summary>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm list-none px-5 pb-5 pt-1">
                 {colleges.map(c => (
                   <li key={c.code}>
                     <Link href={`/cutoffs/${collegeSlug(c.code, c.name)}`}
@@ -185,7 +203,7 @@ export default async function CutoffsPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
           </section>
         )}
 
