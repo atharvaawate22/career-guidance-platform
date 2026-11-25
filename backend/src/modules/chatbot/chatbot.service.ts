@@ -337,6 +337,22 @@ const FUZZY_MATCH_MIN_MARGIN = 0.12;
 /** Matches disambiguationChips' own display cap — a substring hint with more real matches than this is too broad to show as a shortlist. */
 const MAX_NAME_MATCHES = 5;
 
+/**
+ * Does a message that matched no other intent name a college? Used as a
+ * late fallback so "VIT", "zeal college", "vit pune cs", "jspm latur cs" or
+ * "WCE electrical or mechanical" reach the cutoff lookup even without the
+ * word "cutoff" — college-only messages were about a third of the bot's
+ * unanswered queries (Sep–Nov 2026). Reuses the cutoff intent's own
+ * resolution (code → shared acronym → alias/name/fuzzy), so a broad place
+ * name like "pune" (52 colleges) or junk text still resolves to nothing.
+ */
+async function namesCollege(normalized: string, words: string[]): Promise<boolean> {
+  const code = normalized.match(COLLEGE_CODE_PATTERN);
+  if (code && (await repo.searchCollegesByCode(code[0])).length > 0) return true;
+  if (words.some((w) => AMBIGUOUS_COLLEGE_ACRONYMS[w])) return true;
+  return (await resolveCollege(normalized, words)).length > 0;
+}
+
 async function resolveCollege(
   normalized: string,
   words: string[],
@@ -923,6 +939,9 @@ async function scoreBestFaq(normalized: string): Promise<FaqScoreResult> {
   return { primary, rescue };
 }
 
+/** Words ignored when deciding whether a message is just a branch/category answer ("chemical branch"). */
+const BARE_SLOT_FILLER = new Set(['branch', 'branches', 'engineering', 'engg', 'dept', 'department', 'stream', 'the', 'in', 'for']);
+
 const MENU_TRIGGERS = new Set(['hi', 'hello', 'hey', 'hii', 'menu', 'help', 'start', 'options']);
 
 /**
@@ -1025,7 +1044,7 @@ export async function getReply(
     return withMenu(MENU_TEXT, true);
   }
 
-  if (/^[1-6]$/.test(normalized)) {
+  if (/^[1-7]$/.test(normalized)) {
     switch (normalized) {
       case '1':
         return reply(
@@ -1040,6 +1059,8 @@ export async function getReply(
         return handlePredictorIntent();
       case '5':
         return handleCounselorIntent();
+      case '7':
+        return handleExamDatesIntent();
       case '6':
         return reply(
           'Go ahead — type your question. Common topics: float vs freeze, TFWS, HU vs OHU, e-Scrutiny, seat acceptance fee.',
@@ -1109,7 +1130,11 @@ export async function getReply(
   // branch/category alias, not just one) so it only catches genuine bare
   // slot-answers, never a real question that happens to contain one of those
   // words ("what is TFWS" is already resolved by the rescue above).
-  const bareWords = normalized.split(/\s+/).filter(Boolean);
+  // Filler like "branch"/"engineering" is dropped first, so "chemical branch"
+  // or "computer engineering" counts as a bare branch answer too.
+  const bareWords = normalized
+    .split(/\s+/)
+    .filter((w) => w && !BARE_SLOT_FILLER.has(w));
   const isBareSlotWord =
     bareWords.length > 0 && bareWords.every((w) => BRANCH_ALIASES[w] || CATEGORY_ALIASES[w]);
   if (isBareSlotWord) {
@@ -1122,10 +1147,19 @@ export async function getReply(
     // Ask for the missing piece instead of dropping into the generic "I
     // don't understand" fallback, which read as ignoring a perfectly
     // reasonable (if out-of-order) answer.
+    const slotText = bareWords.join(' ');
     return reply(
-      `Sure — which college would you like the "${normalized}" cutoff for? Try something like "cutoff for COEP ${normalized}".`,
+      `Sure — which college would you like the "${slotText}" cutoff for? Try something like "cutoff for COEP ${slotText}".`,
       true,
     );
+  }
+
+  // A message that names a college but carries no intent keyword ("VIT",
+  // "zeal college", "jspm latur cs") — treat it as a cutoff lookup. Checked
+  // after every keyword/FAQ path, so it never steals a question they answer.
+  const allWords = normalized.split(/\s+/).filter(Boolean);
+  if (await namesCollege(normalized, allWords)) {
+    return handleCutoffIntent(normalized, sessionId);
   }
 
   // Off-topic small talk (jokes, arithmetic, "are you a bot") — checked only

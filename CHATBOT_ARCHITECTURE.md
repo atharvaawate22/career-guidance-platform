@@ -497,6 +497,19 @@ keeps the §3.4 rule intact: dates come from official rows, never from
 generation. It sits before `CAP_DATE_PATTERN` in `KEYWORD_INTENTS` because
 "exam schedule" also contains "schedule".
 
+**College named without a keyword, and bare branch answers (added
+2026-11-25).** A third of the Sep–Nov 2026 unanswered log was a college with
+no intent keyword: "VIT", "zeal college", "vit pune cs", "jspm latur cs",
+"WCE electrical or mechanical". After every keyword/FAQ/slot path declines,
+`namesCollege()` runs the cutoff intent's own resolution (institute code,
+shared acronym, alias/name/fuzzy) and, on a hit, hands the message to
+`handleCutoffIntent`. It sits *after* the FAQ paths so it can never steal a
+question they answer, and a broad place name ("pune", 52 colleges) or junk
+still resolves to nothing and logs as before. The bare-slot check now drops
+filler ("branch", "engineering", …) first, so "Chemical branch" asks for the
+college instead of falling through. Menu option 7 (appended, so 1–6 keep
+their meaning on WhatsApp) routes to the exam-date intent.
+
 The **defer branches are already live** (step a): personalised-recommendation
 questions ("which branch is best for me") point to /predictor and /book;
 fee-amount questions point to /updates. They run *before* the keyword/FAQ

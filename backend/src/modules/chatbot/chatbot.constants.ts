@@ -10,6 +10,9 @@ export const MENU_OPTIONS = [
   { number: 4, label: 'Which colleges can I get? (Predictor)' },
   { number: 5, label: 'Talk to a counselor' },
   { number: 6, label: 'Ask a general question (float vs freeze, HU/OHU, etc.)' },
+  // Appended, not inserted, so 1–6 keep meaning the same thing for anyone
+  // who has learned them (WhatsApp users reply with bare numbers).
+  { number: 7, label: 'MHT-CET exam dates & latest notices' },
 ] as const;
 
 export const MENU_TEXT =
@@ -18,7 +21,7 @@ export const MENU_TEXT =
   '\n\nReply with a number, or just type your question.';
 
 export const FALLBACK_TEXT =
-  "I'm not able to help with that one, but I do know cutoffs, CAP dates, fees, and documents inside out — " +
+  "I'm not able to help with that one, but I do know cutoffs, MHT-CET exam dates, CAP dates, fees, and documents inside out — " +
   'try asking about one of those, or reply "menu" to see everything I can help with.';
 
 /** Common abbreviations students actually type, mapped onto substrings that appear in `courses.branch_group`. */

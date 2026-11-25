@@ -722,3 +722,70 @@ describe('exam-date intent (MHT-CET exam cycle, separate from CAP dates)', () =>
     expect(getCurrentCycleExamNoticesMock).not.toHaveBeenCalled();
   });
 });
+
+describe('college named without a "cutoff" keyword (late fallback)', () => {
+  const zeal = { college_code: '06271', name: "Zeal Education Society's Zeal College of Engineering & Research, Narhe, Pune" };
+
+  it('treats a bare college name as a cutoff lookup and asks for the branch', async () => {
+    searchCollegesByNameMock.mockResolvedValue([zeal]);
+    const reply = await getReply('Zeal college', 'website');
+    expect(reply.matched).toBe(true);
+    expect(reply.text).toContain('Zeal College of Engineering');
+    expect(reply.text).toContain('Which branch?');
+    expect(logUnansweredQueryMock).not.toHaveBeenCalled();
+    expect(searchRagChunksMock).not.toHaveBeenCalled();
+  });
+
+  it('answers college + branch without the word cutoff ("wce electrical")', async () => {
+    searchCollegesByNameMock.mockResolvedValue([{ college_code: '06007', name: 'Walchand College of Engineering, Sangli' }]);
+    getCutoffAnswerMock.mockResolvedValue([
+      { college_name: 'Walchand College of Engineering, Sangli', branch: 'Electrical Engineering', cap_round: 1, percentile: 95.12 },
+    ]);
+    const reply = await getReply('WCE Electrical or mechanical branch', 'website');
+    expect(reply.text).toContain('95.12');
+  });
+
+  it('asks which VIT for a bare shared acronym instead of falling back', async () => {
+    const reply = await getReply('VIT', 'website');
+    expect(reply.matched).toBe(true);
+    expect(reply.text).toContain('could mean a few different colleges');
+    expect(logUnansweredQueryMock).not.toHaveBeenCalled();
+  });
+
+  it('still falls back for junk text that resolves to no college', async () => {
+    const reply = await getReply('Asdfghjklwwertyuiopzxcvbnm', 'website');
+    expect(reply.matched).toBe(false);
+    expect(logUnansweredQueryMock).toHaveBeenCalled();
+  });
+
+  it('does not treat a broad place name (too many colleges) as a college', async () => {
+    searchCollegesByNameMock.mockResolvedValue(
+      Array.from({ length: 6 }, (_, i) => ({ college_code: String(i), name: `College ${i}, Pune` })),
+    );
+    const reply = await getReply('Pune', 'website');
+    expect(getCutoffAnswerMock).not.toHaveBeenCalled();
+    expect(reply.text).not.toContain('Which branch?');
+  });
+});
+
+describe('bare branch answer with filler words', () => {
+  it('asks for the college when the message is just "Chemical branch"', async () => {
+    const reply = await getReply('Chemical branch', 'website');
+    expect(reply.matched).toBe(true);
+    expect(reply.text).toContain('which college would you like the "chemical" cutoff for');
+    expect(logUnansweredQueryMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('menu option 7 (exam dates)', () => {
+  it('routes a bare 7 to the exam-date notices', async () => {
+    const reply = await getReply('7', 'website');
+    expect(getCurrentCycleExamNoticesMock).toHaveBeenCalled();
+    expect(reply.matched).toBe(true);
+  });
+
+  it('lists option 7 in the greeting menu', async () => {
+    const reply = await getReply('menu', 'website');
+    expect(reply.text).toContain('7. MHT-CET exam dates & latest notices');
+  });
+});
