@@ -33,6 +33,22 @@ Captured from the live site, [cethub.in](https://cethub.in), in November 2026.
   </tr>
 </table>
 
+### Admin panel
+
+Role-protected, at `/admin`. Pages that list students' or reviewers' personal
+details (bookings, testimonials) are left out here.
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/screenshots/admin-dashboard.png"><img src="docs/screenshots/admin-dashboard.png" alt="Admin dashboard with booking, FAQ, guide download, resource and update counts" /></a><br /><sub><b>Dashboard</b>: bookings, FAQs, guide downloads, resources and updates at a glance</sub></td>
+    <td width="50%"><a href="docs/screenshots/admin-updates.png"><img src="docs/screenshots/admin-updates.png" alt="Admin updates page listing published MHT-CET notices" /></a><br /><sub><b>Updates</b>: publish and edit the official-sourced CET notices shown on /updates</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="docs/screenshots/admin-cap-schedule.png"><img src="docs/screenshots/admin-cap-schedule.png" alt="Admin CAP schedule page with events grouped by stage and a status per event" /></a><br /><sub><b>CAP Schedule</b>: events by stage with a status each; powers the public schedule page</sub></td>
+    <td width="50%"><a href="docs/screenshots/admin-faqs.png"><img src="docs/screenshots/admin-faqs.png" alt="Admin FAQ manager with active toggles" /></a><br /><sub><b>FAQs</b>: the same FAQs feed the site and the chatbot's FAQ matching</sub></td>
+  </tr>
+</table>
+
 ---
 
 # MHT CET Admission Guidance Platform
@@ -75,12 +91,20 @@ The system separates content delivery, prediction logic, booking automation, and
 
 ### Admin Modules
 
-- CET Update Management
-- Cutoff Dataset Upload & Management
-- Booking Management Dashboard
-- Resource / Guide Upload
-- Unanswered Chatbot Query Review
-- Role-Protected Admin Access
+- Dashboard with booking, FAQ, guide-download, resource and update counts
+- Booking management (status changes, cancellations)
+- CET update management
+- CAP schedule management (powers the public schedule page)
+- FAQ management (shared by the FAQ section and the chatbot)
+- Guide and resource uploads (PDF/DOC, checked by file signature)
+- Testimonial moderation (reviews are held until approved)
+- Platform settings
+- Role-protected admin access (JWT, bcrypt, rate-limited login)
+
+Cutoff datasets are loaded with the scripts in `backend/scripts/`
+(`load_cutoffs.js`, `load_cutoffs_incremental.js`), not from the panel.
+Unanswered chatbot questions are logged and available from
+`GET /api/v1/admin/unanswered-queries`; there is no panel page for them yet.
 
 ---
 
@@ -282,8 +306,10 @@ The architecture allows future expansion to include:
 The platform collects limited student data for:
 
 - Consultation booking
-- Lead tracking
-- Predictor usage analytics
+- Guide downloads (name and email)
+- Unanswered chatbot questions (kept for 180 days, then deleted)
+
+The college predictor does not store what students enter.
 
 Security practices include:
 
