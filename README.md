@@ -17,6 +17,21 @@ pgvector) · Redis · Zod · Vercel · Render
 > ⚠️ This project is under a source-available license. Viewing and evaluation 
 > are welcome. Redistribution or redeployment is not permitted.
 
+## Screenshots
+
+Captured from the live site, [cethub.in](https://cethub.in), in November 2026.
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/screenshots/home.png"><img src="docs/screenshots/home.png" alt="CET Hub homepage with the quick college predictor" /></a><br /><sub><b>Home</b>: quick predictor from rank or percentile, category and gender</sub></td>
+    <td width="50%"><a href="docs/screenshots/predictor.png"><img src="docs/screenshots/predictor.png" alt="College predictor results split into Safe, Target and Dream" /></a><br /><sub><b>College predictor</b>: Safe / Target / Dream results against official 2026 CAP Round I cutoffs</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="docs/screenshots/college-cutoffs.png"><img src="docs/screenshots/college-cutoffs.png" alt="COEP Technological University cutoff page with all four CAP rounds" /></a><br /><sub><b>College cutoff page</b>: one of 390 server-rendered pages, every category and seat type across CAP Rounds I–IV</sub></td>
+    <td width="50%"><a href="docs/screenshots/chatbot.png"><img src="docs/screenshots/chatbot.png" alt="Avani chatbot answering a cutoff question with real data" /></a><br /><sub><b>Avani chatbot</b>: answers cutoff, CAP and exam-date questions from the official data</sub></td>
+  </tr>
+</table>
+
 ---
 
 # MHT CET Admission Guidance Platform
