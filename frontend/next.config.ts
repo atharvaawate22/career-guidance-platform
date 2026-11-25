@@ -7,10 +7,11 @@ const nextConfig: NextConfig = {
   compress: true,
   // Remove the 'X-Powered-By: Next.js' header to avoid fingerprinting.
   poweredByHeader: false,
-  // Required for the production Docker image (see frontend/Dockerfile).
-  // Produces .next/standalone — a self-contained server.js bundle that runs
-  // without a node_modules directory at container runtime.
-  output: 'standalone',
+  // Docker only (frontend/Dockerfile sets NEXT_OUTPUT_STANDALONE=1): produces
+  // .next/standalone, a self-contained server.js bundle that runs without
+  // node_modules. Left off elsewhere because `next start` (local runs, e2e)
+  // doesn't support standalone output, and Vercel doesn't need it.
+  ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' as const } : {}),
   // Security and caching headers applied to every response.
   //
   // NOTE: Content-Security-Policy is intentionally absent here. It is now
